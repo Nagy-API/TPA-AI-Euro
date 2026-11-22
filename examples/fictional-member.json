@@ -1,0 +1,13 @@
+{
+  "_notice":"FICTIONAL TEST DATA ONLY. Not real patient or insurer information.",
+  "memberId":"M-DEMO-001",
+  "displayName":"Demo Member",
+  "tenant":"TENANT-DEMO-A",
+  "tier":"GOLD",
+  "policyVersion":"POL-DEMO-2026-v1",
+  "coverageByServiceCode":{
+    "MRI":{"coverageStatus":"COVERED_WITH_CONDITIONS","copayPercent":20,"remainingLimit":5000,"currency":"EGP","requiresPreApproval":true},
+    "DENTAL-COSMETIC":{"coverageStatus":"EXCLUDED","requiresPreApproval":false},
+    "UNKNOWN":{"coverageStatus":"UNKNOWN","requiresPreApproval":null}
+  }
+}
