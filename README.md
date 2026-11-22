@@ -83,3 +83,51 @@ A member can identify and verify through trusted backend/mock; a scoped session 
 ## Repository checks
 
 Run `python scripts/validate_repository.py` to check local Markdown links, code fences, JSON and eval definitions; GitHub Actions runs the same sanity check on PRs and pushes to `main`. **This does not prove the application works**, and no LLM/backend integration exists yet.
+
+## First working slice (feature branch, not yet production)
+
+A real, runnable **demo** implementation is under `src/` with no runtime npm dependencies:
+
+- `/health` reports demo status (not production readiness).
+- `POST /v1/chat` requires a **synthetic** `x-demo-session` header resolved by the local fixture backend; it never trusts member/tier values in the message or LLM arguments.
+- `ClaudeIntentSelector` uses the Anthropic Messages HTTP API tool-use response to pick **one** allowed service code (MRI/CBC/XRAY), with no member ID in tool input.
+- A mock backend returns member-scoped deterministic coverage. Output is rendered by a **deterministic formatter**, not free-form LLM drafting, to prevent hallucinated co-pay/limits/approvals.
+- `DemoKeywordSelector` is an explicitly **non-AI offline substitute** for local development and tests.
+
+### Run without an API key (non-AI offline demo)
+
+Requires Node.js 22.16+ (native experimental TypeScript stripping). **Do not expose this HTTP server on a public interface.** It binds to `127.0.0.1` and includes fixed demo tokens. Never send real member data.
+
+```bash
+ENABLE_DEMO_AUTH=true DEMO_INTENT_MODE=fixture npm run dev
+```
+
+In a second terminal:
+
+```bash
+curl -X POST http://127.0.0.1:3000/v1/chat \
+  -H 'Content-Type: application/json' \
+  -H 'x-demo-session: demo-gold-session' \
+  -d '{"message":"هل الرنين المغناطيسي مغطى؟"}'
+```
+
+Switch `demo-gold-session` to `demo-silver-session` or `demo-vip-session` to compare **fictional** results. Missing or incorrect session tokens return HTTP 401. `ENABLE_DEMO_AUTH=true` must be explicitly set and the process refuses `NODE_ENV=production`.
+
+### Run with Claude tool-use (requires your own key)
+
+```bash
+ENABLE_DEMO_AUTH=true ANTHROPIC_API_KEY='<your key from local secret storage>' ANTHROPIC_MODEL='<model ID verified in your Anthropic account>' npm run dev
+```
+
+Unset `DEMO_INTENT_MODE` to use Claude. **Never put keys in Git or chat.** Claude receives the text of the question and the *public fake service catalog*, but no profile, tenant/member ID, token, policy tier or coverage amounts. As with all user text, the question itself could contain personal information; therefore this implementation is for **synthetic queries only**, pending data-handling approval and a PII minimization design.
+
+This integration calls the documented Anthropic Messages HTTPS endpoint directly for now, with a small replaceable adapter; migrating to the official SDK is a planned follow-up. **No real Claude call is claimed as verified** without credentials and measured outputs. Official tool-use docs: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
+
+### Test
+
+```bash
+npm test
+python scripts/validate_repository.py
+```
+
+No `npm install` is needed for the zero-dependency demo. Node.js TypeScript stripping executes code but does **not** type-check it; type-checking was performed locally using TypeScript 5.8.3 + Node type declarations, and automated type-check setup is planned. **Do not deploy this demo**: no genuine OTP/session issuer, persistent storage, concurrency controls, real backend, redacted audit system, regulatory review or production security validation are included.

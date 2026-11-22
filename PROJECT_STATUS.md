@@ -1,42 +1,43 @@
 # Project Status — source of truth
 
-**Last review:** 2026-11-22  
-**Lifecycle:** Planning / architecture bootstrap  
-**Owner:** Nagy (AI workstream); GitHub target owner `Nagy-API`  
-**Repository:** Local starter scaffold only. **Remote GitHub repo has NOT been created** by this bootstrap.  
-**Target name:** `tpa-ai-service` (PRIVATE recommended)  
-**Default branch / commit SHA / PR:** UNVERIFIED until remote creation.
+**Last review:** 2026-11-23  
+**Lifecycle:** First vertical slice implemented locally; feature branch PR pending review  
+**Owner:** Nagy's AI workstream  
+**Repository:** `Nagy-API/TPA-AI-Euro` (private), default branch `main`  
+**Known main baseline before this branch:** `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`  
+**Implementation branch:** `feat/coverage-inquiry-v1`  
+**Latest feature commit / PR:** record after GitHub push; do not guess.
 
-## Completed (documented, not implemented)
+## Completed and verified
 
-- [x] Captured project charter and initial AI/service ownership boundary.
-- [x] Selected member-authentication gate **before** data-aware AI conversation as proposed architecture.
-- [x] Created proposed context, sequence, use-case and state diagrams as Mermaid source.
-- [x] Drafted initial contracts, discovery questions, tests, roadmap, governance, and handoff rules.
-- [x] Prepared fictional demo scenarios and evaluation dataset draft.
-- [x] Added first-vertical-slice task plan and repository-documentation validation script/CI workflow.
-- [x] Published and remotely verified 31 project files on `main` (`461868c93b3ffd0eab00ff1f1455be701cfcedb4`).
+- [x] Architecture bootstrap and 31 source-of-truth docs/diagram files published in `461868c93b3ffd0eab00ff1f1455be701cfcedb4`.
+- [x] GitHub follow-up status commit `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
+- [x] TypeScript Node 22.16+ demo HTTP server with health route and protected `/v1/chat`.
+- [x] Fake **trusted session** resolution and tenant-scoped synthetic TPA coverage backend; no real identities.
+- [x] Claude Messages HTTP tool-use intent adapter with allowlisted `get_member_coverage` code-only argument; actual hosted model not invoked.
+- [x] Safe deterministic result formatting and clarification/failure paths.
+- [x] Offline (non-AI) keyword adapter for API demonstration with no API key.
+- [x] Local tests: `npm test` **16/16 passed**, `python scripts/validate_repository.py` passed, strict TypeScript static check passed using installed TypeScript 5.8.3 + Node typings. Local curl smoke: healthy, GOLD MRI answer (synthetic), unauthenticated 401.
 
-## Verified implementation evidence
+## Explicitly NOT verified / NOT done
 
-- Repo bootstrap sanity validation **ran locally** on 2026-11-22: `python scripts/validate_repository.py` => `Validation OK` (links, Markdown fences, JSON, 9 draft eval cases). **This is only documentation/fixture verification.**
-- No application runtime has been implemented or validated as part of this scaffold.
-- No live backend/tool integration or end-to-end tests have run.
-- The parent prototype's landing page was read, but its inner screens and source code were **not** inspected by this effort.
+- No actual Claude/DeepSeek/OpenAI live API call; no provider cost or accuracy benchmarks.
+- No real OTP, member session, CRM/policy API or healthcare data. Mock tokens are insecure, *localhost demo only*.
+- No production security audit, data-residency/privacy/legal assessment, human handoff, access-token lifecycle, runtime tracing, caching or service monitoring.
+- No deployed app or production traffic. Real integration and domain contract still need agreement.
+- Native Node TS type stripping is experimental; CI currently covers tests/docs, not compilation/type checking on a clean install.
 
 ## Next prioritized actions
 
-1. Hold a short Backend + TPA Domain alignment: identity source/OTP channel/session model/tenant lookup; coverage response and error contract; approval authority; demo vs real data.
-2. Implement mock identity gate + `get_member_coverage` tool + deterministic fixtures; connect 1 LLM provider and build evaluation tests for coverage and failure paths.
+1. Review PR and tested code; keep `main` unchanged until review/explicit merge approval.
+2. Confirm with core Backend + TPA Domain owner: identity/session/auth and Coverage API contract, service taxonomy, fake vs real data.
+3. Choose approved Claude model and approved processing/data residency terms; run **synthetic** Arabic model cases with a privately configured key and record tool-choice evaluations.
+4. Replace demo identity fixture with authenticated sandbox integration, add authoritative typed tool response schema validation, telemetry redaction, rate limits and abuse protections before any real data.
 
-## Blockers / unknowns
+## Risks / assumptions
 
-- Does member identity use insurance card ID, company-issued member number, national ID, or provider-issued mapping? **Unconfirmed.** National ID should not be the default requested identifier.
-- Auth system, tenant resolution, session lifetime, supported channels and regulatory/privacy requirements **unconfirmed**.
-- Exact policy engine contract, service code taxonomy and medical authorization workflow **unconfirmed**.
-- Actual team staffing and core backend language, deploy platform, LLM provider and data residency **unconfirmed**.
-- Dates and budgets in original proposal are **estimates**, not verified scope commitments.
+- First slice uses `MRI/CBC/XRAY` fake catalog and fictional Gold/Silver/VIP benefits; not approved business coverage rules.
+- Real user text can include personal information even when no profile is sent. Never use live personal data until reviewed and appropriately filtered.
+- Tool call chooses a service code; it cannot choose member ID, tenant, plan or financial values.
 
-## Change log discipline
-
-At the end of each merged task: check off a roadmap item if accepted, add test evidence, and update this file's next steps. If an item isn't proven by code/tests, mark it as design-only or unverified. Update `HANDOFF.md` on major milestones.
+At each accepted change: update this file + `HANDOFF.md` and append `docs/CHANGELOG.md`, with observed SHA, tests and next step.

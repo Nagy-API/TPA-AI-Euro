@@ -1,52 +1,50 @@
-# Handoff to a new ChatGPT conversation, Codex or Claude
+# Handoff — TPA AI Euro workstream
 
-## First sentence for a new agent
+## Mandatory reading for a new chat or coding agent
 
-"You are continuing Nagy's TPA AI workstream. Inspect the current GitHub repository first and read README.md, AGENTS.md, PROJECT_STATUS.md, and this HANDOFF.md; **do not assume** the README describes implemented code. Report actual verified repo state before proposing changes. Speak Egyptian Arabic to Nagy; use English for agent prompts and code."
+Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/architecture.md`, `docs/api-contracts.md`, and relevant code/tests. Check **live** GitHub branch, SHA, PR and CI before making changes; docs may lag. Address Nagy in Egyptian Arabic, explain design trade-offs, build while teaching; never claim execution without evidence.
 
-## Mission
+## Project identity
 
-Design and build the secure **AI layer** in-house for a medical insurance Third-Party Administrator (TPA) platform. Learn-by-building with Nagy. The broader TPA core business backend is owned by another team; coordinate via contracts, fixtures, versioned APIs.
+- Private GitHub repository: `Nagy-API/TPA-AI-Euro`, default branch `main`.
+- Main baseline before implementation: `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
+- First implementation branch: `feat/coverage-inquiry-v1`.
+- Feature commit SHA and PR number: populate after GitHub push; never fabricate.
+- Scope: AI layer only, not full TPA core/claims/eligibility engine.
 
-## Settled direction (architecture proposals, not external commitments)
+## Settled decisions
 
-- Scope V1 is a verified-member coverage assistant using an authenticated backend session, tool calling, mock backend first, later real integration.
-- The first insurance number / card ID message belongs to deterministic Identity Gateway, **not to the LLM**. Verify via approved OTP or other method; secure web/mobile sessions may skip repeated ID entry.
-- Discover membership tier/policy from trusted backend; **never trust user's claimed tier** or an LLM-picked member ID. Only query per-request minimal authorized context.
-- Human owns medical decisions; deterministic core owns eligibility/coverage/financial rules.
-- Prefer simple TypeScript/Node.js modular service, pending technical alignment with core team. No premature microservices/agent frameworks/RAG.
-- Use fictitious data. Sensitive health/insurance data must not enter Git or unmanaged LLM providers.
-- Version 1: small, reliable core with clean extension points; version 2: richer modules after evidence and agreement.
+- Learn by implementing. Use small reviewable changes, architecture reasoning and evidence-backed tests; not a course before development.
+- Identity must be verified outside the LLM; member ID alone isn't authentication. WhatsApp/phone account existence must not be exposed.
+- Real TPA backend owns identity, coverage/policy rules, monetary values, eligibility, claims, approvals, authorization; medical decisions belong to doctors.
+- The AI receives only minimum needed context and may request allowlisted tools, never direct DB access.
+- V1 demo uses **fictional sessions and mock coverage**, not live OTP, CRM or policy backend.
+- TypeScript + Node.js modular service, no unnecessary microservices, RAG or orchestration framework.
+- Claude chosen only as **first provider integration experiment**, not exclusive/approved product standard.
+- For now model handles intent classification + tool selection, deterministic formatter handles final answer; avoiding generated financial/coverage claims is intentional.
+- Fixture mode is explicitly non-AI (`DEMO_INTENT_MODE=fixture`).
 
-## What's verified vs unknown
+## Verified tests and implementation (local, not release)
 
-- VERIFIED (source discussion): user wants repository documentation and continuity; user/team built a multi-screen TPA prototype landing page; three audio notes and two documents were considered in prior conversation.
-- NOT VERIFIED: actual prototype source, production API availability, DB schema, authentication mechanism, policy rule specification, integration tests, legal approvals, model configuration, any real release or deployment.
-- Do not re-create or invent requirements from source documents if unavailable. Ask for source access when needed.
+`npm test`: 16/16 passed on Node 22.16.0 (native TypeScript stripping); `python scripts/validate_repository.py` passed; `tsc --noEmit ... --strict` locally passed with installed Node typings; HTTP curl smoke: synthetic Gold MRI result plus unauthenticated 401. Tests do **not** prove live Anthropic API compatibility or security.
 
-## Latest status / next action
+## Primary files
 
-Read `PROJECT_STATUS.md` for the latest factual state. As of 2026-11-22, the private GitHub repository `Nagy-API/TPA-AI-Euro` on branch `main` was verified with an initial 13-byte README (`3d50b5fe163e3d9c880b5ffe956c220426b25cfb`); a local 31-file scaffold passed documentation/fixture checks. Upload was completed and verified: 31 files published in commit `461868c93b3ffd0eab00ff1f1455be701cfcedb4`. Next: settle identity + coverage API contracts with the backend/domain owners, then implement mock vertical slice.
+- `src/contracts.ts` — typed demo contracts.
+- `src/mock-backend.ts` — fixed synthetic sessions and mock policy engine.
+- `src/claude-selector.ts` — single-service-code tool-use selector via Anthropic HTTPS.
+- `src/demo-selector.ts` — deterministic non-AI offline selector.
+- `src/coverage-assistant.ts` — gate, allowlisted tool, error handling, deterministic coverage response.
+- `src/http-server.ts`, `src/index.ts` — loopback-only demo HTTP endpoint.
+- `tests/` — 16 local unit/integration tests.
 
-## How to work with Nagy
+## Open dependencies and next steps
 
-1. Natural Egyptian Arabic, address him as Nagy, be direct and collaborative.
-2. Challenge bad assumptions; explain trade-offs concisely.
-3. Prioritize execution and teach in parallel; no course prerequisite.
-4. Produce ready-to-run prompts for coding agents, but inspect their diffs/tests rather than accepting claims.
-5. When hands-on, issue 1–3 precise next steps. No unnecessary repeated questions.
-6. Update the repo's durable docs/decisions/status after substantial work.
-7. Do not claim tools, tests or deployment unless actually verified; protect secrets and collaborators' uncommitted work.
+1. Review feature PR; do not merge/deploy without Nagy's approval.
+2. Agree with TPA domain/backend engineers on source-of-truth coverage taxonomy, auth/session and API contracts.
+3. Obtain an approved model + local API key in secret manager (never Git/chat), run synthetic Arabic model evals. Real-data provider/privacy clearance is not obtained.
+4. Improve service-token/session architecture, rate limiting, response schema verification, redacted observability and sandbox integration prior to production.
 
-## New-session handoff checklist
+## Agent collaboration rules
 
-- Repository URL / remote access: https://github.com/Nagy-API/TPA-AI-Euro (private; accessible via connected GitHub tools)
-- Default branch: main (verified)
-- Architecture bootstrap commit SHA: `461868c93b3ffd0eab00ff1f1455be701cfcedb4` (31 files verified). Recheck current `main` HEAD before every write.
-- Current PR / issue: NONE
-- Completed implementation: NONE VERIFIED
-- Pending: mock service, contract alignment, implementation tests
-- Blockers: identity/tenant/channel and real coverage API details
-- Security gates: private repo; synthetic test data; no medical AI decisions; no direct DB
-
-When these values change, update **both** `HANDOFF.md` and `PROJECT_STATUS.md` with concrete verified identifiers and results.
+Respect `AGENTS.md`. Observe actual branch/status and collaborator edits. Prefer explicit scope, clean code, narrow tests, clear handoff. No secrets, patient data, unreviewed medical decisions, production changes, force pushes or destructive actions.

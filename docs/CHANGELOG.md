@@ -11,8 +11,9 @@
 
 > Append an entry for each meaningful merged change including files/feature, evidence, risks and relevant issue/PR if known.
 
-## 2026-11-22 — GitHub bootstrap published
+## 2026-11-23 — First runnable coverage inquiry slice (feature PR, not production)
 
-- Verified private `Nagy-API/TPA-AI-Euro` repository on `main`.
-- Published 31 planning, architecture, diagrams, evaluation fixtures and workflow files in commit `461868c93b3ffd0eab00ff1f1455be701cfcedb4`.
-- Confirmed remote tree contains 31 files and fetched representative content. No application runtime or integration tests performed.
+- Added Node.js TypeScript server, demo-only fixed-scope sessions, synthetic tier coverage fixtures, Claude tool-use intent selector and deterministic safe formatter.
+- Added offline keyword selector expressly marked NON-AI to demonstrate flow without credentials.
+- Added executable unit/HTTP tests; local evidence `npm test`: 16/16 passed; strict typecheck and docs validator passed; live curl local smoke passed.
+- Pending: real Anthropic model call, domain API agreement, OTP authentication, production security review, human escalation and deployment.
