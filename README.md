@@ -131,3 +131,8 @@ python scripts/validate_repository.py
 ```
 
 No `npm install` is needed for the zero-dependency demo. Node.js TypeScript stripping executes code but does **not** type-check it; type-checking was performed locally using TypeScript 5.8.3 + Node type declarations, and automated type-check setup is planned. **Do not deploy this demo**: no genuine OTP/session issuer, persistent storage, concurrency controls, real backend, redacted audit system, regulatory review or production security validation are included.
+
+
+### Intent evaluation harness (synthetic, paid live opt-in)
+
+The development suite now includes 14 labeled Arabic/English synthetic cases under `evals/intent-cases.json`. Preview without network requests with `npm run eval:cases`. **Only after approving provider usage**, configure `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` in your **local shell environment**, and invoke `npm run eval:live` (14 provider calls; may incur charges). It prints case IDs, pass/fail and timings; it never logs raw provider errors or secrets. See [`docs/evaluation-runbook.md`](docs/evaluation-runbook.md) for scope and limitations. No live model call has yet been executed or verified.

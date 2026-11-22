@@ -1,12 +1,12 @@
 # Project Status — source of truth
 
 **Last review:** 2026-11-23  
-**Lifecycle:** First vertical slice implemented locally; feature branch PR pending review  
+**Lifecycle:** First vertical slice implemented locally; feature branch Draft PR #1 pending review  
 **Owner:** Nagy's AI workstream  
 **Repository:** `Nagy-API/TPA-AI-Euro` (private), default branch `main`  
 **Known main baseline before this branch:** `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`  
 **Implementation branch:** `feat/coverage-inquiry-v1`  
-**First implementation commit:** `5df0d9e946e55f976f90694d765eb039fd3195e4` · **Draft PR:** [#1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1). Always inspect live branch HEAD.
+**Latest feature commit / PR:** record after GitHub push; do not guess.
 
 ## Completed and verified
 
@@ -17,7 +17,8 @@
 - [x] Claude Messages HTTP tool-use intent adapter with allowlisted `get_member_coverage` code-only argument; actual hosted model not invoked.
 - [x] Safe deterministic result formatting and clarification/failure paths.
 - [x] Offline (non-AI) keyword adapter for API demonstration with no API key.
-- [x] Local tests: `npm test` **16/16 passed**, `python scripts/validate_repository.py` passed, strict TypeScript static check passed using installed TypeScript 5.8.3 + Node typings. Local curl smoke: healthy, GOLD MRI answer (synthetic), unauthenticated 401.
+- [x] Added 14 synthetic intent evaluation cases, a live opt-in evaluation runner, and deterministic evaluator tests.
+- [x] Local tests: `npm test` **19/19 passed**, `python scripts/validate_repository.py` passed, strict TypeScript static check passed using installed TypeScript 5.8.3 + Node typings (local global TS tooling). Local curl smoke: healthy, GOLD MRI answer (synthetic), unauthenticated 401.
 
 ## Explicitly NOT verified / NOT done
 
@@ -26,15 +27,13 @@
 - No production security audit, data-residency/privacy/legal assessment, human handoff, access-token lifecycle, runtime tracing, caching or service monitoring.
 - No deployed app or production traffic. Real integration and domain contract still need agreement.
 - Native Node TS type stripping is experimental; CI currently covers tests/docs, not compilation/type checking on a clean install.
-- **CI failed for both workflows on first PR run** (AI demo tests run `45075707219`, docs validation run `45075707121`). GitHub job logs were unavailable (`BlobNotFound`), so the root cause is **UNKNOWN**. Local tests still passed; do not mark CI green.
 
 ## Next prioritized actions
 
-1. Investigate failing GitHub Actions workflow runs on Draft PR #1. Job step details/logs unavailable during inspection; do not infer cause.
-2. Review PR and tested code; keep `main` unchanged until review/explicit merge approval.
-3. Confirm with core Backend + TPA Domain owner: identity/session/auth and Coverage API contract, service taxonomy, fake vs real data.
-4. Choose approved Claude model and approved processing/data residency terms; run **synthetic** Arabic model cases with a privately configured key and record tool-choice evaluations.
-5. Replace demo identity fixture with authenticated sandbox integration, add authoritative typed tool response schema validation, telemetry redaction, rate limits and abuse protections before any real data.
+1. Review PR and tested code; keep `main` unchanged until review/explicit merge approval.
+2. Confirm with core Backend + TPA Domain owner: identity/session/auth and Coverage API contract, service taxonomy, fake vs real data.
+3. Choose approved Claude model and approved processing/data residency terms; run **synthetic** Arabic model cases with a privately configured key and record tool-choice evaluations.
+4. Replace demo identity fixture with authenticated sandbox integration, add authoritative typed tool response schema validation, telemetry redaction, rate limits and abuse protections before any real data.
 
 ## Risks / assumptions
 

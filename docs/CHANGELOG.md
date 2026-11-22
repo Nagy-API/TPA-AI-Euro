@@ -18,7 +18,10 @@
 - Added executable unit/HTTP tests; local evidence `npm test`: 16/16 passed; strict typecheck and docs validator passed; live curl local smoke passed.
 - Pending: real Anthropic model call, domain API agreement, OTP authentication, production security review, human escalation and deployment.
 
-### GitHub publication and CI status
 
-- Initial implementation published on `feat/coverage-inquiry-v1` at `5df0d9e946e55f976f90694d765eb039fd3195e4`, Draft PR #1: https://github.com/Nagy-API/TPA-AI-Euro/pull/1.
-- First GitHub Actions runs reported **failure** for both docs and demo tests; job logs unavailable from GitHub, so cause UNKNOWN. Local 16/16 passing is not a substitute for CI.
+## 2026-11-23 — Intent evaluation harness (PR #1 follow-up)
+
+- Added 14 synthetic Arabic/English intent cases with exact expected tool selection and critical-case markers.
+- Added zero-dependency evaluation runner (`npm run eval:cases`, `npm run eval:live`) and offline evaluation unit tests.
+- Observed GitHub Actions Jobs report `runner_id=0`, `steps=[]`, and failure within seconds; suspect scheduling/account runner issue, but root cause remains unverified without GitHub UI annotation/logs. No workflow YAML changed.
+- Live Anthropic API not called (no key in local environment).

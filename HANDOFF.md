@@ -9,7 +9,7 @@ Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/ar
 - Private GitHub repository: `Nagy-API/TPA-AI-Euro`, default branch `main`.
 - Main baseline before implementation: `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
 - First implementation branch: `feat/coverage-inquiry-v1`.
-- First feature commit: `5df0d9e946e55f976f90694d765eb039fd3195e4`; Draft PR: https://github.com/Nagy-API/TPA-AI-Euro/pull/1. Check live head for later documentation commits.
+- Feature commit SHA and PR number: populate after GitHub push; never fabricate.
 - Scope: AI layer only, not full TPA core/claims/eligibility engine.
 
 ## Settled decisions
@@ -40,12 +40,19 @@ Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/ar
 
 ## Open dependencies and next steps
 
-1. Diagnose GitHub Actions failures on Draft PR #1 (both workflows failed; logs unavailable/BlobNotFound; reason unknown). Local tests passed, CI not verified green.
-2. Review feature PR; do not merge/deploy without Nagy's approval.
-3. Agree with TPA domain/backend engineers on source-of-truth coverage taxonomy, auth/session and API contracts.
-4. Obtain an approved model + local API key in secret manager (never Git/chat), run synthetic Arabic model evals. Real-data provider/privacy clearance is not obtained.
-5. Improve service-token/session architecture, rate limiting, response schema verification, redacted observability and sandbox integration prior to production.
+1. Review feature PR; do not merge/deploy without Nagy's approval.
+2. Agree with TPA domain/backend engineers on source-of-truth coverage taxonomy, auth/session and API contracts.
+3. Obtain an approved model + local API key in secret manager (never Git/chat), run synthetic Arabic model evals. Real-data provider/privacy clearance is not obtained.
+4. Improve service-token/session architecture, rate limiting, response schema verification, redacted observability and sandbox integration prior to production.
 
 ## Agent collaboration rules
 
 Respect `AGENTS.md`. Observe actual branch/status and collaborator edits. Prefer explicit scope, clean code, narrow tests, clear handoff. No secrets, patient data, unreviewed medical decisions, production changes, force pushes or destructive actions.
+
+
+## 2026-11-23 addition: model evaluation harness
+
+- `evals/intent-cases.json`: 14 fictional cases with expected single tool or clarification, critical cases labeled.
+- `src/intent-evaluator.ts` and `scripts/evaluate-intents.ts`: offline report logic plus deliberate paid live Anthropic run (`npm run eval:live`). `npm run eval:cases` needs no key/network.
+- No real provider call made; `ANTHROPIC_API_KEY` not present in local execution environment. Keep questions fictional and credentials outside Git.
+- Initial CI failed before any visible runner steps (`runner_id=0`, `steps=[]`); logs unavailable. Need GitHub UI investigation rather than guessing YAML changes.
