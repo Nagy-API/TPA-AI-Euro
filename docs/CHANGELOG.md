@@ -17,3 +17,8 @@
 - Added offline keyword selector expressly marked NON-AI to demonstrate flow without credentials.
 - Added executable unit/HTTP tests; local evidence `npm test`: 16/16 passed; strict typecheck and docs validator passed; live curl local smoke passed.
 - Pending: real Anthropic model call, domain API agreement, OTP authentication, production security review, human escalation and deployment.
+
+### GitHub publication and CI status
+
+- Initial implementation published on `feat/coverage-inquiry-v1` at `5df0d9e946e55f976f90694d765eb039fd3195e4`, Draft PR #1: https://github.com/Nagy-API/TPA-AI-Euro/pull/1.
+- First GitHub Actions runs reported **failure** for both docs and demo tests; job logs unavailable from GitHub, so cause UNKNOWN. Local 16/16 passing is not a substitute for CI.

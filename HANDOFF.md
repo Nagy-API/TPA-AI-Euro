@@ -9,7 +9,7 @@ Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/ar
 - Private GitHub repository: `Nagy-API/TPA-AI-Euro`, default branch `main`.
 - Main baseline before implementation: `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
 - First implementation branch: `feat/coverage-inquiry-v1`.
-- Feature commit SHA and PR number: populate after GitHub push; never fabricate.
+- First feature commit: `5df0d9e946e55f976f90694d765eb039fd3195e4`; Draft PR: https://github.com/Nagy-API/TPA-AI-Euro/pull/1. Check live head for later documentation commits.
 - Scope: AI layer only, not full TPA core/claims/eligibility engine.
 
 ## Settled decisions
@@ -40,10 +40,11 @@ Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/ar
 
 ## Open dependencies and next steps
 
-1. Review feature PR; do not merge/deploy without Nagy's approval.
-2. Agree with TPA domain/backend engineers on source-of-truth coverage taxonomy, auth/session and API contracts.
-3. Obtain an approved model + local API key in secret manager (never Git/chat), run synthetic Arabic model evals. Real-data provider/privacy clearance is not obtained.
-4. Improve service-token/session architecture, rate limiting, response schema verification, redacted observability and sandbox integration prior to production.
+1. Diagnose GitHub Actions failures on Draft PR #1 (both workflows failed; logs unavailable/BlobNotFound; reason unknown). Local tests passed, CI not verified green.
+2. Review feature PR; do not merge/deploy without Nagy's approval.
+3. Agree with TPA domain/backend engineers on source-of-truth coverage taxonomy, auth/session and API contracts.
+4. Obtain an approved model + local API key in secret manager (never Git/chat), run synthetic Arabic model evals. Real-data provider/privacy clearance is not obtained.
+5. Improve service-token/session architecture, rate limiting, response schema verification, redacted observability and sandbox integration prior to production.
 
 ## Agent collaboration rules
 
