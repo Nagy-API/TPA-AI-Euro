@@ -26,7 +26,7 @@ Design and build the secure **AI layer** in-house for a medical insurance Third-
 
 ## Latest status / next action
 
-Read `PROJECT_STATUS.md` for the latest factual state. As of 2026-11-22, the private GitHub repository `Nagy-API/TPA-AI-Euro` on branch `main` was verified with an initial 13-byte README (`3d50b5fe163e3d9c880b5ffe956c220426b25cfb`); a local 31-file scaffold passed documentation/fixture checks. At preparation time upload is pending; **verify actual remote commit and content before changing this statement**. Next: publish scaffold; then settle identity + coverage API contracts with the backend/domain owners.
+Read `PROJECT_STATUS.md` for the latest factual state. As of 2026-11-22, the private GitHub repository `Nagy-API/TPA-AI-Euro` on branch `main` was verified with an initial 13-byte README (`3d50b5fe163e3d9c880b5ffe956c220426b25cfb`); a local 31-file scaffold passed documentation/fixture checks. Upload was completed and verified: 31 files published in commit `461868c93b3ffd0eab00ff1f1455be701cfcedb4`. Next: settle identity + coverage API contracts with the backend/domain owners, then implement mock vertical slice.
 
 ## How to work with Nagy
 
@@ -42,10 +42,10 @@ Read `PROJECT_STATUS.md` for the latest factual state. As of 2026-11-22, the pri
 
 - Repository URL / remote access: https://github.com/Nagy-API/TPA-AI-Euro (private; accessible via connected GitHub tools)
 - Default branch: main (verified)
-- Last commit SHA: initial pre-upload head `3d50b5fe163e3d9c880b5ffe956c220426b25cfb`; recheck after publishing
+- Architecture bootstrap commit SHA: `461868c93b3ffd0eab00ff1f1455be701cfcedb4` (31 files verified). Recheck current `main` HEAD before every write.
 - Current PR / issue: NONE
 - Completed implementation: NONE VERIFIED
-- Pending: remote creation, mock service, contract alignment, tests
+- Pending: mock service, contract alignment, implementation tests
 - Blockers: identity/tenant/channel and real coverage API details
 - Security gates: private repo; synthetic test data; no medical AI decisions; no direct DB
 

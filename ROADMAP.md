@@ -6,7 +6,7 @@ This is a **sequence of milestones, not duration or delivery commitment**. Scope
 
 - [x] Repo-ready docs, diagrams, tool contracts and working rules.
 - [x] Private GitHub remote created (`Nagy-API/TPA-AI-Euro`, `main`); initial README commit confirmed.
-- [ ] Publish the complete 31-file architecture scaffold and verify remote commit.
+- [x] Published and remotely verified all 31 architecture scaffold files (`461868c93b3ffd0eab00ff1f1455be701cfcedb4`).
 - [ ] Product/TPA owner validates domain assumptions and non-goals.
 - [ ] Backend team aligns on identity/session and coverage API.
 

@@ -15,6 +15,7 @@
 - [x] Drafted initial contracts, discovery questions, tests, roadmap, governance, and handoff rules.
 - [x] Prepared fictional demo scenarios and evaluation dataset draft.
 - [x] Added first-vertical-slice task plan and repository-documentation validation script/CI workflow.
+- [x] Published and remotely verified 31 project files on `main` (`461868c93b3ffd0eab00ff1f1455be701cfcedb4`).
 
 ## Verified implementation evidence
 
@@ -25,9 +26,8 @@
 
 ## Next prioritized actions
 
-1. Upload this scaffold to verified private GitHub repository `Nagy-API/TPA-AI-Euro`, then capture publication commit SHA and verify contents.
-2. Hold a short Backend + TPA Domain alignment: identity source/OTP channel/session model/tenant lookup; coverage response and error contract; approval authority; demo vs real data.
-3. Implement mock identity gate + `get_member_coverage` tool + deterministic fixtures; connect 1 LLM provider and build evaluation tests for coverage and failure paths.
+1. Hold a short Backend + TPA Domain alignment: identity source/OTP channel/session model/tenant lookup; coverage response and error contract; approval authority; demo vs real data.
+2. Implement mock identity gate + `get_member_coverage` tool + deterministic fixtures; connect 1 LLM provider and build evaluation tests for coverage and failure paths.
 
 ## Blockers / unknowns
 
