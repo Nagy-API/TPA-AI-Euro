@@ -1,4 +1,5 @@
 import { isServiceCode } from "./contracts.ts";
+import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, TpaBackend } from "./contracts.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
@@ -35,8 +36,8 @@ export class CoverageAssistant {
     }
     let coverage: Coverage;
     try {
-      coverage = await this.backend.getCoverage(session, selection.serviceCode);
-      if (coverage.serviceCode !== selection.serviceCode || coverage.source !== "MOCK_POLICY_ENGINE") throw new Error("UNTRUSTED_TOOL_OUTPUT");
+      // Backend data is untrusted at runtime, regardless of TypeScript annotations.
+      coverage = validateCoverageResponse(await this.backend.getCoverage(session, selection.serviceCode), selection.serviceCode);
     } catch {
       return { status: 503, code: "COVERAGE_UNAVAILABLE", answer: SAFE_RETRY };
     }

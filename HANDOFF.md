@@ -56,3 +56,11 @@ Respect `AGENTS.md`. Observe actual branch/status and collaborator edits. Prefer
 - `src/intent-evaluator.ts` and `scripts/evaluate-intents.ts`: offline report logic plus deliberate paid live Anthropic run (`npm run eval:live`). `npm run eval:cases` needs no key/network.
 - No real provider call made; `ANTHROPIC_API_KEY` not present in local execution environment. Keep questions fictional and credentials outside Git.
 - Initial CI failed before any visible runner steps (`runner_id=0`, `steps=[]`); logs unavailable. Need GitHub UI investigation rather than guessing YAML changes.
+
+## 2026-11-23 decision: no spending yet
+
+- Nagy explicitly deferred **all paid LLM API/subscription work**. Do not request credentials or run `npm run eval:live` unless he later authorizes cost.
+- Default `ENABLE_DEMO_AUTH=true npm run dev` runs fixture keyword selector only (NOT AI) and mock TPA backend. Paid provider is **double-opt-in**: `DEMO_INTENT_MODE=claude` + `ALLOW_PAID_LLM=true` and credentials.
+- Runtime validator `src/coverage-validation.ts` rejects invalid coverage backend data before any member-facing insurance reply, with regression tests.
+- Local evidence: 32/32 tests passing, strict TS check and docs validation passing, HTTP 200/200/401 smoke. GitHub Actions failures still unresolved; no Merge/production deployment.
+- This change is added to existing Draft PR #1; check live PR HEAD and CI before proceeding. Next: free offline business-flow and integration contract tests.

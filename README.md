@@ -99,7 +99,7 @@ A real, runnable **demo** implementation is under `src/` with no runtime npm dep
 Requires Node.js 22.16+ (native experimental TypeScript stripping). **Do not expose this HTTP server on a public interface.** It binds to `127.0.0.1` and includes fixed demo tokens. Never send real member data.
 
 ```bash
-ENABLE_DEMO_AUTH=true DEMO_INTENT_MODE=fixture npm run dev
+ENABLE_DEMO_AUTH=true npm run dev
 ```
 
 In a second terminal:
@@ -113,13 +113,13 @@ curl -X POST http://127.0.0.1:3000/v1/chat \
 
 Switch `demo-gold-session` to `demo-silver-session` or `demo-vip-session` to compare **fictional** results. Missing or incorrect session tokens return HTTP 401. `ENABLE_DEMO_AUTH=true` must be explicitly set and the process refuses `NODE_ENV=production`.
 
-### Run with Claude tool-use (requires your own key)
+### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
 ```bash
-ENABLE_DEMO_AUTH=true ANTHROPIC_API_KEY='<your key from local secret storage>' ANTHROPIC_MODEL='<model ID verified in your Anthropic account>' npm run dev
+ENABLE_DEMO_AUTH=true DEMO_INTENT_MODE=claude ALLOW_PAID_LLM=true npm run dev
 ```
 
-Unset `DEMO_INTENT_MODE` to use Claude. **Never put keys in Git or chat.** Claude receives the text of the question and the *public fake service catalog*, but no profile, tenant/member ID, token, policy tier or coverage amounts. As with all user text, the question itself could contain personal information; therefore this implementation is for **synthetic queries only**, pending data-handling approval and a PII minimization design.
+Paid provider mode requires **all** of: explicit `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Without explicit opt-in, the default is **offline keyword simulation**. **Never put keys in Git or chat.** Claude receives the text of the question and the *public fake service catalog*, but no profile, tenant/member ID, token, policy tier or coverage amounts. As with all user text, the question itself could contain personal information; therefore this implementation is for **synthetic queries only**, pending data-handling approval and a PII minimization design.
 
 This integration calls the documented Anthropic Messages HTTPS endpoint directly for now, with a small replaceable adapter; migrating to the official SDK is a planned follow-up. **No real Claude call is claimed as verified** without credentials and measured outputs. Official tool-use docs: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
 
@@ -136,3 +136,11 @@ No `npm install` is needed for the zero-dependency demo. Node.js TypeScript stri
 ### Intent evaluation harness (synthetic, paid live opt-in)
 
 The development suite now includes 14 labeled Arabic/English synthetic cases under `evals/intent-cases.json`. Preview without network requests with `npm run eval:cases`. **Only after approving provider usage**, configure `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` in your **local shell environment**, and invoke `npm run eval:live` (14 provider calls; may incur charges). It prints case IDs, pass/fail and timings; it never logs raw provider errors or secrets. See [`docs/evaluation-runbook.md`](docs/evaluation-runbook.md) for scope and limitations. No live model call has yet been executed or verified.
+
+## Free-first development (decision 2026-11-23)
+
+- **Current approved workflow: $0 external API spend.** Run `ENABLE_DEMO_AUTH=true npm run dev`, `npm test`, `npm run eval:cases`, and `python scripts/validate_repository.py` locally (no key, no external service). The fixture selector is deliberately **not AI**.
+- Model-driven calls and `npm run eval:live` are **DEFERRED** until budget, provider, and privacy approval. No provider key or subscription is needed for current work.
+- New `src/coverage-validation.ts` checks untrusted policy-engine responses **at runtime**: service/provenance/currency/status match, numeric ranges and contradictory values. Malformed data fails closed with a safe error instead of an insurance claim.
+- `src/selector-factory.ts` defaults to offline mode even if keys happen to exist; paid calls need an explicit, separate opt-in. This is defense in depth for the demo, not a production billing control.
+- Local verification (2026-11-23): 32/32 unit tests, strict local TypeScript check, docs sanity validator, and HTTP smoke (health 200, demo GOLD MRI 200, unauthorized 401). **GitHub Actions remain failing before runner steps; root cause unknown.**

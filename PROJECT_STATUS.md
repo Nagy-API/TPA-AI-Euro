@@ -1,7 +1,7 @@
 # Project Status — source of truth
 
 **Last review:** 2026-11-23  
-**Lifecycle:** First vertical slice implemented locally; feature branch Draft PR #1 pending review  
+**Lifecycle:** Local offline coverage inquiry + runtime validation implemented; Draft PR #1 pending review  
 **Owner:** Nagy's AI workstream  
 **Repository:** `Nagy-API/TPA-AI-Euro` (private), default branch `main`  
 **Known main baseline before this branch:** `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`  
@@ -18,7 +18,7 @@
 - [x] Safe deterministic result formatting and clarification/failure paths.
 - [x] Offline (non-AI) keyword adapter for API demonstration with no API key.
 - [x] Added 14 synthetic intent evaluation cases, a live opt-in evaluation runner, and deterministic evaluator tests.
-- [x] Local tests: `npm test` **19/19 passed**, `python scripts/validate_repository.py` passed, strict TypeScript static check passed using installed TypeScript 5.8.3 + Node typings (local global TS tooling). Local curl smoke: healthy, GOLD MRI answer (synthetic), unauthenticated 401.
+- [x] Local tests: `npm test` **32/32 passed**, `python scripts/validate_repository.py` passed, strict TypeScript static check passed using installed TypeScript 5.8.3 + Node typings (local global TS tooling). Local curl smoke: healthy, GOLD MRI answer (synthetic), unauthenticated 401.
 
 ## Explicitly NOT verified / NOT done
 
@@ -42,3 +42,12 @@
 - Tool call chooses a service code; it cannot choose member ID, tenant, plan or financial values.
 
 At each accepted change: update this file + `HANDOFF.md` and append `docs/CHANGELOG.md`, with observed SHA, tests and next step.
+
+## Free-first progress — 2026-11-23 (feature branch)
+
+- **Decision:** No paid LLM API keys, hosting, or subscriptions until Nagy approves spending. Offline, synthetic work is the current scope.
+- Added **runtime coverage payload validator**: rejects wrong service/provenance/currency/status, invalid numbers and contradictory excluded/unknown financial fields; on failure returns generic `COVERAGE_UNAVAILABLE`.
+- Added **offline-by-default demo selector factory**: setting an API key alone does not enable paid calls; Claude mode requires `DEMO_INTENT_MODE=claude` and `ALLOW_PAID_LLM=true` plus credentials.
+- Local evidence: `npm test` 32/32 passed; `tsc --noEmit --strict ...` passed using local installed TypeScript and Node typings; `python scripts/validate_repository.py` passed; HTTP smoke health 200, GOLD MRI 200, missing session 401.
+- Still unverified: real AI model behavior, live TPA API, actual user identity, production security, GitHub CI (job failures before runner start; cause unknown).
+- Next free tasks: review fake session/API contract with Core team, offline scenario tests (member/tenant errors, ambiguity), optional local LLM evaluation after confirming Nagy's hardware; preserve clean, replaceable provider boundary.

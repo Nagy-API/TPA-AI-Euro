@@ -70,3 +70,14 @@ Document incremental improvements as GitHub Issues. "Ship V1 fast" means **small
 ## Implementation note — 2026-11-23
 
 On feature branch `feat/coverage-inquiry-v1`, a **synthetic** session resolver and mock coverage API are implemented, along with Claude intent tool selection, offline non-AI selector and local tests (16 passing). This does **not** complete Milestone 1 production authentication, Milestone 2 live provider evaluation or Milestone 3 integration. Review feature PR and verify CI before checking off acceptance boxes above.
+
+## Execution strategy update — 2026-11-23 (free-first)
+
+- [x] Make the demo **offline by default** and explicit-only opt-in for external paid LLM API.
+- [x] Add runtime validation of untrusted coverage responses and negative-case tests.
+- [ ] Expand free deterministic evaluation with missing/wrong tenant/session and invalid backend schemas.
+- [ ] Agree identity and coverage contracts with the Core Backend team (no production data or LLM needed).
+- [ ] Test the first full onboarding/coverage flow with **fictional** members and mock verification.
+- [ ] Revisit live LLM provider choice and budget **only when Nagy approves spending**. No commitment to Claude/DeepSeek/OpenAI now.
+
+**Do not equate offline keyword matching with real AI quality.** No production claims or third-party integrations are validated.

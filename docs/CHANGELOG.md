@@ -25,3 +25,11 @@
 - Added zero-dependency evaluation runner (`npm run eval:cases`, `npm run eval:live`) and offline evaluation unit tests.
 - Observed GitHub Actions Jobs report `runner_id=0`, `steps=[]`, and failure within seconds; suspect scheduling/account runner issue, but root cause remains unverified without GitHub UI annotation/logs. No workflow YAML changed.
 - Live Anthropic API not called (no key in local environment).
+
+## 2026-11-23 — Free-first development / no external API costs
+
+- Decided to defer all paid LLM and hosted integrations until Nagy explicitly authorizes budget.
+- Introduced runtime coverage boundary validation and offline-by-default selector factory with double opt-in for paid provider mode.
+- Added regression tests for invalid backend coverage, bad numeric values, mismatch of service or provenance, and accidental paid mode.
+- Local validation evidence: 32/32 tests, strict local TypeScript check, docs sanity checker, health 200 / GOLD MRI 200 / unauthenticated 401 smoke.
+- Draft PR #1 remains unmerged. CI failure before GitHub runner steps unresolved; do not mark green.

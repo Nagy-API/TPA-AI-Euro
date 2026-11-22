@@ -1,3 +1,5 @@
+> **Cost decision (2026-11-23): Live Anthropic evaluation is DEFERRED. Do not run paid provider tests or request API keys without Nagy's explicit approval. The current safe commands are `npm test` and `npm run eval:cases` (offline, no provider use).**
+
 # AI intent evaluation runbook (synthetic only)
 
 The `evals/intent-cases.json` dataset contains **14 fictional Arabic/English coverage questions**. Each case has an expected outcome: either a single allowed service code (`MRI`, `CBC`, `XRAY`) or `CLARIFY`. The seven flagged critical cases cover ambiguous requests, multi-service requests, prompt injection, and invalid coverage/approval claims.
