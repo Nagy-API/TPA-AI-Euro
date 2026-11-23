@@ -75,9 +75,11 @@ On feature branch `feat/coverage-inquiry-v1`, a **synthetic** session resolver a
 
 - [x] Make the demo **offline by default** and explicit-only opt-in for external paid LLM API.
 - [x] Add runtime validation of untrusted coverage responses and negative-case tests.
-- [ ] Expand free deterministic evaluation with missing/wrong tenant/session and invalid backend schemas.
+- [x] Expand offline regression coverage for missing/expired sessions, scoped member/tenant access, and invalid backend results. The combined candidate passed `npm test` 53/53.
 - [ ] Agree identity and coverage contracts with the Core Backend team (no production data or LLM needed).
-- [ ] Test the first full onboarding/coverage flow with **fictional** members and mock verification.
+- [x] Verify the fictional onboarding and coverage journey over localhost with Gold, Silver and VIP fixtures, failed verification, logout and enforced member scope.
 - [ ] Revisit live LLM provider choice and budget **only when Nagy approves spending**. No commitment to Claude/DeepSeek/OpenAI now.
 
 **Do not equate offline keyword matching with real AI quality.** No production claims or third-party integrations are validated.
+
+The integration candidate is pending Nagy's review. [Local verification](PROJECT_STATUS.md#integration-verification--2026-11-23) includes docs validation, strict TypeScript, expiry and safe backend errors. Hosted CI remains blocked by GitHub's payment/spending-limit restriction. Real TPA contracts and live model evaluation remain open.

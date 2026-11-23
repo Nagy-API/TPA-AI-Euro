@@ -1,11 +1,11 @@
 import type { Coverage, ServiceCode, TpaBackend, VerifiedSession } from "./contracts.ts";
+import { DEMO_MEMBERS } from "./demo-auth/fixtures.ts";
+import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
 
-/** These values are fake and MUST NEVER be used for production authentication. */
-const FIXTURE_SESSIONS: Record<string, { memberKey: string; tenantKey: string }> = {
-  "demo-gold-session": { memberKey: "demo-gold", tenantKey: "demo-insurer-a" },
-  "demo-silver-session": { memberKey: "demo-silver", tenantKey: "demo-insurer-a" },
-  "demo-vip-session": { memberKey: "demo-vip", tenantKey: "demo-insurer-b" }
-};
+/** Fixed tokens belong to the legacy local demo only. */
+const FIXTURE_SESSIONS = new Map(
+  DEMO_MEMBERS.map(({ memberKey, tenantKey }) => [memberKey + "-session", { memberKey, tenantKey }])
+);
 
 const fixtures: Record<string, Partial<Record<ServiceCode, Omit<Coverage, "serviceCode" | "source" | "currency">>>> = {
   "demo-gold": {
@@ -23,18 +23,26 @@ const fixtures: Record<string, Partial<Record<ServiceCode, Omit<Coverage, "servi
 };
 
 export class MockTpaBackend implements TpaBackend {
+  private readonly memberAuth?: DemoMemberAuth;
+
+  constructor(memberAuth?: DemoMemberAuth) {
+    this.memberAuth = memberAuth;
+  }
+
   async resolveSession(sessionToken: string): Promise<VerifiedSession | null> {
-    const record = FIXTURE_SESSIONS[sessionToken];
+    if (this.memberAuth) return this.memberAuth.resolveSession(sessionToken);
+    const record = FIXTURE_SESSIONS.get(sessionToken);
     if (!record) return null;
     return { ...record, expiresAt: Date.now() + 5 * 60_000 };
   }
 
   async getCoverage(session: VerifiedSession, serviceCode: ServiceCode): Promise<Coverage> {
     // Defense in depth in the DEMO stub. Real backend must reauthorize every call.
-    const belongsToTenant = Object.values(FIXTURE_SESSIONS).some(
+    const belongsToTenant = DEMO_MEMBERS.some(
       (item) => item.memberKey === session.memberKey && item.tenantKey === session.tenantKey
     );
-    if (!belongsToTenant || session.expiresAt <= Date.now()) throw new Error("FORBIDDEN");
+    const active = this.memberAuth ? this.memberAuth.isActive(session) : session.expiresAt > Date.now();
+    if (!belongsToTenant || !active) throw new Error("FORBIDDEN");
     const entry = fixtures[session.memberKey]?.[serviceCode];
     return {
       serviceCode,

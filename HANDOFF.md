@@ -6,11 +6,18 @@ Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/ar
 
 ## Project identity
 
-- Private GitHub repository: `Nagy-API/TPA-AI-Euro`, default branch `main`.
+- **Public GitHub repository** (Nagy changed visibility 2026-11-23): `Nagy-API/TPA-AI-Euro`, default branch `main`. Never commit confidential content, credentials, or real patient data.
 - Main baseline before implementation: `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
 - First implementation branch: `feat/coverage-inquiry-v1`.
 - Feature commit SHA and PR number: populate after GitHub push; never fabricate.
 - Scope: AI layer only, not full TPA core/claims/eligibility engine.
+
+## Current handoff — offline integration candidate (2026-11-23)
+
+- Start from `integration/offline-member-journey` in the existing `TPA-AI-Euro-agent-a` checkout. It includes both source PR commits on coverage tip `bd3406439`, with no conflicts. Keep PR #1, #4 and #5 open for Nagy's review of the integration draft.
+- Reproduce the verified member workflow from the [root README](README.md). The fixture selector is offline and the challenge flow is the default. Use the explicit legacy mode only for the old fixed-token demo.
+- Local evidence on Node 24.14.1: `npm test` **53/53**, `python scripts/validate_repository.py` passed, and strict TypeScript 5.9.3 passed. Live loopback HTTP verified fictional Gold, Silver and VIP outcomes, failed OTPs, logout and session scoping. The injected-clock HTTP check covered expiry and sanitized backend 503s. See [Project Status](PROJECT_STATUS.md#integration-verification--2026-11-23) for the typecheck command and results.
+- Hosted Actions remain blocked before runner allocation by GitHub's payment/spending-limit restriction. Live TPA, real identity/OTP and model integrations remain unverified. Wait for Nagy's review before selecting a merge strategy or changing billing.
 
 ## Settled decisions
 
@@ -73,3 +80,9 @@ Respect `AGENTS.md`. Observe actual branch/status and collaborator edits. Prefer
 - Next: [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6) — review/integrate with local full tests and accurate README; explicit Nagy approval required before merges.
 - **Nagy's operating rules:** start a **new Codex chat** after each fully completed task; do not create more local project clone/sibling directories; if both Codex clients share one Git working tree, only one may edit/checkout/commit at a time. Every future prompt must specify preferred model and reasoning effort: `GPT-6.2 Sol Medium` for ordinary tasks, `High` selectively for tough security/architecture.
 - User continues **free-first**: zero paid provider calls; CI blocked before runner starts by GitHub billing/spending-limit annotation; don't change billing or public visibility. Follow project `AGENTS.md`.
+
+## 2026-11-23 hosted CI unblocked by repo visibility change
+
+- Repo visibility is **public**, user-confirmed and verified against GitHub metadata. This supersedes earlier notes that private-repo GitHub Actions were blocked. Continue zero-spend/no paid AI API policy.
+- On integration commit `d29fd184d968b72a7bf03485968555a626e48092`, GitHub Actions reruns succeeded: AI demo tests [run 45137965791](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965791) (attempt 2, success); Docs and fixtures sanity [run 45137965890](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965890) (attempt 2, success).
+- A newly created documentation commit must get its own successful checks; don't imply earlier runs validate newer HEAD. Integration Draft PR #7 remains unmerged; no permission for merge or production deployment was given.
