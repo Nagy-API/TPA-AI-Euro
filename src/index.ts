@@ -14,7 +14,7 @@ if (authMode === "verified" && (process.env.DEMO_INTENT_MODE ?? "fixture") !== "
 }
 const memberAuth = authMode === "verified" ? new DemoMemberAuth() : undefined;
 const selector = createDemoIntentSelector(process.env);
-const assistant = new CoverageAssistant(new MockTpaBackend(memberAuth), selector);
+const assistant = new CoverageAssistant(new MockTpaBackend(memberAuth), selector, memberAuth);
 const app = createDemoServer(assistant, true, memberAuth);
 const port = Number(process.env.PORT ?? "3000");
 app.listen(port, "127.0.0.1", () => {

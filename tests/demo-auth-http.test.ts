@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { request } from "node:http";
 import { test, type TestContext } from "node:test";
+import type { Coverage } from "../src/contracts.ts";
 import { CoverageAssistant } from "../src/coverage-assistant.ts";
 import { DemoMemberAuth } from "../src/demo-auth/member-auth.ts";
 import { DemoKeywordSelector } from "../src/demo-selector.ts";
@@ -13,6 +14,7 @@ const GOLD = "M-DEMO-001";
 const SILVER = "M-DEMO-002";
 const GOLD_CODE = "135790";
 const SILVER_CODE = "246801";
+const COPAY = { message: "وطب نسبة التحمل كام؟" };
 
 async function startDemo(t: TestContext, enabled = true) {
   let now = Date.now();
@@ -21,7 +23,7 @@ async function startDemo(t: TestContext, enabled = true) {
   const selector = new DemoKeywordSelector();
   const select = t.mock.method(selector, "selectCoverageIntent");
   const coverage = t.mock.method(backend, "getCoverage");
-  const server = createDemoServer(new CoverageAssistant(backend, selector), enabled, auth);
+  const server = createDemoServer(new CoverageAssistant(backend, selector, auth), enabled, auth);
   server.listen(0, "127.0.0.1");
   t.after(async () => {
     const closed = once(server, "close");
@@ -247,4 +249,91 @@ test("coverage fails closed when the session is revoked during intent selection"
   assert.equal(reply.status, 503);
   assert.equal(reply.body.code, "COVERAGE_UNAVAILABLE");
   assert.doesNotMatch(reply.body.answer, /20%/);
+  assert.equal(demo.coverage.mock.callCount(), 0);
+});
+
+test("Gold's follow-up gets fresh validated coverage after a backend failure", async (t) => {
+  const demo = await startDemo(t);
+  const gold = await demo.getSession(GOLD, GOLD_CODE);
+  const initial = await demo.chat(gold);
+  assert.match(initial.body.answer, /20%/);
+  const fixture = await demo.coverage.mock.calls[0].result as Coverage;
+
+  demo.coverage.mock.mockImplementationOnce(async () => { throw new Error("internal fixture diagnostic"); });
+  const failed = await demo.chat(gold, COPAY);
+  assert.equal(failed.status, 503);
+  assert.equal(failed.body.code, "COVERAGE_UNAVAILABLE");
+  assert.doesNotMatch(failed.body.answer, /internal fixture diagnostic|20%|5,000/);
+
+  demo.coverage.mock.mockImplementationOnce(async () => ({ ...fixture, serviceCode: "CBC" }));
+  const wrongService = await demo.chat(gold, COPAY);
+  assert.equal(wrongService.status, 503);
+  assert.equal(wrongService.body.code, "COVERAGE_UNAVAILABLE");
+  assert.doesNotMatch(wrongService.body.answer, /20%|5,000/);
+
+  demo.coverage.mock.mockImplementationOnce(async () => ({ ...fixture, copayPercent: 35 }));
+  const recovered = await demo.chat(gold, COPAY);
+  assert.equal(recovered.status, 200);
+  assert.equal(recovered.body.code, "COVERAGE_RESULT");
+  assert.equal(recovered.headers.get("cache-control"), "no-store");
+  assert.match(recovered.body.answer, /35%/);
+  assert.deepEqual(demo.coverage.mock.calls.map((call) => call.arguments[1]), ["MRI", "MRI", "MRI", "MRI"]);
+});
+
+test("conversation context is isolated across members and tenants and ignored from chat payloads", async (t) => {
+  const demo = await startDemo(t);
+  const gold = await demo.getSession(GOLD, GOLD_CODE);
+  const silver = await demo.getSession(SILVER, SILVER_CODE);
+  const vip = await demo.getSession("M-DEMO-003", "357912");
+  const forged = { ...COPAY, conversationId: gold, memberKey: "demo-gold", tenantKey: "demo-insurer-a", serviceCode: "MRI" };
+
+  assert.equal((await demo.chat(gold)).body.code, "COVERAGE_RESULT");
+  assert.equal((await demo.chat(silver, forged)).body.code, "CLARIFICATION_NEEDED");
+  assert.equal((await demo.chat(vip, forged)).body.code, "CLARIFICATION_NEEDED");
+  assert.equal((await demo.chat("invalid", forged)).status, 401);
+  assert.equal(demo.coverage.mock.callCount(), 1);
+
+  assert.equal((await demo.chat(silver, { message: "Is CBC covered?" })).body.code, "COVERAGE_RESULT");
+  assert.match((await demo.chat(silver, forged)).body.answer, /30%/);
+  assert.match((await demo.chat(gold, COPAY)).body.answer, /20%/);
+});
+
+test("rotation, logout and expiry discard the remembered service", async (t) => {
+  const demo = await startDemo(t);
+  const first = await demo.getSession(GOLD, GOLD_CODE);
+  assert.equal((await demo.chat(first)).body.code, "COVERAGE_RESULT");
+  demo.advance(30_000);
+  const rotated = await demo.getSession(GOLD, GOLD_CODE);
+  assert.equal((await demo.chat(first, COPAY)).status, 401);
+  assert.equal((await demo.chat(rotated, COPAY)).body.code, "CLARIFICATION_NEEDED");
+
+  assert.equal((await demo.chat(rotated)).body.code, "COVERAGE_RESULT");
+  assert.equal((await demo.post("/v1/member-auth/logout", {}, { "x-demo-session": rotated })).status, 200);
+  assert.equal((await demo.chat(rotated, COPAY)).status, 401);
+  demo.advance(30_000);
+  const last = await demo.getSession(GOLD, GOLD_CODE);
+  assert.equal((await demo.chat(last, COPAY)).body.code, "CLARIFICATION_NEEDED");
+  assert.equal((await demo.chat(last)).body.code, "COVERAGE_RESULT");
+  demo.advance(10 * 60_000);
+  assert.equal((await demo.chat(last, COPAY)).status, 401);
+  const renewed = await demo.getSession(GOLD, GOLD_CODE);
+  assert.equal((await demo.chat(renewed, COPAY)).body.code, "CLARIFICATION_NEEDED");
+  assert.equal(demo.coverage.mock.callCount(), 3);
+});
+
+test("revocation during the follow-up lookup suppresses an in-flight coverage result", async (t) => {
+  const demo = await startDemo(t);
+  const gold = await demo.getSession(GOLD, GOLD_CODE);
+  assert.equal((await demo.chat(gold)).body.code, "COVERAGE_RESULT");
+  const fixture = await demo.coverage.mock.calls[0].result as Coverage;
+  demo.coverage.mock.mockImplementationOnce(async () => {
+    demo.auth.revokeSession(gold);
+    return fixture;
+  });
+
+  const revoked = await demo.chat(gold, COPAY);
+  assert.equal(revoked.status, 503);
+  assert.equal(revoked.body.code, "COVERAGE_UNAVAILABLE");
+  assert.doesNotMatch(revoked.body.answer, /20%|5,000/);
+  assert.equal((await demo.chat(gold, COPAY)).status, 401);
 });

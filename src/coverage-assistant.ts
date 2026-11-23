@@ -1,16 +1,20 @@
 import { isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, TpaBackend } from "./contracts.ts";
+import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
 const SAFE_RETRY = "البيانات مش متاحة دلوقتي، من فضلك حاول مرة تانية أو تواصل مع خدمة العملاء. (بيانات تجريبية)";
+const COVERAGE_UNAVAILABLE: AssistantReply = Object.freeze({ status: 503, code: "COVERAGE_UNAVAILABLE", answer: SAFE_RETRY });
 
 export class CoverageAssistant {
   private readonly backend: TpaBackend;
   private readonly selector: CoverageIntentSelector;
-  constructor(backend: TpaBackend, selector: CoverageIntentSelector) {
+  private readonly memberAuth?: DemoMemberAuth;
+  constructor(backend: TpaBackend, selector: CoverageIntentSelector, memberAuth?: DemoMemberAuth) {
     this.backend = backend;
     this.selector = selector;
+    this.memberAuth = memberAuth;
   }
 
   async answer(sessionToken: string | undefined, question: unknown): Promise<AssistantReply> {
@@ -21,26 +25,38 @@ export class CoverageAssistant {
     } catch {
       return { status: 503, code: "IDENTITY_UNAVAILABLE", answer: SAFE_RETRY };
     }
-    if (!session || session.expiresAt <= Date.now()) return { status: 401, code: "VERIFICATION_REQUIRED", answer: "الجلسة غير صالحة. لازم تتحقق من هويتك الأول." };
+    if (!session || (this.memberAuth ? !this.memberAuth.isActive(session) : session.expiresAt <= Date.now())) {
+      return { status: 401, code: "VERIFICATION_REQUIRED", answer: "الجلسة غير صالحة. لازم تتحقق من هويتك الأول." };
+    }
     if (typeof question !== "string" || !question.trim() || question.length > 500) {
       return { status: 400, code: "INVALID_QUESTION", answer: "اكتب سؤال واضح عن الخدمة الطبية (حتى 500 حرف)." };
     }
+    const message = question.trim();
     let selection;
     try {
-      selection = await this.selector.selectCoverageIntent(question.trim());
+      selection = await this.selector.selectCoverageIntent(message);
     } catch {
       return { status: 503, code: "AI_UNAVAILABLE", answer: SAFE_RETRY };
     }
-    if (selection.kind !== "tool" || selection.name !== "get_member_coverage" || !isServiceCode(selection.serviceCode)) {
+    const explicitService = selection.kind === "tool" && selection.name === "get_member_coverage" && isServiceCode(selection.serviceCode)
+      ? selection.serviceCode
+      : undefined;
+    const followUp = selection.kind === "clarify" ? message : "";
+    const serviceCode = this.memberAuth
+      ? this.memberAuth.resolveConversationService(session, followUp, explicitService)
+      : explicitService;
+    if (serviceCode === null) return COVERAGE_UNAVAILABLE;
+    if (!serviceCode) {
       return { status: 200, code: "CLARIFICATION_NEEDED", answer: "تقصد أي خدمة بالتحديد؟ حاليًا في التجربة بندعم الرنين المغناطيسي، صورة الدم الكاملة، والأشعة السينية." };
     }
     let coverage: Coverage;
     try {
       // Backend data is untrusted at runtime, regardless of TypeScript annotations.
-      coverage = validateCoverageResponse(await this.backend.getCoverage(session, selection.serviceCode), selection.serviceCode);
+      coverage = validateCoverageResponse(await this.backend.getCoverage(session, serviceCode), serviceCode);
     } catch {
-      return { status: 503, code: "COVERAGE_UNAVAILABLE", answer: SAFE_RETRY };
+      return COVERAGE_UNAVAILABLE;
     }
+    if (this.memberAuth && !this.memberAuth.isActive(session)) return COVERAGE_UNAVAILABLE;
     return { status: 200, code: "COVERAGE_RESULT", answer: formatCoverage(coverage) };
   }
 }

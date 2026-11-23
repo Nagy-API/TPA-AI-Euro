@@ -10,6 +10,13 @@
 - Hosted GitHub Actions tests and docs **passed on the original `main` feature-merge commit**. The historical billing/spending-limit runner startup restriction was resolved by Nagy's change to Public.
 - Integration agent reports 53/53 local tests on Node 24.14.1; synthetic localhost E2E, strict TypeScript check and docs validator passed. No live clinical/insurance system tested.
 
+## Current review — V0.2 offline coverage follow-ups
+
+- See [Issue #8](https://github.com/Nagy-API/TPA-AI-Euro/issues/8) and `feat/offline-conversation-state`. Verify a fictional member, ask about MRI, then send «وطب نسبة التحمل كام؟» with the same session header.
+- The offline selector is **NOT a real LLM**. It resolves a narrow co-pay follow-up using one synthetic service code per active session for up to two minutes. Logout, revocation, rotation and expiry invalidate the topic. Coverage and financial values come from a fresh, validated mock backend lookup.
+- Local V0.2 evidence: `npm test` **60/60**, `npm run docs:check` passed, `npm run eval:cases` listed **14** synthetic fixtures, and strict TypeScript passed. See [Project Status](PROJECT_STATUS.md#v02-offline-coverage-follow-ups) for the compiler flags and typings.
+- Review the draft before integration. Keep real identity, policy data, medical and financial decisions, paid model calls and production deployment outside this milestone.
+
 ## Architecture — nonnegotiable boundaries
 
 - This repo owns **the AI layer** and its mock integration boundaries, NOT the full TPA platform.

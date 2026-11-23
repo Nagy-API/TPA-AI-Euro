@@ -1,6 +1,6 @@
 # TPA AI Service — In-House AI Layer
 
-> **Status:** Local offline member verification and coverage demo (V0.1). **Not production-ready.**
+> **Status:** Local offline member verification and coverage demo with session-scoped follow-ups (V0.2). **Not production-ready.**
 >
 > **Last updated:** 2026-11-23. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
 >
@@ -118,12 +118,16 @@ $verified = Invoke-RestMethod -Method Post -ContentType 'application/json' -Uri 
 $headers = @{ 'x-demo-session' = $verified.sessionToken }
 $question = '{"message":"Is MRI covered?"}'
 Invoke-RestMethod -Method Post -ContentType 'application/json' -Uri "$demoUrl/chat" -Headers $headers -Body $question
+$followUp = '{"message":"وطب نسبة التحمل كام؟"}'
+Invoke-RestMethod -Method Post -ContentType 'application/json; charset=utf-8' -Uri "$demoUrl/chat" -Headers $headers -Body $followUp
 Invoke-RestMethod -Method Post -Uri "$demoUrl/member-auth/logout" -Headers $headers
 ```
 
 Expect HTTP 202 for identification, 200 for verification, and 200 `COVERAGE_RESULT` for the chat reply. The Gold fixture response reports «نسبة التحمل: 20%. الحد المتبقي: 5,000 جنيه.» and requires preapproval. The same chat request after logout returns 401 `VERIFICATION_REQUIRED`. A wrong or replayed code returns 401 `VERIFICATION_FAILED`. For other fictional members and challenge limits, see the [demo auth runbook](src/demo-auth/README.md).
 
-The fixed `demo-gold-session`, `demo-silver-session`, and `demo-vip-session` tokens are available only with explicit `DEMO_AUTH_MODE=legacy`. Legacy mode offers chat without challenge routes.
+The follow-up uses the latest explicit service in the same active verified session and fetches fresh mock coverage. The demo keeps one service code and its expiry for up to two minutes from the explicit question. A follow-up does not extend that window. Ambiguous, unsupported, or unrelated turns ask for clarification and clear the topic. Expiry, logout, revocation, and rotation invalidate the topic. The selector and co-pay follow-up rules are deterministic and **NOT a real LLM**.
+
+The fixed `demo-gold-session`, `demo-silver-session`, and `demo-vip-session` tokens are available only with explicit `DEMO_AUTH_MODE=legacy`. Legacy mode keeps single-turn chat and has no challenge routes.
 
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
@@ -139,10 +143,11 @@ This integration calls the documented Anthropic Messages HTTPS endpoint directly
 
 ```bash
 npm test
-python scripts/validate_repository.py
+npm run docs:check
+npm run eval:cases
 ```
 
-No `npm install` is needed for the zero-dependency demo. Node.js TypeScript stripping executes code but does **not** type-check it; type-checking was performed locally using TypeScript 5.8.3 + Node type declarations, and automated type-check setup is planned. **Do not deploy this demo**: no genuine OTP/session issuer, persistent storage, concurrency controls, real backend, redacted audit system, regulatory review or production security validation are included.
+No `npm install` is needed for the zero-dependency demo. V0.2 local verification passed all 60 tests, documentation validation, and strict TypeScript 5.9.3 checking with Node 22 type declarations. The offline evaluator preview listed 14 synthetic intent fixtures. See [Project Status](PROJECT_STATUS.md#v02-offline-coverage-follow-ups) for verification details. This demo is for synthetic loopback testing. Production authentication, a real backend, operational controls, and security and privacy approval remain pending.
 
 
 ### Intent evaluation harness (synthetic, paid live opt-in)
