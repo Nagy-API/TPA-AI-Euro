@@ -4,7 +4,7 @@
 >
 > **Last updated:** 2026-11-23. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
 >
-> **Visibility:** PRIVATE (verified 2026-11-22). Do not add real patient data or credentials.
+> **Visibility:** PUBLIC (verified 2026-11-23). Do not add real patient data, internal-only artifacts or credentials.
 
 ## المشروع باختصار
 

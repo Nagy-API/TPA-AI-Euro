@@ -45,3 +45,9 @@
 - Combined PR #4's contract tests and CI diagnosis with PR #5's mock member verification on top of the latest coverage base. The README now walks through identification, mock OTP, scoped chat and logout. Fixed tokens are an explicit legacy option.
 - Verified locally on Node 24.14.1 with `npm test` (53/53), `python scripts/validate_repository.py`, and strict TypeScript 5.9.3. Loopback HTTP confirmed fixture-specific MRI responses, failed OTP, scoped access, logout, expiry with an injected clock, and generic backend 503s. See [Project Status](../PROJECT_STATUS.md#integration-verification--2026-11-23).
 - Hosted Actions runner allocation remains blocked by GitHub's payment/spending-limit restriction. Live TPA and LLM integrations and real OTP remain unverified. The integration candidate is for review under [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6).
+
+## 2026-11-23 — GitHub Actions started and passed after public visibility change
+
+- Nagy switched `Nagy-API/TPA-AI-Euro` from private to public. Verified visibility on GitHub. Avoid committing sensitive material.
+- Re-ran the two previously blocked workflows at integration commit `d29fd184d968b72a7bf03485968555a626e48092`: Node offline tests [run 45137965791](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965791) attempt 2 **success**; docs validator [run 45137965890](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965890) attempt 2 **success**. Previous billing/spending-limit startup error no longer reproduced.
+- Draft PR #7 remains pending review; main and production remain unchanged.

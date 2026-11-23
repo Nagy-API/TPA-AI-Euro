@@ -4,7 +4,7 @@
 **Lifecycle:** Offline verification and coverage integration candidate verified locally, with Nagy's review pending.
 
 **Owner:** Nagy's AI workstream  
-**Repository:** `Nagy-API/TPA-AI-Euro` (private), default branch `main`  
+**Repository:** `Nagy-API/TPA-AI-Euro` (**PUBLIC**, verified 2026-11-23), default branch `main`  
 **Known main baseline before this branch:** `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`  
 **Implementation branch:** `feat/coverage-inquiry-v1`  
 **Coverage base:** Draft [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1), `bd3406439e8a86e00a1e0eecb9c4f62190d6825a`
@@ -75,3 +75,12 @@ At each accepted change: update this file + `HANDOFF.md` and append `docs/CHANGE
 - Next milestone tracked in [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6): one-writer integration review, combined offline tests, documentation sync, prepare draft integration candidate; **no merges without Nagy's approval**.
 - **Workspace rule:** no new sibling clones/worktrees; primary project folder only; one active writer/branch-switching owner if two Codex clients share files.
 - **Agent model rule:** every new Codex task gets a model + effort recommendation; default `GPT-6.2 Sol — Medium`, reserve High for genuinely difficult reviews.
+
+## GitHub visibility and hosted CI — verified 2026-11-23
+
+- Nagy manually changed repository visibility from **private to public**, confirmed through live GitHub repository metadata. All committed content and history are publicly visible; never commit secrets, real patient/member data, or internal-only files.
+- After visibility change, failed PR #7 Actions runs were **re-run on the same integration commit `d29fd184d968b72a7bf03485968555a626e48092`**, without modifying application code.
+- [AI demo tests workflow](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965791), **attempt 2: completed/success**. It allocated a runner and completed its Node test step successfully.
+- [Docs and fixtures sanity workflow](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965890), **attempt 2: completed/success**. It allocated a runner and completed docs validation successfully.
+- This resolves the *observed GitHub Actions startup blocker* for PR #7 at the tested SHA; it does **not** prove production-readiness, security certification, or live TPA/LLM integration. A subsequent documentation-only commit requires fresh CI verification on its new HEAD.
+- Draft PR #7 and PR #1 remain unmerged pending Nagy's review/permission. Next: validate latest PR head checks, review public exposure of any accidentally included data, then request explicit merge authorization if appropriate.
