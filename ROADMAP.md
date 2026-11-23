@@ -92,3 +92,13 @@ The offline integration candidate was approved and merged into `main` via PR #1.
 - [ ] Sign off real identity/TPA business API contract with owners.
 - [ ] Evaluate an actual model only when budget/privacy use is approved; current fixture selector is **not AI**.
 - [ ] Production-grade auth, tenant controls, compliance, tests and deployment require separate phases.
+
+## PAUSED after approved V0.2 offline milestone (2026-11-23)
+
+- [x] Merge offline session-scoped follow-up context via PR #10 (`a5edbec7d908f3bfd9e3e88a9415e2241e076649`); agent reported 60/60 local tests and both PR checks passed.
+- [ ] **Waiting for external input:** agreed Core Backend/TPA identity + coverage API schemas, authorization boundaries, and approved synthetic sandbox (Issue #9 DEFERRED).
+- [ ] **Waiting for Nagy's approval:** budget + model provider + privacy terms before any genuine AI evaluation or paid API calls.
+- [ ] **Scope gate:** confirm WhatsApp/other channels and operations/human review requirements before implementing.
+- [ ] **Production separate gate:** real persistence, authentication, security/compliance, monitoring and approvals.
+
+**Do not create follow-up artificial work while the project is paused.** This roadmap is not a % complete indicator for the full TPA system. The current deliverable is the finished offline, fictional V0.2 prototype.

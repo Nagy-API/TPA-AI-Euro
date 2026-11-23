@@ -67,3 +67,10 @@
 - Clarification clears an ambiguous or unrelated topic. Session expiry, rotation, revocation and logout invalidate it. Existing chat and auth payloads and legacy single-turn behavior are compatible. The offline rules are **NOT a real LLM**.
 - Local verification on Node 24.14.1 passed all 60 tests, docs validation and strict TypeScript 5.9.3 checking. The offline evaluation preview listed 14 synthetic cases.
 - Opened [Draft PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) against `main` with implementation commit `cca12953a61dd9a237b00855683cc75102b2d66f`.
+
+## 2026-11-23 — V0.2 approved, merged, and paused
+
+- Nagy authorized review and merge of [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) for offline conversation context. Reviewed scope/negative tests, merged into `main` at `a5edbec7d908f3bfd9e3e88a9415e2241e076649`.
+- PR #10 checks passed on head `058ee88bc9f550c128e98aaf3a1c6e8be66d0a37`; 60/60 tests were agent-reported locally. Main checks must be verified per subsequent commit.
+- Explicit project decision: **pause speculative AI feature work**. Backend/TPA contract [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred; paid LLM, live data and channels remain out of scope until approved.
+- Updated status, handoff, roadmap and README to support future chat/agent continuity. No production release, secrets, healthcare data or paid API calls.

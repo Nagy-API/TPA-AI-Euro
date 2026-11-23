@@ -1,6 +1,6 @@
 # TPA AI Service — In-House AI Layer
 
-> **Status:** Local offline member verification and coverage demo with session-scoped follow-ups (V0.2). **Not production-ready.**
+> **Status:** V0.2 synthetic offline member + coverage follow-up demo **merged into `main`**. No genuine model inference or live TPA backend; **not production-ready**.
 >
 > **Last updated:** 2026-11-23. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
 >
@@ -168,3 +168,9 @@ The development suite now includes 14 labeled Arabic/English synthetic cases und
 - Offline member verification → mock OTP → scoped session → coverage inquiry is available on `main`. These are **public, fictional test fixtures only**, with an offline keyword selector (**not** a real LLM).
 - The AI tests and documentation workflows both passed on the resulting `main` merge commit. Local integration agent reported 53/53 tests on Node 24.14.1. Real TPA data, real authentication and real AI inference are **not** connected.
 - The repository is **public**. Making it private in the future does not undo prior exposure of commits, forks, clones or caches. **Never commit real patient/insurer data, credentials or confidential materials**, whether public or private. Use secure approved storage and proper access controls for real integrations.
+
+## V0.2 checkpoint: intentionally paused (2026-11-23)
+
+- Nagy approved and [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) was squash-merged to `main` at `a5edbec7d908f3bfd9e3e88a9415e2241e076649`. The chat remembers one synthetic service for a short follow-up and always refetches mock coverage. This remains a **deterministic, offline demo, NOT a deployed LLM application**.
+- After this bounded milestone, **do not create more speculative modules just to keep agents busy**. The project is paused for dependencies; see [Project Status](PROJECT_STATUS.md) and the [deferred contracts issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9).
+- Continue only when the Backend/TPA team supplies accepted auth/coverage contracts and sandbox, Nagy approves an LLM provider + privacy/budget, or a new confirmed product requirement has been prioritized.

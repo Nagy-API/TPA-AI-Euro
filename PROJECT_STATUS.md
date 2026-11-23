@@ -3,7 +3,7 @@
 **Updated:** 2026-11-23  
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
-**Current milestone:** Offline member onboarding + coverage inquiry **MERGED**, V0.1 demo only
+**Current milestone:** V0.2 offline member onboarding + coverage follow-ups **MERGED into main; engineering PAUSED pending external dependencies**
 
 ## V0.2 offline coverage follow-ups
 
@@ -46,3 +46,23 @@
 ## Collaboration rules
 
 Read [AGENTS.md](AGENTS.md) and [HANDOFF.md](HANDOFF.md): new Codex chat after completed task; one primary local folder; one writer/Git owner at a time for a shared working tree; every agent prompt specifies model + effort; review, test, report, then integrate. No unrelated destructive operations, production releases or changes to billing without explicit approval.
+
+## V0.2 release gate — approved and merged 2026-11-23
+
+- [x] Reviewed [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) for scoped conversation state, session revocation/rotation, fresh backend fetch and negative tests; no blocker identified for its strictly local fictional-data use case.
+- [x] PR #10 squash-merged to `main` with Nagy's explicit authorization. Feature merge SHA `a5edbec7d908f3bfd9e3e88a9415e2241e076649`.
+- [x] PR #10 Node tests + docs checks were both **completed/success** on head `058ee88bc9f550c128e98aaf3a1c6e8be66d0a37`. Agent reported `npm test` **60/60 locally** with TypeScript check and offline fixture preview. The merged `main` commit and any subsequent docs commit must have their own CI results checked.
+- [x] Coverage follow-ups: one prior explicit MRI/CBC/XRAY topic for up to two minutes in current verified demo session. Each follow-up re-queries mock backend. No stored medical history, financial coverage response or raw conversation transcript. Legacy mode remains single-turn.
+- [x] Issue #8 completed. All earlier feature PRs #1, #7 and #10 merged; old source PRs #4 and #5 closed as incorporated.
+
+## Decision: pause additional feature implementation
+
+Nagy requested **no more artificial backlog or endless free-only features** after the present V0.2. The next steps are **external dependency gates**, not active implementation assignments:
+
+1. **DEFERRED** — [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9): Core Backend + TPA domain confirm identity/session, tenant authorization and versioned coverage contract, error semantics, service taxonomy and synthetic sandbox. Current `docs/api-contracts.md` is a proposal, not an approved integration API.
+2. **DEFERRED** — When a genuine backend sandbox exists, map agreed schemas to a typed adapter and run authorization/contract/integration tests. Do not replace `MOCK_POLICY_ENGINE` with an invented production contract.
+3. **DEFERRED** — Nagy chooses budget, approved LLM provider/model and data-sharing/privacy rules before enabling any real LLM API and measuring Egyptian-Arabic intent accuracy. Current keyword selector is **not AI**; Claude adapter code has no verified live calls.
+4. **DEFERRED** — Confirm channels/operations requirements (e.g. WhatsApp, human handoff) and approved credentials before any third-party integration or state-changing workflow.
+5. **FUTURE PRODUCTION GATE** — Real identity/OTP provider, secret management, persistence, tenancy, security/privacy/compliance, monitoring, redacted audit, load/reliability tests, and human/domain sign-off. Not a V0.2 commitment.
+
+**No credible end-to-end schedule or % complete for the full TPA or production AI layer can be derived without team size, accepted requirements and integration access.** We have completed the narrow offline prototype scope, NOT the full TPA/AI delivery. Repository is **PUBLIC** and must hold only synthetic data and safe docs; making it private later cannot undo historical public disclosure.

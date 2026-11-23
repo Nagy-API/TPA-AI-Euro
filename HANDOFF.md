@@ -1,43 +1,24 @@
-# TPA AI Euro — Handoff for next chat / Codex agent
+# Current handoff — TPA AI Euro (2026-11-23)
 
-**As of:** 2026-11-23. Read this file, `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/architecture.md` and `docs/api-contracts.md` before making changes. Re-check GitHub live HEAD, status, CI and working tree; these notes can become stale.
+**CURRENT DECISION: PAUSE NEW FEATURE WORK AFTER V0.2.** Nagy asked for no speculative features or Codex prompts until real Core Backend/API agreements, permitted model/API access, or another confirmed requirement is ready. Start from live GitHub `main` and verify its HEAD, CI and issues. This file supersedes earlier draft-PR pending statements.
 
-## Project identity and state
+- Repo: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**.
+- Earlier offline V0.1 member verification and coverage demo merged as PR #1 (`aec8b58f2ef9cea806b10157a34d067a5370b3b6`).
+- V0.2 offline session-scoped co-pay follow-ups merged as [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) (`a5edbec7d908f3bfd9e3e88a9415e2241e076649`). PR head `058ee88bc9f550c128e98aaf3a1c6e8be66d0a37` had 2/2 green GitHub Actions checks; agent reported 60/60 local tests. Check actual current `main` checks, including any documentation-only commit since then.
+- The default assistant is **offline keyword matching**, NOT a real LLM. Real paid provider integration and evaluation deferred. OTPs, member IDs, tiers, coverage values and session data are fake and only for localhost demo. No actual TPA backend, DB, production identity, WhatsApp or medical workflow integration.
+- [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) contains proposed backend contract; user explicitly **DEFERRED** it until Core Backend / TPA domain availability. Do not infer its proposal is implemented.
+- No additional feature tickets now. Reopen engineering only on a **concrete dependency or confirmed requirement**. See `PROJECT_STATUS.md`, `docs/api-contracts.md`, and `ROADMAP.md`.
 
-- Repository: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**, default `main`.
-- First offline member verification + coverage demo **merged into `main`** by [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1) at commit `aec8b58f2ef9cea806b10157a34d067a5370b3b6` (this is the approved feature baseline, not necessarily the live HEAD).
-- Integration PR #7 was merged into `feat/coverage-inquiry-v1` at `6a0a65dae3ea5115df9c2facb68060caeb3cfe23`, then PR #1 squash-merged the feature to `main`. Source PRs #4 and #5 were closed as incorporated; their branches were not deleted.
-- Hosted GitHub Actions tests and docs **passed on the original `main` feature-merge commit**. The historical billing/spending-limit runner startup restriction was resolved by Nagy's change to Public.
-- Integration agent reports 53/53 local tests on Node 24.14.1; synthetic localhost E2E, strict TypeScript check and docs validator passed. No live clinical/insurance system tested.
+## Collaboration rules (Nagy)
 
-## Current review — V0.2 offline coverage follow-ups
+- Speak natural Egyptian Arabic, concise for simple questions; discuss trade-offs and teach while building. Lead architecture and decisions with Nagy; Codex executes narrowly scoped approved work.
+- Start a **new Codex chat after each completed task**, but **do not start a new chat just to create work** when the project is paused.
+- Use one existing local project folder; no adjacent/sibling clones or worktrees without Nagy's explicit approval. If two Codex clients share a physical Git working tree, only one can write/checkout/commit at a time.
+- Every new agent prompt must specify recommended visible model and effort (default `GPT-6.2 Sol — Medium`; High only for real security/architecture complexity). Keep provider calls/WhatsApp/cloud paid work off until Nagy approves cost and privacy.
+- Never force-push, delete branches, merge future PRs, deploy or modify GitHub billing/visibility without explicit Nagy approval. Keep real member records, credentials or patient data out of GitHub, even after any future return to Private.
 
-- [Draft PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) targets `main` from `feat/offline-conversation-state` for [Issue #8](https://github.com/Nagy-API/TPA-AI-Euro/issues/8). Implementation commit: `cca12953a61dd9a237b00855683cc75102b2d66f`. Verify a fictional member, ask about MRI, then send «وطب نسبة التحمل كام؟» with the same session header.
-- The offline selector is **NOT a real LLM**. It resolves a narrow co-pay follow-up using one synthetic service code per active session for up to two minutes. Logout, revocation, rotation and expiry invalidate the topic. Coverage and financial values come from a fresh, validated mock backend lookup.
-- Local V0.2 evidence: `npm test` **60/60**, `npm run docs:check` passed, `npm run eval:cases` listed **14** synthetic fixtures, and strict TypeScript passed. See [Project Status](PROJECT_STATUS.md#v02-offline-coverage-follow-ups) for the compiler flags and typings.
-- Review the draft before integration. Keep real identity, policy data, medical and financial decisions, paid model calls and production deployment outside this milestone.
+## What to read before resuming
 
-## Architecture — nonnegotiable boundaries
-
-- This repo owns **the AI layer** and its mock integration boundaries, NOT the full TPA platform.
-- Deterministic identity gateway **before** protected AI conversation; member ID is an identifier, not proof of identity.
-- Trusted server session supplies member/tenant scope; the LLM cannot override it. Core backend authorizes and calculates coverage; doctors own clinical decisions.
-- Local demo uses fictional identifiers and *public fake OTP codes* with in-memory sessions. It is **not secure production authentication** and must remain loopback-only, disabled in production.
-- Default selector is a **non-AI offline keyword matcher**. Live Claude adapter and paid provider calls are deferred until Nagy approves budget/privacy terms. No real TPA data, credentials or patient data may enter the public GitHub repo, source prompts or model calls.
-
-## Next engineering objective
-
-- Confirm with Core Backend and TPA/domain owners: member identifier / verification channel, tenant resolution, authorized `GET /members/me/coverage` semantics and service-code taxonomy.
-- Build next free, synthetic feature with narrow typed contracts, meaningful negative tests and a Draft PR. Avoid external dependencies, microservice fragmentation or premature RAG/OCR.
-- Run `npm test`, `python scripts/validate_repository.py`, `npm run eval:cases` and strict TS check if tooling present. Do not equate local tests with production readiness. Refer to current GitHub CI.
-
-## Nagy's working agreement
-
-- Address Nagy in natural Egyptian Arabic; lead technical decisions jointly, challenge risky shortcuts constructively, explain only what matters for the active task. Learn while building; no prerequisite lecture.
-- Use a **new Codex chat for each completed task**, and read current repo state first. The user wants **one existing main project folder**; do **not** create sibling clones or worktrees without permission.
-- Two Codex sessions with the same working tree must not write or change Git state concurrently. One writer at a time; second may review read-only.
-- Every agent prompt should state preferred model and reasoning effort (normally visible `GPT-6.2 Sol — Medium`; High only for genuinely difficult security/architecture/debugging).
-- No paid API, deployment, force push, branch deletion, production-data access or destructive operations without explicit user approval.
-- For every completion, record changes, tests and their exact results, GitHub PR/SHA, unverified gaps and next action in the repo docs.
-
-**Important:** Returning this repository from Public to Private later cannot erase copies already made while public. Never commit sensitive material, even to a private repository without approved controls.
+1. `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`.
+2. `docs/architecture.md`, `docs/api-contracts.md`, `src/contracts.ts`, `src/demo-auth/**` and the current coverage + conversation code.
+3. GitHub: live `main` SHA, latest CI, pending Issues/PRs. Record actual evidence, not assumptions. Scope tasks only after the dependency is real.
