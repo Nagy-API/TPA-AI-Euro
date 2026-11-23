@@ -8,6 +8,8 @@
 ## V0.2 offline coverage follow-ups
 
 - [Issue #8](https://github.com/Nagy-API/TPA-AI-Euro/issues/8) is implemented on `feat/offline-conversation-state`, based on verified `origin/main` at `2162373b166205ce6af00f4e8af318a280bb76fc`.
+- Implementation commit `cca12953a61dd9a237b00855683cc75102b2d66f` is under review in [Draft PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) against `main`. See the PR for hosted checks on the current head.
+- GitHub Actions passed on the implementation commit with [offline tests on Node 22.16.0](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45145808513) and [documentation validation](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45145808509).
 - One topic per current fictional tenant/member session (at most three across this demo), with a fixed two-minute lifetime capped by session expiry. Context stores only the synthetic service code and expiry. The verified session is checked before intent selection and backend lookup and again before returning coverage. Every successful follow-up uses a fresh, validated mock response.
 - `npm test`: 60/60 passed on Node 24.14.1. `npm run docs:check`: passed. `npm run eval:cases`: listed 14 synthetic intent fixtures. Strict TypeScript 5.9.3 checking passed for `src`, `scripts` and `tests` using Node 22.19.17 typings, `--noEmit --strict --target ES2022 --module NodeNext --allowImportingTsExtensions --types node` and the local typings directory.
 - Local regressions cover Gold MRI co-pay, a changed backend result after failure, wrong-service results, Silver/VIP isolation, explicit service changes, clarification, topic expiry, invalid sessions, rotation, logout and in-flight revocation.
