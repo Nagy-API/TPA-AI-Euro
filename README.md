@@ -84,9 +84,9 @@ A member can identify and verify through trusted backend/mock; a scoped session 
 
 ## Repository checks
 
-Run `python scripts/validate_repository.py` to check local Markdown links, code fences, JSON and eval definitions. GitHub Actions is configured to run the same check on PRs and pushes to `main`. See [CI diagnostics](docs/ci-diagnostics.md) for the hosted runner blocker.
+Run `python scripts/validate_repository.py` to check local Markdown links, code fences, JSON and eval definitions. GitHub Actions is configured to run the same check on PRs and pushes to `main`. See [CI diagnostics](docs/ci-diagnostics.md) for the resolved historical runner blocker and current checks.
 
-## First working slice (feature branch, not yet production)
+## First working slice (merged into `main`; demo-only, not production)
 
 A real, runnable **demo** implementation is under `src/` with no runtime npm dependencies:
 
@@ -156,3 +156,10 @@ The development suite now includes 14 labeled Arabic/English synthetic cases und
 - New `src/coverage-validation.ts` checks untrusted policy-engine responses **at runtime**: service/provenance/currency/status match, numeric ranges and contradictory values. Malformed data fails closed with a safe error instead of an insurance claim.
 - `src/selector-factory.ts` defaults to offline mode even if keys happen to exist; paid calls need an explicit, separate opt-in. This is defense in depth for the demo, not a production billing control.
 - Combined local verification and hosted CI status are recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+## Release checkpoint — 2026-11-23
+
+- Approved by Nagy and merged: integration [PR #7](https://github.com/Nagy-API/TPA-AI-Euro/pull/7) into the coverage branch, then [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1) into `main` at `aec8b58f2ef9cea806b10157a34d067a5370b3b6`.
+- Offline member verification → mock OTP → scoped session → coverage inquiry is available on `main`. These are **public, fictional test fixtures only**, with an offline keyword selector (**not** a real LLM).
+- The AI tests and documentation workflows both passed on the resulting `main` merge commit. Local integration agent reported 53/53 tests on Node 24.14.1. Real TPA data, real authentication and real AI inference are **not** connected.
+- The repository is **public**. Making it private in the future does not undo prior exposure of commits, forks, clones or caches. **Never commit real patient/insurer data, credentials or confidential materials**, whether public or private. Use secure approved storage and proper access controls for real integrations.

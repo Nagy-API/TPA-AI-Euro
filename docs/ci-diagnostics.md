@@ -1,3 +1,5 @@
+> **RESOLVED (2026-11-23):** The historical account billing/spending-limit restriction documented below stopped reproducing after Nagy made the repository public. Hosted GitHub Actions tests and docs validator succeeded on the integrated feature merge and on the `main` squash merge `aec8b58f2ef9cea806b10157a34d067a5370b3b6`. Do not change billing or assume every future run passes; verify each new HEAD.
+
 # GitHub Actions startup failure
 
 On 2026-11-23, both workflows on [draft PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1) reported the same GitHub check annotation for commit `b91089d9c4b8936cc0b7ddf76229212b983dde55`.

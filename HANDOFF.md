@@ -1,88 +1,36 @@
-# Handoff — TPA AI Euro workstream
+# TPA AI Euro — Handoff for next chat / Codex agent
 
-## Mandatory reading for a new chat or coding agent
+**As of:** 2026-11-23. Read this file, `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/architecture.md` and `docs/api-contracts.md` before making changes. Re-check GitHub live HEAD, status, CI and working tree; these notes can become stale.
 
-Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/architecture.md`, `docs/api-contracts.md`, and relevant code/tests. Check **live** GitHub branch, SHA, PR and CI before making changes; docs may lag. Address Nagy in Egyptian Arabic, explain design trade-offs, build while teaching; never claim execution without evidence.
+## Project identity and state
 
-## Project identity
+- Repository: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**, default `main`.
+- First offline member verification + coverage demo **merged into `main`** by [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1) at commit `aec8b58f2ef9cea806b10157a34d067a5370b3b6` (this is the approved feature baseline, not necessarily the live HEAD).
+- Integration PR #7 was merged into `feat/coverage-inquiry-v1` at `6a0a65dae3ea5115df9c2facb68060caeb3cfe23`, then PR #1 squash-merged the feature to `main`. Source PRs #4 and #5 were closed as incorporated; their branches were not deleted.
+- Hosted GitHub Actions tests and docs **passed on the original `main` feature-merge commit**. The historical billing/spending-limit runner startup restriction was resolved by Nagy's change to Public.
+- Integration agent reports 53/53 local tests on Node 24.14.1; synthetic localhost E2E, strict TypeScript check and docs validator passed. No live clinical/insurance system tested.
 
-- **Public GitHub repository** (Nagy changed visibility 2026-11-23): `Nagy-API/TPA-AI-Euro`, default branch `main`. Never commit confidential content, credentials, or real patient data.
-- Main baseline before implementation: `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
-- First implementation branch: `feat/coverage-inquiry-v1`.
-- Feature commit SHA and PR number: populate after GitHub push; never fabricate.
-- Scope: AI layer only, not full TPA core/claims/eligibility engine.
+## Architecture — nonnegotiable boundaries
 
-## Current handoff — offline integration candidate (2026-11-23)
+- This repo owns **the AI layer** and its mock integration boundaries, NOT the full TPA platform.
+- Deterministic identity gateway **before** protected AI conversation; member ID is an identifier, not proof of identity.
+- Trusted server session supplies member/tenant scope; the LLM cannot override it. Core backend authorizes and calculates coverage; doctors own clinical decisions.
+- Local demo uses fictional identifiers and *public fake OTP codes* with in-memory sessions. It is **not secure production authentication** and must remain loopback-only, disabled in production.
+- Default selector is a **non-AI offline keyword matcher**. Live Claude adapter and paid provider calls are deferred until Nagy approves budget/privacy terms. No real TPA data, credentials or patient data may enter the public GitHub repo, source prompts or model calls.
 
-- Start from `integration/offline-member-journey` in the existing `TPA-AI-Euro-agent-a` checkout. It includes both source PR commits on coverage tip `bd3406439`, with no conflicts. Keep PR #1, #4 and #5 open for Nagy's review of the integration draft.
-- Reproduce the verified member workflow from the [root README](README.md). The fixture selector is offline and the challenge flow is the default. Use the explicit legacy mode only for the old fixed-token demo.
-- Local evidence on Node 24.14.1: `npm test` **53/53**, `python scripts/validate_repository.py` passed, and strict TypeScript 5.9.3 passed. Live loopback HTTP verified fictional Gold, Silver and VIP outcomes, failed OTPs, logout and session scoping. The injected-clock HTTP check covered expiry and sanitized backend 503s. See [Project Status](PROJECT_STATUS.md#integration-verification--2026-11-23) for the typecheck command and results.
-- Hosted Actions remain blocked before runner allocation by GitHub's payment/spending-limit restriction. Live TPA, real identity/OTP and model integrations remain unverified. Wait for Nagy's review before selecting a merge strategy or changing billing.
+## Next engineering objective
 
-## Settled decisions
+- Confirm with Core Backend and TPA/domain owners: member identifier / verification channel, tenant resolution, authorized `GET /members/me/coverage` semantics and service-code taxonomy.
+- Build next free, synthetic feature with narrow typed contracts, meaningful negative tests and a Draft PR. Avoid external dependencies, microservice fragmentation or premature RAG/OCR.
+- Run `npm test`, `python scripts/validate_repository.py`, `npm run eval:cases` and strict TS check if tooling present. Do not equate local tests with production readiness. Refer to current GitHub CI.
 
-- Learn by implementing. Use small reviewable changes, architecture reasoning and evidence-backed tests; not a course before development.
-- Identity must be verified outside the LLM; member ID alone isn't authentication. WhatsApp/phone account existence must not be exposed.
-- Real TPA backend owns identity, coverage/policy rules, monetary values, eligibility, claims, approvals, authorization; medical decisions belong to doctors.
-- The AI receives only minimum needed context and may request allowlisted tools, never direct DB access.
-- V1 demo uses **fictional sessions and mock coverage**, not live OTP, CRM or policy backend.
-- TypeScript + Node.js modular service, no unnecessary microservices, RAG or orchestration framework.
-- Claude chosen only as **first provider integration experiment**, not exclusive/approved product standard.
-- For now model handles intent classification + tool selection, deterministic formatter handles final answer; avoiding generated financial/coverage claims is intentional.
-- Fixture mode is explicitly non-AI (`DEMO_INTENT_MODE=fixture`).
+## Nagy's working agreement
 
-## Verified tests and implementation (local, not release)
+- Address Nagy in natural Egyptian Arabic; lead technical decisions jointly, challenge risky shortcuts constructively, explain only what matters for the active task. Learn while building; no prerequisite lecture.
+- Use a **new Codex chat for each completed task**, and read current repo state first. The user wants **one existing main project folder**; do **not** create sibling clones or worktrees without permission.
+- Two Codex sessions with the same working tree must not write or change Git state concurrently. One writer at a time; second may review read-only.
+- Every agent prompt should state preferred model and reasoning effort (normally visible `GPT-6.2 Sol — Medium`; High only for genuinely difficult security/architecture/debugging).
+- No paid API, deployment, force push, branch deletion, production-data access or destructive operations without explicit user approval.
+- For every completion, record changes, tests and their exact results, GitHub PR/SHA, unverified gaps and next action in the repo docs.
 
-`npm test`: 16/16 passed on Node 22.16.0 (native TypeScript stripping); `python scripts/validate_repository.py` passed; `tsc --noEmit ... --strict` locally passed with installed Node typings; HTTP curl smoke: synthetic Gold MRI result plus unauthenticated 401. Tests do **not** prove live Anthropic API compatibility or security.
-
-## Primary files
-
-- `src/contracts.ts` — typed demo contracts.
-- `src/mock-backend.ts` — fixed synthetic sessions and mock policy engine.
-- `src/claude-selector.ts` — single-service-code tool-use selector via Anthropic HTTPS.
-- `src/demo-selector.ts` — deterministic non-AI offline selector.
-- `src/coverage-assistant.ts` — gate, allowlisted tool, error handling, deterministic coverage response.
-- `src/http-server.ts`, `src/index.ts` — loopback-only demo HTTP endpoint.
-- `tests/` — 16 local unit/integration tests.
-
-## Open dependencies and next steps
-
-1. Review feature PR; do not merge/deploy without Nagy's approval.
-2. Agree with TPA domain/backend engineers on source-of-truth coverage taxonomy, auth/session and API contracts.
-3. Obtain an approved model + local API key in secret manager (never Git/chat), run synthetic Arabic model evals. Real-data provider/privacy clearance is not obtained.
-4. Improve service-token/session architecture, rate limiting, response schema verification, redacted observability and sandbox integration prior to production.
-
-## Agent collaboration rules
-
-Respect `AGENTS.md`. Observe actual branch/status and collaborator edits. Prefer explicit scope, clean code, narrow tests, clear handoff. No secrets, patient data, unreviewed medical decisions, production changes, force pushes or destructive actions.
-
-
-## 2026-11-23 addition: model evaluation harness
-
-- `evals/intent-cases.json`: 14 fictional cases with expected single tool or clarification, critical cases labeled.
-- `src/intent-evaluator.ts` and `scripts/evaluate-intents.ts`: offline report logic plus deliberate paid live Anthropic run (`npm run eval:live`). `npm run eval:cases` needs no key/network.
-- No real provider call made; `ANTHROPIC_API_KEY` not present in local execution environment. Keep questions fictional and credentials outside Git.
-- Initial CI failed before any visible runner steps (`runner_id=0`, `steps=[]`); logs unavailable. Need GitHub UI investigation rather than guessing YAML changes.
-
-## 2026-11-23 decision: no spending yet
-
-- Nagy explicitly deferred **all paid LLM API/subscription work**. Do not request credentials or run `npm run eval:live` unless he later authorizes cost.
-- Default `ENABLE_DEMO_AUTH=true npm run dev` runs fixture keyword selector only (NOT AI) and mock TPA backend. Paid provider is **double-opt-in**: `DEMO_INTENT_MODE=claude` + `ALLOW_PAID_LLM=true` and credentials.
-- Runtime validator `src/coverage-validation.ts` rejects invalid coverage backend data before any member-facing insurance reply, with regression tests.
-- Local evidence: 32/32 tests passing, strict TS check and docs validation passing, HTTP 200/200/401 smoke. GitHub Actions failures still unresolved; no Merge/production deployment.
-- This change is added to existing Draft PR #1; check live PR HEAD and CI before proceeding. Next: free offline business-flow and integration contract tests.
-
-## 2026-11-23: Two Codex agents' work is ready for integration review
-
-- PR #4 `test/offline-qa-ci` → `feat/coverage-inquiry-v1`: offline regressions and real GitHub Actions billing/spending-limit annotation diagnosis; head `3765e32c0b3328a2adba6c799e01c989d9ce7549`; agent reports 37/37 passing tests locally.
-- PR #5 `feat/demo-member-verification` → `feat/coverage-inquiry-v1`: synthetic challenge+OTP+10-minute session+coverage route; head `6db4bc466572584a73a5f9ba4b82d5c252b3d7b0`; agent reports 48/48 passing tests locally. **Fixed OTP codes in docs are public fixtures; do not mistake for live OTP.**
-- PR #1 is still Draft and unmerged into `main`. Neither PR #4 nor #5 merged; agent test totals are **not a combined integration result**.
-- Next: [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6) — review/integrate with local full tests and accurate README; explicit Nagy approval required before merges.
-- **Nagy's operating rules:** start a **new Codex chat** after each fully completed task; do not create more local project clone/sibling directories; if both Codex clients share one Git working tree, only one may edit/checkout/commit at a time. Every future prompt must specify preferred model and reasoning effort: `GPT-6.2 Sol Medium` for ordinary tasks, `High` selectively for tough security/architecture.
-- User continues **free-first**: zero paid provider calls; CI blocked before runner starts by GitHub billing/spending-limit annotation; don't change billing or public visibility. Follow project `AGENTS.md`.
-
-## 2026-11-23 hosted CI unblocked by repo visibility change
-
-- Repo visibility is **public**, user-confirmed and verified against GitHub metadata. This supersedes earlier notes that private-repo GitHub Actions were blocked. Continue zero-spend/no paid AI API policy.
-- On integration commit `d29fd184d968b72a7bf03485968555a626e48092`, GitHub Actions reruns succeeded: AI demo tests [run 45137965791](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965791) (attempt 2, success); Docs and fixtures sanity [run 45137965890](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965890) (attempt 2, success).
-- A newly created documentation commit must get its own successful checks; don't imply earlier runs validate newer HEAD. Integration Draft PR #7 remains unmerged; no permission for merge or production deployment was given.
+**Important:** Returning this repository from Public to Private later cannot erase copies already made while public. Never commit sensitive material, even to a private repository without approved controls.

@@ -6,7 +6,7 @@ This is a **sequence of milestones, not duration or delivery commitment**. Scope
 
 - [x] Repo-ready docs, diagrams, tool contracts and working rules.
 - [x] Private GitHub remote created (`Nagy-API/TPA-AI-Euro`, `main`); initial README commit confirmed.
-- [ ] Publish the complete 31-file architecture scaffold and verify remote commit.
+- [x] Publish the complete architecture scaffold and verify remote commit.
 - [ ] Product/TPA owner validates domain assumptions and non-goals.
 - [ ] Backend team aligns on identity/session and coverage API.
 
@@ -14,20 +14,20 @@ This is a **sequence of milestones, not duration or delivery commitment**. Scope
 
 ## Milestone 1 — Deterministic Identity Gateway (demo with synthetic members)
 
-- [ ] Channel adapter distinguishes unauthenticated vs verified sessions.
-- [ ] Member identification calls mock trusted backend (no model involved).
-- [ ] OTP challenge/verification stub explicitly marked DEMO ONLY.
-- [ ] Correct session scoping to member + tenant + expiry.
-- [ ] Invalid ID, invalid OTP, expired/blocked session, brute-force/anti-enumeration test cases.
+- [x] Local demo channel distinguishes unauthenticated vs verified sessions.
+- [x] Member identification uses deterministic local mock gateway (no model involved).
+- [x] OTP challenge/verification stub explicitly marked DEMO ONLY.
+- [x] Session scoping to fictional member + tenant + expiry verified in local demo.
+- [x] Demo tests for invalid member/OTP, expiry, replay, limits and generic identification.
 
 **Done when:** no protected member data or privileged tool available before successful verification. Real OTP provider not required for demo; cannot call this production authentication.
 
 ## Milestone 2 — First AI vertical slice: coverage inquiry
 
 - [ ] One provider SDK and model behind small adapter (provider choice recorded).
-- [ ] Typed `get_member_coverage` read-only tool; member resolved from trusted session, never from model input.
-- [ ] Mock coverage records for VIP, GOLD, SILVER and excluded/unknown services.
-- [ ] Arabic question maps to service code or asks clarification if ambiguous.
+- [x] Typed read-only mock `get_member_coverage`, member from trusted demo session.
+- [x] Mock coverage records for VIP, GOLD, SILVER and excluded/unknown services.
+- [x] Offline keyword selector maps supported Arabic terms; ambiguity requests clarification (**not live model-tested**).
 - [ ] Tool output grounding, safe uncertainty, request logging without PII.
 - [ ] Evals: correct, excluded, preapproval, missing, API outage, cross-member and prompt injection.
 
@@ -69,7 +69,7 @@ Document incremental improvements as GitHub Issues. "Ship V1 fast" means **small
 
 ## Implementation note — 2026-11-23
 
-On feature branch `feat/coverage-inquiry-v1`, a **synthetic** session resolver and mock coverage API are implemented, along with Claude intent tool selection, offline non-AI selector and local tests (16 passing). This does **not** complete Milestone 1 production authentication, Milestone 2 live provider evaluation or Milestone 3 integration. Review feature PR and verify CI before checking off acceptance boxes above.
+Implemented and merged via PR #1 on `main`: a **synthetic** session resolver and mock coverage API are implemented, along with Claude intent tool-selection adapter (unverified live), offline non-AI selector and 53 locally reported passing integration tests. This does **not** complete Milestone 1 production authentication, Milestone 2 live provider evaluation or Milestone 3 integration. GitHub-hosted tests and docs checks passed on the merged feature commit; no real integrations were tested.
 
 ## Execution strategy update — 2026-11-23 (free-first)
 
@@ -82,4 +82,13 @@ On feature branch `feat/coverage-inquiry-v1`, a **synthetic** session resolver a
 
 **Do not equate offline keyword matching with real AI quality.** No production claims or third-party integrations are validated.
 
-The integration candidate is pending Nagy's review. [Local verification](PROJECT_STATUS.md#integration-verification--2026-11-23) includes docs validation, strict TypeScript, expiry and safe backend errors. Hosted CI remains blocked by GitHub's payment/spending-limit restriction. Real TPA contracts and live model evaluation remain open.
+The offline integration candidate was approved and merged into `main` via PR #1. [Local verification](PROJECT_STATUS.md#integration-verification--2026-11-23) includes docs validation, strict TypeScript, expiry and safe backend errors. Hosted CI is now passing after Nagy made the repository public. This does not establish production readiness. Real TPA contracts and live model evaluation remain open.
+
+## Approved V0.1 demo integration — 2026-11-23
+
+- [x] Reviewed and integrated PR #7 (offline QA + demo member verification) into coverage feature branch.
+- [x] Merged PR #1 into `main` (`aec8b58f2ef9cea806b10157a34d067a5370b3b6`).
+- [x] Hosted AI tests and docs validation passed on the integrated feature and resulting `main` commit.
+- [ ] Sign off real identity/TPA business API contract with owners.
+- [ ] Evaluate an actual model only when budget/privacy use is approved; current fixture selector is **not AI**.
+- [ ] Production-grade auth, tenant controls, compliance, tests and deployment require separate phases.

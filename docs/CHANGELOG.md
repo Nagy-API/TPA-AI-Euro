@@ -51,3 +51,12 @@
 - Nagy switched `Nagy-API/TPA-AI-Euro` from private to public. Verified visibility on GitHub. Avoid committing sensitive material.
 - Re-ran the two previously blocked workflows at integration commit `d29fd184d968b72a7bf03485968555a626e48092`: Node offline tests [run 45137965791](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965791) attempt 2 **success**; docs validator [run 45137965890](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965890) attempt 2 **success**. Previous billing/spending-limit startup error no longer reproduced.
 - Draft PR #7 remains pending review; main and production remain unchanged.
+
+## 2026-11-23 — Nagy-approved first offline demo merged into main
+
+- Reviewed complete synthetic member verification/coverage flow, tool scoping, validation, tests and documentation; checked current tracked tree for common committed secret formats (limited pattern scan; not a full historic secret audit).
+- Merged [PR #7](https://github.com/Nagy-API/TPA-AI-Euro/pull/7) into `feat/coverage-inquiry-v1`, merge SHA `6a0a65dae3ea5115df9c2facb68060caeb3cfe23`.
+- GitHub-hosted tests and docs validation both passed on the updated feature tip.
+- Squash-merged [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1) into `main`, SHA `aec8b58f2ef9cea806b10157a34d067a5370b3b6`. Both GitHub workflows passed on this main commit.
+- Closed redundant source PR #4 and PR #5 with explanatory comments; their changes are already in the merged integration. No branch deleted; no deployment or paid API use.
+- Updated source-of-truth status, handoff and roadmap. Only fictional mock data and offline selector work; production integration and true LLM behavior remain unverified.
