@@ -1,42 +1,86 @@
 # Project Status — source of truth
 
-**Last review:** 2026-11-22  
-**Lifecycle:** Planning / architecture bootstrap  
-**Owner:** Nagy (AI workstream); GitHub target owner `Nagy-API`  
-**Repository:** Local starter scaffold only. **Remote GitHub repo has NOT been created** by this bootstrap.  
-**Target name:** `tpa-ai-service` (PRIVATE recommended)  
-**Default branch / commit SHA / PR:** UNVERIFIED until remote creation.
+**Last review:** 2026-11-23  
+**Lifecycle:** Offline verification and coverage integration candidate verified locally, with Nagy's review pending.
 
-## Completed (documented, not implemented)
+**Owner:** Nagy's AI workstream  
+**Repository:** `Nagy-API/TPA-AI-Euro` (**PUBLIC**, verified 2026-11-23), default branch `main`  
+**Known main baseline before this branch:** `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`  
+**Implementation branch:** `feat/coverage-inquiry-v1`  
+**Coverage base:** Draft [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1), `bd3406439e8a86e00a1e0eecb9c4f62190d6825a`
 
-- [x] Captured project charter and initial AI/service ownership boundary.
-- [x] Selected member-authentication gate **before** data-aware AI conversation as proposed architecture.
-- [x] Created proposed context, sequence, use-case and state diagrams as Mermaid source.
-- [x] Drafted initial contracts, discovery questions, tests, roadmap, governance, and handoff rules.
-- [x] Prepared fictional demo scenarios and evaluation dataset draft.
-- [x] Added first-vertical-slice task plan and repository-documentation validation script/CI workflow.
-- [x] Published and remotely verified 31 project files on `main` (`461868c93b3ffd0eab00ff1f1455be701cfcedb4`).
+**Integration candidate:** `integration/offline-member-journey`, [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6)
 
-## Verified implementation evidence
+## Integration verification — 2026-11-23
 
-- Repo bootstrap sanity validation **ran locally** on 2026-11-22: `python scripts/validate_repository.py` => `Validation OK` (links, Markdown fences, JSON, 9 draft eval cases). **This is only documentation/fixture verification.**
-- No application runtime has been implemented or validated as part of this scaffold.
-- No live backend/tool integration or end-to-end tests have run.
-- The parent prototype's landing page was read, but its inner screens and source code were **not** inspected by this effort.
+- PR #4 `3765e32` and PR #5 `6db4bc4` were reviewed and cherry-picked onto the live coverage branch tip without conflicts. The source PRs and PR #1 remain unmerged. The candidate uses the verified challenge flow by default; fixed tokens require explicit `DEMO_AUTH_MODE=legacy`.
+- `npm test` passed **53/53** on Node **24.14.1** (npm **11.11.0**). `python scripts/validate_repository.py` passed on Python **3.12.10**. `npm run eval:cases` listed **14** synthetic intent cases without provider calls.
+- Strict TypeScript passed using local TypeScript **5.9.3** and `@types/node` **24.19.2**, with all `src`, `scripts`, and `tests` TypeScript files discovered recursively. No dependencies were added to the repository. The PowerShell check uses `$files = Get-ChildItem src,scripts,tests -Recurse -File -Filter '*.ts' | ForEach-Object FullName` followed by `node $tsc --noEmit --strict --target ES2022 --module NodeNext --allowImportingTsExtensions --types node --typeRoots $nodeTypes $files`. Set `$tsc` to the local compiler entrypoint and `$nodeTypes` to the directory containing the `node` declarations.
+- `node --experimental-strip-types src/index.ts` with `ENABLE_DEMO_AUTH=true`, `DEMO_INTENT_MODE=fixture` and an ephemeral loopback port passed a PowerShell HTTP smoke test. Health returned 200, challenge returned 202, wrong/unknown/replayed codes returned 401, and sessions returned 200. The Arabic Gold MRI reply gave 20% copay, EGP 5,000 remaining and a preapproval requirement. Silver MRI was excluded and VIP MRI gave EGP 12,000 remaining. A Gold session retained the Gold output even when the request named the VIP tenant and member. Logout revoked access with a subsequent 401.
+- A separate in-process loopback check used `node --experimental-strip-types --input-type=module -` with an injected clock and backend faults. Identity failure returned 503 `IDENTITY_UNAVAILABLE`; coverage failure and a wrong-service result returned 503 `COVERAGE_UNAVAILABLE`. Replies suppressed diagnostics and fixture amounts. After recovery coverage returned 200. At the ten-minute expiry boundary the session returned 401 `VERIFICATION_REQUIRED`. The combined suite also checks expiry, failed verification, verified scope, production refusal, and the offline selector boundary.
+- Hosted CI on PR #1 was rechecked with `gh pr checks 1 --repo Nagy-API/TPA-AI-Euro` and `gh api repos/Nagy-API/TPA-AI-Euro/check-runs/<id>/annotations` for checks `137565250013` and `137565250093`. GitHub reported a payment/spending-limit restriction before the jobs started. See [CI diagnostics](docs/ci-diagnostics.md).
+- Node 22 runtime, real OTP delivery, live TPA and LLM integrations, and production security remain unverified. The demo codes are public fixtures and the attempt limits are process-local. Nagy reviews the draft before any merge.
+
+## Completed and verified
+
+- [x] Architecture bootstrap and 31 source-of-truth docs/diagram files published in `461868c93b3ffd0eab00ff1f1455be701cfcedb4`.
+- [x] GitHub follow-up status commit `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`.
+- [x] TypeScript Node 22.16+ demo HTTP server with health route and protected `/v1/chat`.
+- [x] Fake **trusted session** resolution and tenant-scoped synthetic TPA coverage backend; no real identities.
+- [x] Claude Messages HTTP tool-use intent adapter with allowlisted `get_member_coverage` code-only argument; actual hosted model not invoked.
+- [x] Safe deterministic result formatting and clarification/failure paths.
+- [x] Offline (non-AI) keyword adapter for API demonstration with no API key.
+- [x] Added 14 synthetic intent evaluation cases, a live opt-in evaluation runner, and deterministic evaluator tests.
+- [x] Local tests: `npm test` **32/32 passed**, `python scripts/validate_repository.py` passed, strict TypeScript static check passed using installed TypeScript 5.8.3 + Node typings (local global TS tooling). Local curl smoke: healthy, GOLD MRI answer (synthetic), unauthenticated 401.
+
+## Explicitly NOT verified / NOT done
+
+- No actual Claude/DeepSeek/OpenAI live API call; no provider cost or accuracy benchmarks.
+- No real OTP, member session, CRM/policy API or healthcare data. Mock tokens are insecure, *localhost demo only*.
+- No production security audit, data-residency/privacy/legal assessment, human handoff, access-token lifecycle, runtime tracing, caching or service monitoring.
+- No deployed app or production traffic. Real integration and domain contract still need agreement.
+- Native Node TS type stripping is experimental; CI currently covers tests/docs, not compilation/type checking on a clean install.
 
 ## Next prioritized actions
 
-1. Hold a short Backend + TPA Domain alignment: identity source/OTP channel/session model/tenant lookup; coverage response and error contract; approval authority; demo vs real data.
-2. Implement mock identity gate + `get_member_coverage` tool + deterministic fixtures; connect 1 LLM provider and build evaluation tests for coverage and failure paths.
+1. Review PR and tested code; keep `main` unchanged until review/explicit merge approval.
+2. Confirm with core Backend + TPA Domain owner: identity/session/auth and Coverage API contract, service taxonomy, fake vs real data.
+3. Choose approved Claude model and approved processing/data residency terms; run **synthetic** Arabic model cases with a privately configured key and record tool-choice evaluations.
+4. Replace demo identity fixture with authenticated sandbox integration, add authoritative typed tool response schema validation, telemetry redaction, rate limits and abuse protections before any real data.
 
-## Blockers / unknowns
+## Risks / assumptions
 
-- Does member identity use insurance card ID, company-issued member number, national ID, or provider-issued mapping? **Unconfirmed.** National ID should not be the default requested identifier.
-- Auth system, tenant resolution, session lifetime, supported channels and regulatory/privacy requirements **unconfirmed**.
-- Exact policy engine contract, service code taxonomy and medical authorization workflow **unconfirmed**.
-- Actual team staffing and core backend language, deploy platform, LLM provider and data residency **unconfirmed**.
-- Dates and budgets in original proposal are **estimates**, not verified scope commitments.
+- First slice uses `MRI/CBC/XRAY` fake catalog and fictional Gold/Silver/VIP benefits; not approved business coverage rules.
+- Real user text can include personal information even when no profile is sent. Never use live personal data until reviewed and appropriately filtered.
+- Tool call chooses a service code; it cannot choose member ID, tenant, plan or financial values.
 
-## Change log discipline
+At each accepted change: update this file + `HANDOFF.md` and append `docs/CHANGELOG.md`, with observed SHA, tests and next step.
 
-At the end of each merged task: check off a roadmap item if accepted, add test evidence, and update this file's next steps. If an item isn't proven by code/tests, mark it as design-only or unverified. Update `HANDOFF.md` on major milestones.
+## Free-first progress — 2026-11-23 (feature branch)
+
+- **Decision:** No paid LLM API keys, hosting, or subscriptions until Nagy approves spending. Offline, synthetic work is the current scope.
+- Added **runtime coverage payload validator**: rejects wrong service/provenance/currency/status, invalid numbers and contradictory excluded/unknown financial fields; on failure returns generic `COVERAGE_UNAVAILABLE`.
+- Added **offline-by-default demo selector factory**: setting an API key alone does not enable paid calls; Claude mode requires `DEMO_INTENT_MODE=claude` and `ALLOW_PAID_LLM=true` plus credentials.
+- Local evidence: `npm test` 32/32 passed; `tsc --noEmit --strict ...` passed using local installed TypeScript and Node typings; `python scripts/validate_repository.py` passed; HTTP smoke health 200, GOLD MRI 200, missing session 401.
+- Still unverified: real AI model behavior, live TPA API, actual user identity, production security, GitHub CI (job failures before runner start; cause unknown).
+- Next free tasks: review fake session/API contract with Core team, offline scenario tests (member/tenant errors, ambiguity), optional local LLM evaluation after confirming Nagy's hardware; preserve clean, replaceable provider boundary.
+
+## Parallel Codex task completion / integration queue (2026-11-23)
+
+- [x] Codex A completed implementation proposal for **fictional local member verification**, PR [#5](https://github.com/Nagy-API/TPA-AI-Euro/pull/5) (`feat/demo-member-verification`, head `6db4bc466572584a73a5f9ba4b82d5c252b3d7b0`); agent-reported **48/48 local tests**. **Not yet merged or independently retested as part of combined suite.**
+- [x] Codex B completed **offline contract regressions + GitHub CI diagnosis**, PR [#4](https://github.com/Nagy-API/TPA-AI-Euro/pull/4) (`test/offline-qa-ci`, head `3765e32c0b3328a2adba6c799e01c989d9ce7549`); agent-reported **37/37 local tests**. **Not yet merged or independently retested as part of combined suite.**
+- Both PRs target `feat/coverage-inquiry-v1`, which in turn targets `main` through Draft PR #1. `main` unchanged as verified; **no full integrated working tree or CI-green build yet**.
+- CI blocker more specifically diagnosed by Codex B: GitHub check annotations say *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Jobs had no allocated runner/steps. Root billing condition (failed payments vs spending limit) unresolved; GitHub account owner may inspect settings, **no spending approved**.
+- Review found proposed component boundaries generally aligned; PR #5 adds **demo-only public fixed codes** and requires main README/runbook update. Cannot treat this authentication as real identity proof.
+- Next milestone tracked in [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6): one-writer integration review, combined offline tests, documentation sync, prepare draft integration candidate; **no merges without Nagy's approval**.
+- **Workspace rule:** no new sibling clones/worktrees; primary project folder only; one active writer/branch-switching owner if two Codex clients share files.
+- **Agent model rule:** every new Codex task gets a model + effort recommendation; default `GPT-6.2 Sol — Medium`, reserve High for genuinely difficult reviews.
+
+## GitHub visibility and hosted CI — verified 2026-11-23
+
+- Nagy manually changed repository visibility from **private to public**, confirmed through live GitHub repository metadata. All committed content and history are publicly visible; never commit secrets, real patient/member data, or internal-only files.
+- After visibility change, failed PR #7 Actions runs were **re-run on the same integration commit `d29fd184d968b72a7bf03485968555a626e48092`**, without modifying application code.
+- [AI demo tests workflow](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965791), **attempt 2: completed/success**. It allocated a runner and completed its Node test step successfully.
+- [Docs and fixtures sanity workflow](https://github.com/Nagy-API/TPA-AI-Euro/actions/runs/45137965890), **attempt 2: completed/success**. It allocated a runner and completed docs validation successfully.
+- This resolves the *observed GitHub Actions startup blocker* for PR #7 at the tested SHA; it does **not** prove production-readiness, security certification, or live TPA/LLM integration. A subsequent documentation-only commit requires fresh CI verification on its new HEAD.
+- Draft PR #7 and PR #1 remain unmerged pending Nagy's review/permission. Next: validate latest PR head checks, review public exposure of any accidentally included data, then request explicit merge authorization if appropriate.

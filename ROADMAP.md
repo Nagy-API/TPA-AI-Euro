@@ -6,7 +6,7 @@ This is a **sequence of milestones, not duration or delivery commitment**. Scope
 
 - [x] Repo-ready docs, diagrams, tool contracts and working rules.
 - [x] Private GitHub remote created (`Nagy-API/TPA-AI-Euro`, `main`); initial README commit confirmed.
-- [x] Published and remotely verified all 31 architecture scaffold files (`461868c93b3ffd0eab00ff1f1455be701cfcedb4`).
+- [ ] Publish the complete 31-file architecture scaffold and verify remote commit.
 - [ ] Product/TPA owner validates domain assumptions and non-goals.
 - [ ] Backend team aligns on identity/session and coverage API.
 
@@ -66,3 +66,20 @@ This is a **sequence of milestones, not duration or delivery commitment**. Scope
 ## Versioning / scope discipline
 
 Document incremental improvements as GitHub Issues. "Ship V1 fast" means **small scope**, not bypassing basic authorization, security, maintainability or tests. Feature flags and versioned contracts are preferred over hidden hacks.
+
+## Implementation note — 2026-11-23
+
+On feature branch `feat/coverage-inquiry-v1`, a **synthetic** session resolver and mock coverage API are implemented, along with Claude intent tool selection, offline non-AI selector and local tests (16 passing). This does **not** complete Milestone 1 production authentication, Milestone 2 live provider evaluation or Milestone 3 integration. Review feature PR and verify CI before checking off acceptance boxes above.
+
+## Execution strategy update — 2026-11-23 (free-first)
+
+- [x] Make the demo **offline by default** and explicit-only opt-in for external paid LLM API.
+- [x] Add runtime validation of untrusted coverage responses and negative-case tests.
+- [x] Expand offline regression coverage for missing/expired sessions, scoped member/tenant access, and invalid backend results. The combined candidate passed `npm test` 53/53.
+- [ ] Agree identity and coverage contracts with the Core Backend team (no production data or LLM needed).
+- [x] Verify the fictional onboarding and coverage journey over localhost with Gold, Silver and VIP fixtures, failed verification, logout and enforced member scope.
+- [ ] Revisit live LLM provider choice and budget **only when Nagy approves spending**. No commitment to Claude/DeepSeek/OpenAI now.
+
+**Do not equate offline keyword matching with real AI quality.** No production claims or third-party integrations are validated.
+
+The integration candidate is pending Nagy's review. [Local verification](PROJECT_STATUS.md#integration-verification--2026-11-23) includes docs validation, strict TypeScript, expiry and safe backend errors. Hosted CI remains blocked by GitHub's payment/spending-limit restriction. Real TPA contracts and live model evaluation remain open.

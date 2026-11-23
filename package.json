@@ -1,0 +1,16 @@
+{
+  "name": "tpa-ai-euro",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "dev": "node --experimental-strip-types src/index.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "docs:check": "python scripts/validate_repository.py",
+    "eval:cases": "node --experimental-strip-types scripts/evaluate-intents.ts --cases",
+    "eval:live": "node --experimental-strip-types scripts/evaluate-intents.ts --live"
+  }
+}
