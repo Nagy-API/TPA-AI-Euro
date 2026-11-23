@@ -1,13 +1,14 @@
 # Current handoff — TPA AI Euro (2026-11-23)
 
-**CURRENT DECISION: PAUSE NEW FEATURE WORK AFTER V0.2.** Nagy asked for no speculative features or Codex prompts until real Core Backend/API agreements, permitted model/API access, or another confirmed requirement is ready. Start from live GitHub `main` and verify its HEAD, CI and issues. This file supersedes earlier draft-PR pending statements.
+**Current checkpoint.** Nagy requested the local Web Chat in Issue #11 so he can try the completed synthetic journey in a browser. Further speculative work remains paused pending the dependencies below. Start future tasks from verified live GitHub `main`.
 
 - Repo: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**.
 - Earlier offline V0.1 member verification and coverage demo merged as PR #1 (`aec8b58f2ef9cea806b10157a34d067a5370b3b6`).
 - V0.2 offline session-scoped co-pay follow-ups merged as [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) (`a5edbec7d908f3bfd9e3e88a9415e2241e076649`). PR head `058ee88bc9f550c128e98aaf3a1c6e8be66d0a37` had 2/2 green GitHub Actions checks; agent reported 60/60 local tests. Check actual current `main` checks, including any documentation-only commit since then.
 - The default assistant is **offline keyword matching**, NOT a real LLM. Real paid provider integration and evaluation deferred. OTPs, member IDs, tiers, coverage values and session data are fake and only for localhost demo. No actual TPA backend, DB, production identity, WhatsApp or medical workflow integration.
 - [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) contains proposed backend contract; user explicitly **DEFERRED** it until Core Backend / TPA domain availability. Do not infer its proposal is implemented.
-- No additional feature tickets now. Reopen engineering only on a **concrete dependency or confirmed requirement**. See `PROJECT_STATUS.md`, `docs/api-contracts.md`, and `ROADMAP.md`.
+- The bounded [Issue #11](https://github.com/Nagy-API/TPA-AI-Euro/issues/11) changes are on `feat/local-web-demo`, based on `6435cf3c8baf960a27e6919ab1dabdf87e2e045d`. Start with the [README run instructions](README.md#run-without-an-api-key-non-ai-offline-demo) and open `http://127.0.0.1:3000/demo`.
+- Local evidence includes 63/63 Node tests, docs validation, 14 offline intent fixtures and strict TypeScript. Chrome verified Gold, Silver and VIP MRI follow-ups at desktop, tablet and mobile widths, plus invalid OTP, logout, retry after a synthetic HTTP 503, automatic session expiry and reload reset. See [Project Status](PROJECT_STATUS.md#local-web-chat-demo) for details.
 
 ## Collaboration rules (Nagy)
 

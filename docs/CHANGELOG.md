@@ -74,3 +74,9 @@
 - PR #10 checks passed on head `058ee88bc9f550c128e98aaf3a1c6e8be66d0a37`; 60/60 tests were agent-reported locally. Main checks must be verified per subsequent commit.
 - Explicit project decision: **pause speculative AI feature work**. Backend/TPA contract [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred; paid LLM, live data and channels remain out of scope until approved.
 - Updated status, handoff, roadmap and README to support future chat/agent continuity. No production release, secrets, healthcare data or paid API calls.
+
+## 2026-11-23 — Local Web Chat for the synthetic demo
+
+- Added the Arabic RTL browser journey and three public fictional accounts for [Issue #11](https://github.com/Nagy-API/TPA-AI-Euro/issues/11). The page reuses the existing verification, chat and logout APIs and is available in verified offline mode at `/demo` on loopback.
+- Added HTTP tests for the page, assets, security headers and access gates. On Node 24.14.1, `npm test` passed **63/63**, `npm run docs:check` passed, `npm run eval:cases` listed **14** fixtures, and strict TypeScript 5.9.3 passed.
+- Chrome verified Gold, Silver and VIP MRI and co-pay follow-ups, responsive desktop/tablet/mobile layouts, invalid OTP recovery, logout, reload reset, and automatic expiry and retry after an injected synthetic 503. See [Project Status](../PROJECT_STATUS.md#local-web-chat-demo).
