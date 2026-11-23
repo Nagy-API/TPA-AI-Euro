@@ -33,3 +33,9 @@
 - Added regression tests for invalid backend coverage, bad numeric values, mismatch of service or provenance, and accidental paid mode.
 - Local validation evidence: 32/32 tests, strict local TypeScript check, docs sanity checker, health 200 / GOLD MRI 200 / unauthenticated 401 smoke.
 - Draft PR #1 remains unmerged. CI failure before GitHub runner steps unresolved; do not mark green.
+
+## 2026-11-23 — Parallel agent milestone / integration planning
+
+- Verified remote Draft PR #4 (offline QA, 5 tests added) and Draft PR #5 (fictional member verification flow, 16 tests added), both pending integration and review into baseline feature PR #1.
+- Recorded GitHub Actions check annotation indicating payment failure or spending-limit restriction before runner allocation; no hosted green CI and no charges approved.
+- Established next Integration task in Issue #6 and permanent Nagy workflow rules: new Codex chat per completed task, one primary local project folder and one Git writer at a time, explicit model/effort choice per prompt, continued zero-paid-API work.

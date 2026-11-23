@@ -41,3 +41,12 @@
 ## What counts as complete
 
 Read `docs/definition-of-done.md`. "Demo works" is not "production-ready". Mark mocks, simulations and placeholders clearly.
+
+## Codex scheduling, workspace and token policy (Nagy, 2026-11-23)
+
+- **One task = one new Codex chat after the previous task is fully completed and handed off.** Do not endlessly reuse completed implementation chats. Read current GitHub state and `HANDOFF.md` in every new chat.
+- Nagy wants **one existing primary project folder** on his machine. **Do not create adjacent/sibling folders, independent clone directories or additional worktrees** without his explicit approval. Existing agent folders are not to be deleted or moved automatically.
+- When two Codex clients access the SAME working tree (including via network share), enforce **single writer and single Git owner** at a time. One may write; the other must perform read-only review until explicitly handed control. Never allow simultaneous checkouts, staging, commits or branch switches in one physical Git worktree. Parallel write tasks require an explicitly authorized isolation plan; do not silently create folders.
+- Every Codex prompt must include an explicit **model and reasoning effort recommendation** calibrated to its scope and usage: normally use the visible `GPT-6.2 Sol — Medium` option for routine scoped implementation and `High` only for genuine architecture, security or difficult debugging. If these labels are unavailable in that installation, choose a comparable medium-effort model and report it; don't invent cost/usage savings or entitlements.
+- Current user preference: **free-first development**. Never start a paid LLM/API/hosting/WhatsApp integration or enable spending without explicit approval.
+- The integration queue is tracked in [GitHub Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6); PR #4 (offline QA) and PR #5 (member verification) target unmerged feature PR #1. Do not merge until Nagy authorizes the reviewed changes.

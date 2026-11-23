@@ -51,3 +51,14 @@ At each accepted change: update this file + `HANDOFF.md` and append `docs/CHANGE
 - Local evidence: `npm test` 32/32 passed; `tsc --noEmit --strict ...` passed using local installed TypeScript and Node typings; `python scripts/validate_repository.py` passed; HTTP smoke health 200, GOLD MRI 200, missing session 401.
 - Still unverified: real AI model behavior, live TPA API, actual user identity, production security, GitHub CI (job failures before runner start; cause unknown).
 - Next free tasks: review fake session/API contract with Core team, offline scenario tests (member/tenant errors, ambiguity), optional local LLM evaluation after confirming Nagy's hardware; preserve clean, replaceable provider boundary.
+
+## Parallel Codex task completion / integration queue (2026-11-23)
+
+- [x] Codex A completed implementation proposal for **fictional local member verification**, PR [#5](https://github.com/Nagy-API/TPA-AI-Euro/pull/5) (`feat/demo-member-verification`, head `6db4bc466572584a73a5f9ba4b82d5c252b3d7b0`); agent-reported **48/48 local tests**. **Not yet merged or independently retested as part of combined suite.**
+- [x] Codex B completed **offline contract regressions + GitHub CI diagnosis**, PR [#4](https://github.com/Nagy-API/TPA-AI-Euro/pull/4) (`test/offline-qa-ci`, head `3765e32c0b3328a2adba6c799e01c989d9ce7549`); agent-reported **37/37 local tests**. **Not yet merged or independently retested as part of combined suite.**
+- Both PRs target `feat/coverage-inquiry-v1`, which in turn targets `main` through Draft PR #1. `main` unchanged as verified; **no full integrated working tree or CI-green build yet**.
+- CI blocker more specifically diagnosed by Codex B: GitHub check annotations say *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Jobs had no allocated runner/steps. Root billing condition (failed payments vs spending limit) unresolved; GitHub account owner may inspect settings, **no spending approved**.
+- Review found proposed component boundaries generally aligned; PR #5 adds **demo-only public fixed codes** and requires main README/runbook update. Cannot treat this authentication as real identity proof.
+- Next milestone tracked in [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6): one-writer integration review, combined offline tests, documentation sync, prepare draft integration candidate; **no merges without Nagy's approval**.
+- **Workspace rule:** no new sibling clones/worktrees; primary project folder only; one active writer/branch-switching owner if two Codex clients share files.
+- **Agent model rule:** every new Codex task gets a model + effort recommendation; default `GPT-6.2 Sol — Medium`, reserve High for genuinely difficult reviews.

@@ -64,3 +64,12 @@ Respect `AGENTS.md`. Observe actual branch/status and collaborator edits. Prefer
 - Runtime validator `src/coverage-validation.ts` rejects invalid coverage backend data before any member-facing insurance reply, with regression tests.
 - Local evidence: 32/32 tests passing, strict TS check and docs validation passing, HTTP 200/200/401 smoke. GitHub Actions failures still unresolved; no Merge/production deployment.
 - This change is added to existing Draft PR #1; check live PR HEAD and CI before proceeding. Next: free offline business-flow and integration contract tests.
+
+## 2026-11-23: Two Codex agents' work is ready for integration review
+
+- PR #4 `test/offline-qa-ci` → `feat/coverage-inquiry-v1`: offline regressions and real GitHub Actions billing/spending-limit annotation diagnosis; head `3765e32c0b3328a2adba6c799e01c989d9ce7549`; agent reports 37/37 passing tests locally.
+- PR #5 `feat/demo-member-verification` → `feat/coverage-inquiry-v1`: synthetic challenge+OTP+10-minute session+coverage route; head `6db4bc466572584a73a5f9ba4b82d5c252b3d7b0`; agent reports 48/48 passing tests locally. **Fixed OTP codes in docs are public fixtures; do not mistake for live OTP.**
+- PR #1 is still Draft and unmerged into `main`. Neither PR #4 nor #5 merged; agent test totals are **not a combined integration result**.
+- Next: [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6) — review/integrate with local full tests and accurate README; explicit Nagy approval required before merges.
+- **Nagy's operating rules:** start a **new Codex chat** after each fully completed task; do not create more local project clone/sibling directories; if both Codex clients share one Git working tree, only one may edit/checkout/commit at a time. Every future prompt must specify preferred model and reasoning effort: `GPT-6.2 Sol Medium` for ordinary tasks, `High` selectively for tough security/architecture.
+- User continues **free-first**: zero paid provider calls; CI blocked before runner starts by GitHub billing/spending-limit annotation; don't change billing or public visibility. Follow project `AGENTS.md`.
