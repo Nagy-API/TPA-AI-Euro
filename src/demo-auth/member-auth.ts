@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import type { VerifiedSession } from "../contracts.ts";
+import type { ServiceCode, VerifiedSession } from "../contracts.ts";
+import { CoverageConversation } from "../coverage-conversation.ts";
 import { DEMO_MEMBERS } from "./fixtures.ts";
 
 const CHALLENGE_TTL_MS = 2 * 60_000;
@@ -24,6 +25,8 @@ type Challenge = {
   window: VerificationWindow;
 };
 
+type SessionRecord = Readonly<{ scope: VerifiedSession; conversation: CoverageConversation }>;
+
 function randomToken(): string {
   return randomBytes(32).toString("base64url");
 }
@@ -37,8 +40,8 @@ export class DemoMemberAuth {
   // The identifier format bounds these indexes to 1,000 entries each.
   private readonly windows = new Map<string, VerificationWindow>();
   private readonly challenges = new Map<string, Challenge>();
-  // One current session per fictional member. Keys are digests of bearer tokens.
-  private readonly sessions = new Map<string, VerifiedSession>();
+  // One record per fictional tenant/member, keyed by bearer-token digest. Deleting it drops its topic too.
+  private readonly sessions = new Map<string, SessionRecord>();
   private readonly now: () => number;
 
   constructor(now: () => number = Date.now) {
@@ -97,16 +100,17 @@ export class DemoMemberAuth {
     if (!matches || !member) return null;
 
     this.challenges.delete(challengeId);
-    for (const [digest, session] of this.sessions) {
-      if (session.memberKey === member.memberKey) this.sessions.delete(digest);
+    for (const [digest, { scope }] of this.sessions) {
+      if (scope.expiresAt <= now || (scope.memberKey === member.memberKey && scope.tenantKey === member.tenantKey)) {
+        this.sessions.delete(digest);
+      }
     }
     const expiresAt = now + SESSION_TTL_MS;
     const sessionToken = randomToken();
-    this.sessions.set(tokenDigest(sessionToken), Object.freeze({
-      memberKey: member.memberKey,
-      tenantKey: member.tenantKey,
-      expiresAt
-    }));
+    this.sessions.set(tokenDigest(sessionToken), {
+      scope: Object.freeze({ memberKey: member.memberKey, tenantKey: member.tenantKey, expiresAt }),
+      conversation: new CoverageConversation()
+    });
     return { sessionToken, sessionExpiresAt: new Date(expiresAt).toISOString() };
   }
 
@@ -115,7 +119,7 @@ export class DemoMemberAuth {
     const digest = tokenDigest(token);
     const session = this.sessions.get(digest);
     if (!session) return null;
-    if (session.expiresAt > this.now()) return session;
+    if (session.scope.expiresAt > this.now()) return session.scope;
     this.sessions.delete(digest);
     return null;
   }
@@ -125,7 +129,24 @@ export class DemoMemberAuth {
   }
 
   isActive(session: VerifiedSession): boolean {
-    // Only the exact, unexpired scope issued by this store can reach mock coverage.
-    return session.expiresAt > this.now() && [...this.sessions.values()].includes(session);
+    return this.findActiveRecord(session, this.now()) !== undefined;
+  }
+
+  /** null denotes an inactive session. undefined means the service needs clarification. */
+  resolveConversationService(session: VerifiedSession, followUp: string, serviceCode: ServiceCode | undefined): ServiceCode | null | undefined {
+    const now = this.now();
+    const record = this.findActiveRecord(session, now);
+    return record ? record.conversation.resolve(followUp, serviceCode, now, session.expiresAt) : null;
+  }
+
+  private findActiveRecord(session: VerifiedSession, now: number): SessionRecord | undefined {
+    // Match the exact scope issued by this store, never caller-supplied member or tenant fields.
+    for (const [digest, record] of this.sessions) {
+      if (record.scope !== session) continue;
+      if (session.expiresAt > now) return record;
+      this.sessions.delete(digest);
+      break;
+    }
+    return undefined;
   }
 }

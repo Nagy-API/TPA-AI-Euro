@@ -58,6 +58,9 @@ test("entrypoint defaults to verification and listens on loopback", { timeout: 1
   const coverage = await post(baseUrl, "/v1/chat", question, sessionToken);
   assert.equal(coverage.status, 200);
   assert.match((await coverage.json() as { answer: string }).answer, /20%/);
+  const followUp = await post(baseUrl, "/v1/chat", { message: "وطب نسبة التحمل كام؟" }, sessionToken);
+  assert.equal(followUp.status, 200);
+  assert.match((await followUp.json() as { answer: string }).answer, /20%/);
 });
 
 test("explicit legacy mode keeps fixed-token coverage without enabling challenge routes", { timeout: 10_000 }, async (t) => {
@@ -65,6 +68,8 @@ test("explicit legacy mode keeps fixed-token coverage without enabling challenge
   const coverage = await post(baseUrl, "/v1/chat", { message: "Is MRI covered?" }, "demo-gold-session");
   assert.equal(coverage.status, 200);
   assert.match((await coverage.json() as { answer: string }).answer, /20%/);
+  const followUp = await post(baseUrl, "/v1/chat", { message: "What is the copay?" }, "demo-gold-session");
+  assert.equal((await followUp.json() as { code: string }).code, "CLARIFICATION_NEEDED");
   const identify = await post(baseUrl, "/v1/member-auth/challenges", { memberIdentifier: "M-DEMO-001" });
   assert.equal(identify.status, 404);
 });

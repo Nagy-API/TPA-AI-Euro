@@ -60,3 +60,10 @@
 - Squash-merged [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1) into `main`, SHA `aec8b58f2ef9cea806b10157a34d067a5370b3b6`. Both GitHub workflows passed on this main commit.
 - Closed redundant source PR #4 and PR #5 with explanatory comments; their changes are already in the merged integration. No branch deleted; no deployment or paid API use.
 - Updated source-of-truth status, handoff and roadmap. Only fictional mock data and offline selector work; production integration and true LLM behavior remain unverified.
+
+## 2026-11-23 — V0.2 offline coverage follow-ups
+
+- Added a two-minute, session-scoped topic for [Issue #8](https://github.com/Nagy-API/TPA-AI-Euro/issues/8). One synthetic service code and expiry let a verified member ask a narrow co-pay follow-up. Each lookup reads fresh mock coverage and validates the response.
+- Clarification clears an ambiguous or unrelated topic. Session expiry, rotation, revocation and logout invalidate it. Existing chat and auth payloads and legacy single-turn behavior are compatible. The offline rules are **NOT a real LLM**.
+- Local verification on Node 24.14.1 passed all 60 tests, docs validation and strict TypeScript 5.9.3 checking. The offline evaluation preview listed 14 synthetic cases.
+- Opened [Draft PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) against `main` with implementation commit `cca12953a61dd9a237b00855683cc75102b2d66f`.
