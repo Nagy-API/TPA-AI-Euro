@@ -3,7 +3,15 @@
 **Updated:** 2026-11-23  
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
-**Current milestone:** V0.2 offline member onboarding + coverage follow-ups **MERGED into main; engineering PAUSED pending external dependencies**
+**Current milestone:** V0.2 offline coverage follow-ups merged into `main`. The local Web Chat demo is on `feat/local-web-demo` for review.
+
+## Local Web Chat demo
+
+- [Issue #11](https://github.com/Nagy-API/TPA-AI-Euro/issues/11) adds Arabic RTL membership verification, chat and logout at `http://127.0.0.1:3000/demo`. Start the verified offline server using the [README run instructions](README.md#run-without-an-api-key-non-ai-offline-demo).
+- The page and two assets share the demo enablement, production, loopback and origin gates and are available in verified mode. Responses use `no-store` and a restrictive Content Security Policy. The client keeps its session token in volatile JavaScript state and renders messages as text.
+- Local `npm test` passed **63/63** on Node 24.14.1. The three new HTTP tests cover page/assets, security headers, fictional credentials, and disabled, legacy, production, foreign Origin and non-loopback Host requests. `npm run docs:check` passed. `npm run eval:cases` listed **14** synthetic cases. Strict TypeScript 5.9.3 passed for `src`, `scripts` and `tests` with Node 22.19.17 typings.
+- Windows Chrome verified desktop (1536 × 720), tablet (768 × 850) and mobile (390 × 844) layouts and keyboard form submission. All three public fixture accounts completed MRI and the co-pay follow-up. Chrome also showed invalid OTP recovery, logout, text-only rendering and reload reset. A temporary loopback test server verified a synthetic HTTP 503, successful retry and automatic expiry clearing the transcript.
+- [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred. The browser session uses synthetic identity, coverage and offline keyword rules.
 
 ## V0.2 offline coverage follow-ups
 

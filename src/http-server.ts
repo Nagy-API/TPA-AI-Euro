@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { CoverageAssistant } from "./coverage-assistant.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
@@ -8,6 +9,26 @@ const VERIFY_PATH = /^\/v1\/member-auth\/challenges\/([A-Za-z0-9_-]{43})\/verify
 const LOGOUT_PATH = "/v1/member-auth/logout";
 const LOOPBACK_HOST = /^(?:127\.0\.0\.1|localhost|\[::1\])(?::[0-9]{1,5})?$/i;
 const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+
+const DEMO_ASSETS = new Map<string, { type: string; body: Buffer }>(([
+  ["/demo", "index.html", "text/html"],
+  ["/demo/style.css", "style.css", "text/css"],
+  ["/demo/chat.js", "chat.js", "text/javascript"]
+] as const).map(([path, file, type]) => [
+  path, { type, body: readFileSync(new URL(`./web-demo/${file}`, import.meta.url)) }
+] as const));
+
+function writeDemoAsset(res: ServerResponse, asset: { type: string; body: Buffer }): void {
+  res.writeHead(200, {
+    "content-type": `${asset.type}; charset=utf-8`,
+    "cache-control": "no-store",
+    "content-security-policy": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "no-referrer"
+  });
+  res.end(asset.body);
+}
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -45,7 +66,9 @@ export function createDemoServer(assistant: CoverageAssistant, demoEnabled: bool
     const identify = req.url === CHALLENGES_PATH;
     const verify = VERIFY_PATH.exec(req.url ?? "");
     const logout = req.url === LOGOUT_PATH;
-    if (req.method !== "POST" || !(chat || (memberAuth && (identify || verify || logout)))) {
+    const asset = req.method === "GET" && memberAuth ? DEMO_ASSETS.get(req.url ?? "") : undefined;
+    const api = req.method === "POST" && (chat || (memberAuth && (identify || verify || logout)));
+    if (!asset && !api) {
       writeJson(res, 404, { error: "NOT_FOUND" });
       return;
     }
@@ -56,6 +79,10 @@ export function createDemoServer(assistant: CoverageAssistant, demoEnabled: bool
     const origin = req.headers.origin;
     if (memberAuth && origin !== undefined && origin !== "http://" + req.headers.host?.toLowerCase()) {
       writeJson(res, 403, { error: "ORIGIN_NOT_ALLOWED" });
+      return;
+    }
+    if (asset) {
+      writeDemoAsset(res, asset);
       return;
     }
     const header = req.headers["x-demo-session"];

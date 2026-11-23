@@ -108,7 +108,17 @@ $env:DEMO_INTENT_MODE = 'fixture'
 npm run dev
 ```
 
-In a second PowerShell terminal, start a challenge for the fictional Gold member, verify the public code `135790`, and ask about MRI coverage:
+Open [http://127.0.0.1:3000/demo](http://127.0.0.1:3000/demo) in a local browser. Pick a fictional account, select «متابعة للتحقق», and enter its public test code. Send «هل الرنين المغناطيسي مغطى؟», then «وطب نسبة التحمل كام؟» in the same session within two minutes of the first question. Use «تسجيل الخروج» to end the session before switching accounts.
+
+| Fictional account | Test member identifier | Public test code | Expected MRI result |
+| --- | --- | --- | --- |
+| Gold | `M-DEMO-001` | `135790` | Covered with conditions, 20% co-pay |
+| Silver | `M-DEMO-002` | `246801` | Excluded |
+| VIP | `M-DEMO-003` | `357912` | Covered with conditions, 0% co-pay |
+
+The browser page and assets require verified demo mode and loopback access. Reload returns to identification and clears the browser's session and transcript. Chrome verified all three journeys, including desktop and mobile layouts. See [Project Status](PROJECT_STATUS.md#local-web-chat-demo) for verification results.
+
+For HTTP-level debugging, this PowerShell example runs the same Gold journey:
 
 ```powershell
 $demoUrl = 'http://127.0.0.1:3000/v1'
