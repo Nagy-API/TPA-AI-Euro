@@ -1,7 +1,9 @@
 # TPA AI Service — In-House AI Layer
 
-> **Status:** Discovery / architecture baseline (V0.1). **Not production-ready.**  
-> **Last updated:** 2026-11-22. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).  
+> **Status:** Local offline member verification and coverage demo (V0.1). **Not production-ready.**
+>
+> **Last updated:** 2026-11-23. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
+>
 > **Visibility:** PRIVATE (verified 2026-11-22). Do not add real patient data or credentials.
 
 ## المشروع باختصار
@@ -67,7 +69,7 @@ The initial planning inputs were: (1) user-shared TPA AI proposal dated 2026-11-
 
 ## What is not done
 
-No live backend integration, no actual LLM endpoint, no user accounts, no live OTP delivery, no production data, no deployed app, no security certification, and no passing test suite are claimed at this stage.
+Live TPA and model integrations, real member authentication, OTP delivery, and production security validation are pending.
 
 ## Workflow and reporting
 
@@ -82,44 +84,54 @@ A member can identify and verify through trusted backend/mock; a scoped session 
 
 ## Repository checks
 
-Run `python scripts/validate_repository.py` to check local Markdown links, code fences, JSON and eval definitions; GitHub Actions runs the same sanity check on PRs and pushes to `main`. **This does not prove the application works**, and no LLM/backend integration exists yet.
+Run `python scripts/validate_repository.py` to check local Markdown links, code fences, JSON and eval definitions. GitHub Actions is configured to run the same check on PRs and pushes to `main`. See [CI diagnostics](docs/ci-diagnostics.md) for the hosted runner blocker.
 
 ## First working slice (feature branch, not yet production)
 
 A real, runnable **demo** implementation is under `src/` with no runtime npm dependencies:
 
 - `/health` reports demo status (not production readiness).
-- `POST /v1/chat` requires a **synthetic** `x-demo-session` header resolved by the local fixture backend; it never trusts member/tier values in the message or LLM arguments.
+- `POST /v1/member-auth/challenges` starts identification. `POST /v1/member-auth/challenges/{challengeId}/verify` checks the public mock OTP and issues a member- and tenant-scoped session with a ten-minute lifetime. `POST /v1/member-auth/logout` revokes it.
+- `POST /v1/chat` requires that session token in the `x-demo-session` header. Member and tenant scope come from the verified session. Request fields and chat text cannot override it.
 - `ClaudeIntentSelector` uses the Anthropic Messages HTTP API tool-use response to pick **one** allowed service code (MRI/CBC/XRAY), with no member ID in tool input.
 - A mock backend returns member-scoped deterministic coverage. Output is rendered by a **deterministic formatter**, not free-form LLM drafting, to prevent hallucinated co-pay/limits/approvals.
 - `DemoKeywordSelector` is an explicitly **non-AI offline substitute** for local development and tests.
 
 ### Run without an API key (non-AI offline demo)
 
-Requires Node.js 22.16+ (native experimental TypeScript stripping). **Do not expose this HTTP server on a public interface.** It binds to `127.0.0.1` and includes fixed demo tokens. Never send real member data.
+Requires Node.js 22.16+. The verified demo uses public mock codes, in-memory sessions, synthetic coverage, and deterministic keyword matching. It binds to `127.0.0.1` and refuses to start with `NODE_ENV=production`. Run directly on loopback and use only fictional data.
 
-```bash
-ENABLE_DEMO_AUTH=true npm run dev
+```powershell
+$env:ENABLE_DEMO_AUTH = 'true'
+$env:DEMO_AUTH_MODE = 'verified'
+$env:DEMO_INTENT_MODE = 'fixture'
+npm run dev
 ```
 
-In a second terminal:
+In a second PowerShell terminal, start a challenge for the fictional Gold member, verify the public code `135790`, and ask about MRI coverage:
 
-```bash
-curl -X POST http://127.0.0.1:3000/v1/chat \
-  -H 'Content-Type: application/json' \
-  -H 'x-demo-session: demo-gold-session' \
-  -d '{"message":"هل الرنين المغناطيسي مغطى؟"}'
+```powershell
+$demoUrl = 'http://127.0.0.1:3000/v1'
+$challenge = Invoke-RestMethod -Method Post -ContentType 'application/json' -Uri "$demoUrl/member-auth/challenges" -Body '{"memberIdentifier":"M-DEMO-001"}'
+$verifyUrl = "$demoUrl/member-auth/challenges/$($challenge.challengeId)/verify"
+$verified = Invoke-RestMethod -Method Post -ContentType 'application/json' -Uri $verifyUrl -Body '{"oneTimeCode":"135790"}'
+$headers = @{ 'x-demo-session' = $verified.sessionToken }
+$question = '{"message":"Is MRI covered?"}'
+Invoke-RestMethod -Method Post -ContentType 'application/json' -Uri "$demoUrl/chat" -Headers $headers -Body $question
+Invoke-RestMethod -Method Post -Uri "$demoUrl/member-auth/logout" -Headers $headers
 ```
 
-Switch `demo-gold-session` to `demo-silver-session` or `demo-vip-session` to compare **fictional** results. Missing or incorrect session tokens return HTTP 401. `ENABLE_DEMO_AUTH=true` must be explicitly set and the process refuses `NODE_ENV=production`.
+Expect HTTP 202 for identification, 200 for verification, and 200 `COVERAGE_RESULT` for the chat reply. The Gold fixture response reports «نسبة التحمل: 20%. الحد المتبقي: 5,000 جنيه.» and requires preapproval. The same chat request after logout returns 401 `VERIFICATION_REQUIRED`. A wrong or replayed code returns 401 `VERIFICATION_FAILED`. For other fictional members and challenge limits, see the [demo auth runbook](src/demo-auth/README.md).
+
+The fixed `demo-gold-session`, `demo-silver-session`, and `demo-vip-session` tokens are available only with explicit `DEMO_AUTH_MODE=legacy`. Legacy mode offers chat without challenge routes.
 
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
 ```bash
-ENABLE_DEMO_AUTH=true DEMO_INTENT_MODE=claude ALLOW_PAID_LLM=true npm run dev
+ENABLE_DEMO_AUTH=true DEMO_AUTH_MODE=legacy DEMO_INTENT_MODE=claude ALLOW_PAID_LLM=true npm run dev
 ```
 
-Paid provider mode requires **all** of: explicit `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Without explicit opt-in, the default is **offline keyword simulation**. **Never put keys in Git or chat.** Claude receives the text of the question and the *public fake service catalog*, but no profile, tenant/member ID, token, policy tier or coverage amounts. As with all user text, the question itself could contain personal information; therefore this implementation is for **synthetic queries only**, pending data-handling approval and a PII minimization design.
+Verified mode accepts only the offline fixture selector. The deferred provider experiment requires legacy mode, `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Keep credentials out of Git and chat. The adapter receives the question and public fictional service catalog. Use synthetic questions only, pending data-handling approval and a PII minimization design.
 
 This integration calls the documented Anthropic Messages HTTPS endpoint directly for now, with a small replaceable adapter; migrating to the official SDK is a planned follow-up. **No real Claude call is claimed as verified** without credentials and measured outputs. Official tool-use docs: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
 
@@ -143,4 +155,4 @@ The development suite now includes 14 labeled Arabic/English synthetic cases und
 - Model-driven calls and `npm run eval:live` are **DEFERRED** until budget, provider, and privacy approval. No provider key or subscription is needed for current work.
 - New `src/coverage-validation.ts` checks untrusted policy-engine responses **at runtime**: service/provenance/currency/status match, numeric ranges and contradictory values. Malformed data fails closed with a safe error instead of an insurance claim.
 - `src/selector-factory.ts` defaults to offline mode even if keys happen to exist; paid calls need an explicit, separate opt-in. This is defense in depth for the demo, not a production billing control.
-- Local verification (2026-11-23): 32/32 unit tests, strict local TypeScript check, docs sanity validator, and HTTP smoke (health 200, demo GOLD MRI 200, unauthorized 401). **GitHub Actions remain failing before runner steps; root cause unknown.**
+- Combined local verification and hosted CI status are recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md).

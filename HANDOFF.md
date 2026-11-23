@@ -12,6 +12,13 @@ Start with `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`, `docs/ar
 - Feature commit SHA and PR number: populate after GitHub push; never fabricate.
 - Scope: AI layer only, not full TPA core/claims/eligibility engine.
 
+## Current handoff — offline integration candidate (2026-11-23)
+
+- Start from `integration/offline-member-journey` in the existing `TPA-AI-Euro-agent-a` checkout. It includes both source PR commits on coverage tip `bd3406439`, with no conflicts. Keep PR #1, #4 and #5 open for Nagy's review of the integration draft.
+- Reproduce the verified member workflow from the [root README](README.md). The fixture selector is offline and the challenge flow is the default. Use the explicit legacy mode only for the old fixed-token demo.
+- Local evidence on Node 24.14.1: `npm test` **53/53**, `python scripts/validate_repository.py` passed, and strict TypeScript 5.9.3 passed. Live loopback HTTP verified fictional Gold, Silver and VIP outcomes, failed OTPs, logout and session scoping. The injected-clock HTTP check covered expiry and sanitized backend 503s. See [Project Status](PROJECT_STATUS.md#integration-verification--2026-11-23) for the typecheck command and results.
+- Hosted Actions remain blocked before runner allocation by GitHub's payment/spending-limit restriction. Live TPA, real identity/OTP and model integrations remain unverified. Wait for Nagy's review before selecting a merge strategy or changing billing.
+
 ## Settled decisions
 
 - Learn by implementing. Use small reviewable changes, architecture reasoning and evidence-backed tests; not a course before development.

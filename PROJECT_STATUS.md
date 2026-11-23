@@ -1,12 +1,25 @@
 # Project Status — source of truth
 
 **Last review:** 2026-11-23  
-**Lifecycle:** Local offline coverage inquiry + runtime validation implemented; Draft PR #1 pending review  
+**Lifecycle:** Offline verification and coverage integration candidate verified locally, with Nagy's review pending.
+
 **Owner:** Nagy's AI workstream  
 **Repository:** `Nagy-API/TPA-AI-Euro` (private), default branch `main`  
 **Known main baseline before this branch:** `8c526e2398f84cb77d457ec0a7d971d9fa6036d0`  
 **Implementation branch:** `feat/coverage-inquiry-v1`  
-**Latest feature commit / PR:** record after GitHub push; do not guess.
+**Coverage base:** Draft [PR #1](https://github.com/Nagy-API/TPA-AI-Euro/pull/1), `bd3406439e8a86e00a1e0eecb9c4f62190d6825a`
+
+**Integration candidate:** `integration/offline-member-journey`, [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6)
+
+## Integration verification — 2026-11-23
+
+- PR #4 `3765e32` and PR #5 `6db4bc4` were reviewed and cherry-picked onto the live coverage branch tip without conflicts. The source PRs and PR #1 remain unmerged. The candidate uses the verified challenge flow by default; fixed tokens require explicit `DEMO_AUTH_MODE=legacy`.
+- `npm test` passed **53/53** on Node **24.14.1** (npm **11.11.0**). `python scripts/validate_repository.py` passed on Python **3.12.10**. `npm run eval:cases` listed **14** synthetic intent cases without provider calls.
+- Strict TypeScript passed using local TypeScript **5.9.3** and `@types/node` **24.19.2**, with all `src`, `scripts`, and `tests` TypeScript files discovered recursively. No dependencies were added to the repository. The PowerShell check uses `$files = Get-ChildItem src,scripts,tests -Recurse -File -Filter '*.ts' | ForEach-Object FullName` followed by `node $tsc --noEmit --strict --target ES2022 --module NodeNext --allowImportingTsExtensions --types node --typeRoots $nodeTypes $files`. Set `$tsc` to the local compiler entrypoint and `$nodeTypes` to the directory containing the `node` declarations.
+- `node --experimental-strip-types src/index.ts` with `ENABLE_DEMO_AUTH=true`, `DEMO_INTENT_MODE=fixture` and an ephemeral loopback port passed a PowerShell HTTP smoke test. Health returned 200, challenge returned 202, wrong/unknown/replayed codes returned 401, and sessions returned 200. The Arabic Gold MRI reply gave 20% copay, EGP 5,000 remaining and a preapproval requirement. Silver MRI was excluded and VIP MRI gave EGP 12,000 remaining. A Gold session retained the Gold output even when the request named the VIP tenant and member. Logout revoked access with a subsequent 401.
+- A separate in-process loopback check used `node --experimental-strip-types --input-type=module -` with an injected clock and backend faults. Identity failure returned 503 `IDENTITY_UNAVAILABLE`; coverage failure and a wrong-service result returned 503 `COVERAGE_UNAVAILABLE`. Replies suppressed diagnostics and fixture amounts. After recovery coverage returned 200. At the ten-minute expiry boundary the session returned 401 `VERIFICATION_REQUIRED`. The combined suite also checks expiry, failed verification, verified scope, production refusal, and the offline selector boundary.
+- Hosted CI on PR #1 was rechecked with `gh pr checks 1 --repo Nagy-API/TPA-AI-Euro` and `gh api repos/Nagy-API/TPA-AI-Euro/check-runs/<id>/annotations` for checks `137565250013` and `137565250093`. GitHub reported a payment/spending-limit restriction before the jobs started. See [CI diagnostics](docs/ci-diagnostics.md).
+- Node 22 runtime, real OTP delivery, live TPA and LLM integrations, and production security remain unverified. The demo codes are public fixtures and the attempt limits are process-local. Nagy reviews the draft before any merge.
 
 ## Completed and verified
 

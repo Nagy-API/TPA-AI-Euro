@@ -39,3 +39,9 @@
 - Verified remote Draft PR #4 (offline QA, 5 tests added) and Draft PR #5 (fictional member verification flow, 16 tests added), both pending integration and review into baseline feature PR #1.
 - Recorded GitHub Actions check annotation indicating payment failure or spending-limit restriction before runner allocation; no hosted green CI and no charges approved.
 - Established next Integration task in Issue #6 and permanent Nagy workflow rules: new Codex chat per completed task, one primary local project folder and one Git writer at a time, explicit model/effort choice per prompt, continued zero-paid-API work.
+
+## 2026-11-23 — Offline member journey integration draft
+
+- Combined PR #4's contract tests and CI diagnosis with PR #5's mock member verification on top of the latest coverage base. The README now walks through identification, mock OTP, scoped chat and logout. Fixed tokens are an explicit legacy option.
+- Verified locally on Node 24.14.1 with `npm test` (53/53), `python scripts/validate_repository.py`, and strict TypeScript 5.9.3. Loopback HTTP confirmed fixture-specific MRI responses, failed OTP, scoped access, logout, expiry with an injected clock, and generic backend 503s. See [Project Status](../PROJECT_STATUS.md#integration-verification--2026-11-23).
+- Hosted Actions runner allocation remains blocked by GitHub's payment/spending-limit restriction. Live TPA and LLM integrations and real OTP remain unverified. The integration candidate is for review under [Issue #6](https://github.com/Nagy-API/TPA-AI-Euro/issues/6).
