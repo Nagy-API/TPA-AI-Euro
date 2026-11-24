@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { ClaudeIntentSelector } from "../src/claude-selector.ts";
 import { SERVICE_CODES } from "../src/contracts.ts";
 import { evaluateIntents, type IntentEvalCase } from "../src/intent-evaluator.ts";
+import { createDemoIntentSelector } from "../src/selector-factory.ts";
 
 function loadCases(): IntentEvalCase[] {
   const raw: unknown = JSON.parse(readFileSync(new URL("../evals/intent-cases.json", import.meta.url), "utf8"));
@@ -21,8 +22,28 @@ function loadCases(): IntentEvalCase[] {
 }
 
 const cases = loadCases();
+async function report(title: string, selector: Parameters<typeof evaluateIntents>[0]) {
+  console.log(title);
+  const results = await evaluateIntents(selector, cases);
+  for (const item of results) {
+    console.log(`${item.id}: ${item.passed ? "PASS" : "FAIL"} expected=${item.expected} actual=${item.actual} elapsedMs=${item.elapsedMs}`);
+  }
+  const failed = results.filter(x => !x.passed);
+  console.log(`Summary: ${results.length - failed.length}/${results.length} passed; ${failed.filter(x => x.critical).length} critical failures.`);
+  return failed.length;
+}
+
 if (process.argv.length === 3 && process.argv[2] === "--cases") {
   for (const item of cases) console.log(`${item.id}: ${item.expectedServiceCode ?? "CLARIFY"}${item.critical ? " [critical]" : ""}`);
+} else if (process.argv.length === 3 && process.argv[2] === "--ollama") {
+  if (process.env.DEMO_INTENT_MODE !== "ollama" || !process.env.OLLAMA_MODEL) {
+    console.error("Set DEMO_INTENT_MODE=ollama and OLLAMA_MODEL to run the local model evaluation.");
+    process.exitCode = 2;
+  } else {
+    const ollama = createDemoIntentSelector(process.env);
+    await report("Offline keyword baseline", createDemoIntentSelector({}));
+    if (await report("Local Ollama", ollama)) process.exitCode = 1;
+  }
 } else if (process.argv.length === 3 && process.argv[2] === "--live") {
   const key = process.env.ANTHROPIC_API_KEY;
   const model = process.env.ANTHROPIC_MODEL;
@@ -30,17 +51,11 @@ if (process.argv.length === 3 && process.argv[2] === "--cases") {
     console.error("Missing ANTHROPIC_API_KEY or ANTHROPIC_MODEL in your local environment. No API requests sent.");
     process.exitCode = 2;
   } else {
-    console.log(`Running ${cases.length} synthetic cases against model ${model}. Live provider usage may incur charges.`);
-    const results = await evaluateIntents(new ClaudeIntentSelector(key, model), cases);
-    for (const item of results) {
-      console.log(`${item.id}: ${item.passed ? "PASS" : "FAIL"} expected=${item.expected} actual=${item.actual} elapsedMs=${item.elapsedMs}`);
+    if (await report(`Running ${cases.length} synthetic cases against model ${model}. Live provider usage may incur charges.`, new ClaudeIntentSelector(key, model))) {
+      process.exitCode = 1;
     }
-    const failed = results.filter(x => !x.passed);
-    const criticalFailed = failed.filter(x => x.critical);
-    console.log(`Summary: ${results.length - failed.length}/${results.length} passed; ${criticalFailed.length} critical failures.`);
-    if (failed.length) process.exitCode = 1;
   }
 } else {
-  console.error("Usage: npm run eval:cases (offline) OR npm run eval:live (requires approved Anthropic key/model)");
+  console.error("Usage: npm run eval:cases (offline), npm run eval:ollama (local), or npm run eval:live (approved paid provider)");
   process.exitCode = 2;
 }

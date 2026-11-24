@@ -80,3 +80,8 @@
 - Added the Arabic RTL browser journey and three public fictional accounts for [Issue #11](https://github.com/Nagy-API/TPA-AI-Euro/issues/11). The page reuses the existing verification, chat and logout APIs and is available in verified offline mode at `/demo` on loopback.
 - Added HTTP tests for the page, assets, security headers and access gates. On Node 24.14.1, `npm test` passed **63/63**, `npm run docs:check` passed, `npm run eval:cases` listed **14** fixtures, and strict TypeScript 5.9.3 passed.
 - Chrome verified Gold, Silver and VIP MRI and co-pay follow-ups, responsive desktop/tablet/mobile layouts, invalid OTP recovery, logout, reload reset, and automatic expiry and retry after an injected synthetic 503. See [Project Status](../PROJECT_STATUS.md#local-web-chat-demo).
+
+## 2026-11-24 — Local Ollama intent selection for review
+
+- Added opt-in Ollama intent selection for [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13), with a fixed loopback endpoint, local-model check, eligibility screening, exact tool validation and observable failures. The same Web Chat and mock coverage flow support both fixture and Ollama modes.
+- Added simulated provider tests, verified scoping integration tests and an opt-in comparison across 21 synthetic cases. Local tests passed 77/77 with docs and typecheck. The real model matched 19/21 and the verified browser/HTTP flow passed. See [Project Status](../PROJECT_STATUS.md#v03-local-ollama-review) for timings and the two mismatches.

@@ -1,8 +1,8 @@
 # TPA AI Service — In-House AI Layer
 
-> **Status:** V0.2 synthetic offline member + coverage follow-up demo **merged into `main`**. No genuine model inference or live TPA backend; **not production-ready**.
+> **Status:** V0.2 synthetic demo and Web Chat are on `main`. This feature branch adds opt-in local Ollama inference for synthetic review.
 >
-> **Last updated:** 2026-11-23. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
+> **Last updated:** 2026-11-24. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
 >
 > **Visibility:** PUBLIC (verified 2026-11-23). Do not add real patient data, internal-only artifacts or credentials.
 
@@ -69,7 +69,7 @@ The initial planning inputs were: (1) user-shared TPA AI proposal dated 2026-11-
 
 ## What is not done
 
-Live TPA and model integrations, real member authentication, OTP delivery, and production security validation are pending.
+Live TPA integration, real member authentication, OTP delivery, and production security validation are pending.
 
 ## Workflow and reporting
 
@@ -135,9 +135,25 @@ Invoke-RestMethod -Method Post -Uri "$demoUrl/member-auth/logout" -Headers $head
 
 Expect HTTP 202 for identification, 200 for verification, and 200 `COVERAGE_RESULT` for the chat reply. The Gold fixture response reports «نسبة التحمل: 20%. الحد المتبقي: 5,000 جنيه.» and requires preapproval. The same chat request after logout returns 401 `VERIFICATION_REQUIRED`. A wrong or replayed code returns 401 `VERIFICATION_FAILED`. For other fictional members and challenge limits, see the [demo auth runbook](src/demo-auth/README.md).
 
-The follow-up uses the latest explicit service in the same active verified session and fetches fresh mock coverage. The demo keeps one service code and its expiry for up to two minutes from the explicit question. A follow-up does not extend that window. Ambiguous, unsupported, or unrelated turns ask for clarification and clear the topic. Expiry, logout, revocation, and rotation invalidate the topic. The selector and co-pay follow-up rules are deterministic and **NOT a real LLM**.
+The follow-up uses the latest explicit service in the same active verified session and fetches fresh mock coverage. The demo keeps one service code and its expiry for up to two minutes from the explicit question. A follow-up does not extend that window. Clarification, expiry, logout, revocation, and rotation invalidate the topic. Fixture selection and co-pay topic resolution are deterministic.
 
 The fixed `demo-gold-session`, `demo-silver-session`, and `demo-vip-session` tokens are available only with explicit `DEMO_AUTH_MODE=legacy`. Legacy mode keeps single-turn chat and has no challenge routes.
+
+### Run with local Ollama (synthetic demo)
+
+With Ollama already running and `ollama list` showing `qwen3:4b-instruct`, run:
+
+```powershell
+$env:ENABLE_DEMO_AUTH = 'true'
+$env:DEMO_AUTH_MODE = 'verified'
+$env:DEMO_INTENT_MODE = 'ollama'
+$env:OLLAMA_MODEL = 'qwen3:4b-instruct'
+npm run dev
+```
+
+Open [the same local Web Demo](http://127.0.0.1:3000/demo) for the public fictional accounts and test codes. Try «الفحص اللي بيصور بالـمغناطيس وأنا جوه الجهاز، التأمين بيشيله؟» and then «وطب نسبة التحمل كام؟». The banner identifies the active mode. Use only synthetic questions and keep credentials, identifiers and private information out of chat. See the [local evaluation and troubleshooting runbook](docs/evaluation-runbook.md#local-ollama-evaluation).
+
+The service checks for a locally installed GGUF model and calls only Ollama on `127.0.0.1:11434`. Ollama first checks intent eligibility, then may select one allowed read-only coverage tool with an MRI, CBC, or XRAY code. The verified session and mock policy engine supply scope and coverage. An unavailable model, timeout or invalid response returns `AI_UNAVAILABLE` with HTTP 503. Fixture mode remains the default and can be selected by restarting with `DEMO_INTENT_MODE=fixture`.
 
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
@@ -145,7 +161,7 @@ The fixed `demo-gold-session`, `demo-silver-session`, and `demo-vip-session` tok
 ENABLE_DEMO_AUTH=true DEMO_AUTH_MODE=legacy DEMO_INTENT_MODE=claude ALLOW_PAID_LLM=true npm run dev
 ```
 
-Verified mode accepts only the offline fixture selector. The deferred provider experiment requires legacy mode, `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Keep credentials out of Git and chat. The adapter receives the question and public fictional service catalog. Use synthetic questions only, pending data-handling approval and a PII minimization design.
+Verified mode supports fixture and local Ollama. The deferred Claude experiment requires legacy mode, `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Keep credentials out of Git and chat. The adapter receives the question and public fictional service catalog. Use synthetic questions only, pending data-handling approval and a PII minimization design.
 
 This integration calls the documented Anthropic Messages HTTPS endpoint directly for now, with a small replaceable adapter; migrating to the official SDK is a planned follow-up. **No real Claude call is claimed as verified** without credentials and measured outputs. Official tool-use docs: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
 
@@ -162,12 +178,12 @@ No `npm install` is needed for the zero-dependency demo. V0.2 local verification
 
 ### Intent evaluation harness (synthetic, paid live opt-in)
 
-The development suite now includes 14 labeled Arabic/English synthetic cases under `evals/intent-cases.json`. Preview without network requests with `npm run eval:cases`. **Only after approving provider usage**, configure `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` in your **local shell environment**, and invoke `npm run eval:live` (14 provider calls; may incur charges). It prints case IDs, pass/fail and timings; it never logs raw provider errors or secrets. See [`docs/evaluation-runbook.md`](docs/evaluation-runbook.md) for scope and limitations. No live model call has yet been executed or verified.
+Preview the labeled synthetic cases with `npm run eval:cases` or run `npm run eval:ollama` with the same local Ollama environment. Paid Anthropic evaluation via `npm run eval:live` remains deferred. The runner prints case IDs, outcomes, and timings. See the [evaluation runbook](docs/evaluation-runbook.md).
 
 ## Free-first development (decision 2026-11-23)
 
 - **Current approved workflow: $0 external API spend.** Run `ENABLE_DEMO_AUTH=true npm run dev`, `npm test`, `npm run eval:cases`, and `python scripts/validate_repository.py` locally (no key, no external service). The fixture selector is deliberately **not AI**.
-- Model-driven calls and `npm run eval:live` are **DEFERRED** until budget, provider, and privacy approval. No provider key or subscription is needed for current work.
+- Local Ollama inference is opt-in and requires no provider key or subscription. Paid inference and `npm run eval:live` remain deferred pending budget, provider, and privacy approval.
 - New `src/coverage-validation.ts` checks untrusted policy-engine responses **at runtime**: service/provenance/currency/status match, numeric ranges and contradictory values. Malformed data fails closed with a safe error instead of an insurance claim.
 - `src/selector-factory.ts` defaults to offline mode even if keys happen to exist; paid calls need an explicit, separate opt-in. This is defense in depth for the demo, not a production billing control.
 - Combined local verification and hosted CI status are recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md).

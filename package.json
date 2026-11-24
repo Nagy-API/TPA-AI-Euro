@@ -11,6 +11,7 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "docs:check": "python scripts/validate_repository.py",
     "eval:cases": "node --experimental-strip-types scripts/evaluate-intents.ts --cases",
+    "eval:ollama": "node --experimental-strip-types scripts/evaluate-intents.ts --ollama",
     "eval:live": "node --experimental-strip-types scripts/evaluate-intents.ts --live"
   }
 }

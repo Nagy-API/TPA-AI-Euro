@@ -10,13 +10,24 @@ const LOGOUT_PATH = "/v1/member-auth/logout";
 const LOOPBACK_HOST = /^(?:127\.0\.0\.1|localhost|\[::1\])(?::[0-9]{1,5})?$/i;
 const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
+const DEMO_PAGE = readFileSync(new URL("./web-demo/index.html", import.meta.url), "utf8");
 const DEMO_ASSETS = new Map<string, { type: string; body: Buffer }>(([
-  ["/demo", "index.html", "text/html"],
   ["/demo/style.css", "style.css", "text/css"],
   ["/demo/chat.js", "chat.js", "text/javascript"]
 ] as const).map(([path, file, type]) => [
   path, { type, body: readFileSync(new URL(`./web-demo/${file}`, import.meta.url)) }
 ] as const));
+
+function demoPage(useOllama: boolean) {
+  const label = useOllama ? "Synthetic Data / Local Ollama" : "Synthetic Data / Offline Simulation / Not Real AI";
+  const description = useOllama
+    ? "اختيار الخدمة بموديل محلي. استخدم بيانات اختبار وهمية فقط."
+    : "محاكاة بدون اتصال خارجي. استخدم بيانات اختبار وهمية فقط.";
+  return {
+    type: "text/html",
+    body: Buffer.from(DEMO_PAGE.replace("{{demo-mode-label}}", label).replace("{{demo-mode-description}}", description))
+  };
+}
 
 function writeDemoAsset(res: ServerResponse, asset: { type: string; body: Buffer }): void {
   res.writeHead(200, {
@@ -56,7 +67,8 @@ function isLocalRequest(req: IncomingMessage): boolean {
 }
 
 /** Both the verified and compatibility demos require explicit enablement and loopback HTTP. */
-export function createDemoServer(assistant: CoverageAssistant, demoEnabled: boolean, memberAuth?: DemoMemberAuth) {
+export function createDemoServer(assistant: CoverageAssistant, demoEnabled: boolean, memberAuth?: DemoMemberAuth, useOllama = false) {
+  const page = demoPage(useOllama);
   return createServer(async (req, res) => {
     if (req.url === "/health" && req.method === "GET") {
       writeJson(res, 200, { status: "ok", mode: "demo", productionReady: false });
@@ -66,7 +78,9 @@ export function createDemoServer(assistant: CoverageAssistant, demoEnabled: bool
     const identify = req.url === CHALLENGES_PATH;
     const verify = VERIFY_PATH.exec(req.url ?? "");
     const logout = req.url === LOGOUT_PATH;
-    const asset = req.method === "GET" && memberAuth ? DEMO_ASSETS.get(req.url ?? "") : undefined;
+    const asset = req.method === "GET" && memberAuth
+      ? req.url === "/demo" ? page : DEMO_ASSETS.get(req.url ?? "")
+      : undefined;
     const api = req.method === "POST" && (chat || (memberAuth && (identify || verify || logout)));
     if (!asset && !api) {
       writeJson(res, 404, { error: "NOT_FOUND" });

@@ -1,9 +1,19 @@
 # TPA AI Euro — Project Status (source of truth)
 
-**Updated:** 2026-11-23  
+**Updated:** 2026-11-24
+
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
-**Current milestone:** V0.2 offline coverage follow-ups merged into `main`. The local Web Chat demo is on `feat/local-web-demo` for review.
+**Current milestone:** V0.3 local Ollama is available on `codex/ollama-coverage-intent` for architectural review. V0.2 and the local Web Chat are on `main`.
+
+## V0.3 local Ollama review
+
+- [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13) adds opt-in local model intent selection, based on `main` at `752664ea34b0bce0f0ef2bedba2af3af3a42098f`. Fixture mode remains default. Use the [README setup](README.md#run-with-local-ollama-synthetic-demo) for the existing Web Chat.
+- The adapter rejects recognizable sensitive chat input before sending it to Ollama. Verified member/tenant scope, auth fields, conversation state and mock benefit data stay on the application side. The input screen is limited to recognizable formats and the demo accepts fictional data only.
+- `npm test`: **77/77** on Node 24.14.1. `npm run docs:check`, `npm run eval:cases` and strict TypeScript 5.9.3 for `src`, `scripts` and `tests` passed. Local browser verification covered Gold mock OTP, the colloquial MRI question, the co-pay follow-up and logout.
+- Ollama **0.40.17** reported tool support for the installed `qwen3:4b-instruct` (Q4_K_M, digest prefix `0edcdef34593`). A direct tool probe took **8,630 ms** wall clock, with **7,855 ms** reported model load. The final 21-case run matched **19/21** versus fixture **15/21**. Accepted service turns took **789–1,045 ms** in that run. The model recognized all three added Egyptian Arabic paraphrases and the app clarified the multi-service case.
+- Both remaining misses were critical. `INT-012` expected MRI but the privacy screen suppressed the pasted fictional membership identifier before inference. `INT-020` expected clarification for a neighbor's coverage and the model selected MRI. The HTTP path returned the caller's own synthetic result, confined to their verified member/tenant. The fixture also misses `INT-020`. The fixed suite was used for tuning and the result is regression evidence, with independent intent validation pending.
+- Local HTTP end-to-end measured colloquial MRI **1,139 ms**, scoped co-pay follow-up **277 ms**, CBC paraphrase **790 ms**, multi-service clarification **1,317 ms**, and unrelated clarification **292 ms**. A deliberately missing model returned HTTP **503 `AI_UNAVAILABLE`** in **48 ms** and a logged-out request returned **401 `VERIFICATION_REQUIRED`**. Measurements are specific to this machine and run.
 
 ## Local Web Chat demo
 
@@ -11,7 +21,7 @@
 - The page and two assets share the demo enablement, production, loopback and origin gates and are available in verified mode. Responses use `no-store` and a restrictive Content Security Policy. The client keeps its session token in volatile JavaScript state and renders messages as text.
 - Local `npm test` passed **63/63** on Node 24.14.1. The three new HTTP tests cover page/assets, security headers, fictional credentials, and disabled, legacy, production, foreign Origin and non-loopback Host requests. `npm run docs:check` passed. `npm run eval:cases` listed **14** synthetic cases. Strict TypeScript 5.9.3 passed for `src`, `scripts` and `tests` with Node 22.19.17 typings.
 - Windows Chrome verified desktop (1536 × 720), tablet (768 × 850) and mobile (390 × 844) layouts and keyboard form submission. All three public fixture accounts completed MRI and the co-pay follow-up. Chrome also showed invalid OTP recovery, logout, text-only rendering and reload reset. A temporary loopback test server verified a synthetic HTTP 503, successful retry and automatic expiry clearing the transcript.
-- [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred. The browser session uses synthetic identity, coverage and offline keyword rules.
+- [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred. The default browser session uses synthetic identity, coverage and offline keyword rules.
 
 ## V0.2 offline coverage follow-ups
 
