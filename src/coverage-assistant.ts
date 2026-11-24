@@ -2,7 +2,7 @@ import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend, VerifiedSession } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { blocksConversationLookup, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
+import { asksWhetherReferencedAmountIsDue, blocksConversationLookup, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
 import { SERVICE_CATALOG, type ConversationInterpreter } from "./conversation-intent.ts";
 import { CLARIFY_SERVICE, conversationReply, formatFocusedCoverage, OTHER_ACCOUNT, UNSUPPORTED_SERVICE } from "./conversation-replies.ts";
@@ -119,16 +119,18 @@ export class CoverageAssistant {
     const clues = inspectServiceSubject(message);
     if (clues.named.length > 1) {
       const reply = conversationReply({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
-      return decline(reply.code, reply.answer);
+      auth.awaitConversationService(session, "OVERVIEW");
+      return { status: 200, ...reply };
     }
     if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
       return decline("UNSUPPORTED_SERVICE", UNSUPPORTED_SERVICE);
     }
 
     const topic = auth.currentConversationService(session);
+    const pending = auth.pendingConversationFocus(session);
     let decision;
     try {
-      decision = await interpreter.interpret(message, topic, signal);
+      decision = await interpreter.interpret(message, topic, signal, pending);
     } catch {
       clear();
       return interrupted() ?? { status: 503, code: "AI_UNAVAILABLE", answer: "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
@@ -139,11 +141,19 @@ export class CoverageAssistant {
       return stopped;
     }
     const followUp = decision.intent === "FOLLOW_UP";
+    if (decision.usesPending && auth.pendingConversationFocus(session) === undefined) {
+      return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);
+    }
     const serviceCode = followUp && decision.subject === "NONE" && decision.focus !== "OVERVIEW"
       ? auth.currentConversationService(session) :
       decision.intent === "COVERAGE_LOOKUP" && isServiceCode(decision.subject) ? decision.subject : undefined;
     if (!serviceCode) {
       const reply = conversationReply(decision);
+      if (reply.code === "FAQ" && topic && asksWhetherReferencedAmountIsDue(message)) return { status: 200, ...reply };
+      if (followUp || decision.intent === "CLARIFY" && !clues.comparison && !clues.unsupported) {
+        auth.awaitConversationService(session, decision.focus);
+        return { status: 200, ...reply };
+      }
       return decline(reply.code, reply.answer);
     }
     if (clues.unsupported || clues.comparison ||

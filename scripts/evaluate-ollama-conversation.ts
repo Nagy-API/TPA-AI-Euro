@@ -1,14 +1,24 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { readFileSync } from "node:fs";
 import { CoverageAssistant } from "../src/coverage-assistant.ts";
 import type { ServiceCode } from "../src/contracts.ts";
 import { DemoMemberAuth } from "../src/demo-auth/member-auth.ts";
+import { DEMO_MEMBERS } from "../src/demo-auth/fixtures.ts";
 import { createDemoServer } from "../src/http-server.ts";
 import { MockTpaBackend } from "../src/mock-backend.ts";
 import { OllamaCoverageIntentSelector } from "../src/ollama-selector.ts";
 
-type Turn = readonly [question: string, code: string, service?: ServiceCode, answer?: RegExp];
-type Sequence = { id: string; turns: readonly Turn[]; advance?: number; silver?: boolean; missingModel?: boolean };
+type Turn = readonly [question: string, code: string, service?: ServiceCode, answer?: RegExp | string];
+type Action = "expire-topic" | "switch-vip" | "expire-session" | "login-gold" | "rotate-silver" |
+  "use-new-session" | "provider-outage" | "mismatched-backend";
+type Member = "gold" | "silver" | "vip" | "unverified";
+type Sequence = { id: string; turns: readonly Turn[]; advance?: number; silver?: boolean; missingModel?: boolean;
+  member?: Member; actions?: (Action | undefined)[]; topics?: (ServiceCode | null)[] };
+type DisclosedSequence = {
+  id: string; member: Member;
+  turns: { question: string; code: string; lookup: ServiceCode | null; topic: ServiceCode | null; answerIncludes?: string; action?: Action }[];
+};
 const sequences: Sequence[] = [
   { id: "issue-17", turns: [
     ["الدكتور طالب مني أدخل جهاز بيصور ركبتي بالمغناطيس، التأمين هيساعدني في تكلفته؟", "COVERAGE_RESULT", "MRI", /مغطّى.*20%.*5,000.*موافقة مسبقة/],
@@ -70,15 +80,35 @@ let requiredLookups = 0;
 let correctLookups = 0;
 let deniedLookups = 0;
 let wrongServiceLookups = 0;
+let unauthorizedLookups = 0;
+let falseNegativeClarifications = 0;
+let scenarioPasses = 0;
+let providerChecks = 0;
+let providerChats = 0;
+let backendCalls = 0;
 
-const suite = process.argv.includes("--fresh") ? fresh : process.argv.includes("--independent") ? independent : sequences;
+const suite: Sequence[] = process.argv.includes("--disclosed") ?
+  (JSON.parse(readFileSync(new URL("../evals/v04-disclosed-conversations.json", import.meta.url), "utf8")) as DisclosedSequence[])
+    .map(({ id, member, turns }) => ({
+      id, member, topics: turns.map((turn) => turn.topic), actions: turns.map((turn) => turn.action),
+      turns: turns.map(({ question, code, lookup, answerIncludes }) =>
+        [question, code, lookup ?? undefined, answerIncludes])
+    })) :
+  process.argv.includes("--fresh") ? fresh : process.argv.includes("--independent") ? independent : sequences;
 for (const sequence of suite) {
   let offset = 0;
   const auth = new DemoMemberAuth(() => Date.now() + offset);
   const backend = new MockTpaBackend(auth);
   let decisions: unknown[] = [];
   let lookups: ServiceCode[] = [];
+  let action: Action | undefined;
+  let expectedMember: Member = sequence.member ?? (sequence.silver ? "silver" : "gold");
+  let wrongScope = 0;
+  let scenarioPassed = true;
   const selector = new OllamaCoverageIntentSelector(sequence.missingModel ? "missing-demo-model:local" : model, async (input, init) => {
+    if (String(input).endsWith("/api/tags")) providerChecks++;
+    if (String(input).endsWith("/api/chat")) providerChats++;
+    if (action === "provider-outage") throw new Error("SYNTHETIC_PROVIDER_OUTAGE");
     const response = await fetch(input, init);
     if (String(input).endsWith("/api/chat") && response.ok) {
       const reader = response.clone().body?.getReader();
@@ -105,9 +135,13 @@ for (const sequence of suite) {
   });
   const assistant = new CoverageAssistant({
     resolveSession: backend.resolveSession.bind(backend),
-    getCoverage(session, service) {
+    async getCoverage(session, service) {
       lookups.push(service);
-      return backend.getCoverage(session, service);
+      backendCalls++;
+      const member = DEMO_MEMBERS.find(({ memberKey }) => memberKey === "demo-" + expectedMember);
+      if (!member || member.memberKey !== session.memberKey || member.tenantKey !== session.tenantKey) wrongScope++;
+      const result = await backend.getCoverage(session, service);
+      return action === "mismatched-backend" ? { ...result, serviceCode: service === "CBC" ? "MRI" : "CBC" } : result;
     }
   }, selector, auth, selector);
   const server = createDemoServer(assistant, true, auth, true);
@@ -124,41 +158,74 @@ for (const sequence of suite) {
     });
     return { status: response.status, body: await response.json() as Record<string, unknown> };
   }
-  try {
-    const identified = await post("/v1/member-auth/challenges", { memberIdentifier: sequence.silver ? "M-DEMO-002" : "M-DEMO-001" });
+  async function login(member: Member) {
+    if (member === "unverified") return undefined;
+    const fixture = DEMO_MEMBERS.find(({ memberKey }) => memberKey === "demo-" + member);
+    assert.ok(fixture);
+    const identified = await post("/v1/member-auth/challenges", { memberIdentifier: fixture.identifier });
     assert.equal(identified.status, 202);
-    const verified = await post(`/v1/member-auth/challenges/${identified.body.challengeId}/verify`, { oneTimeCode: sequence.silver ? "246801" : "135790" });
+    const verified = await post(`/v1/member-auth/challenges/${identified.body.challengeId}/verify`, { oneTimeCode: fixture.code });
     assert.equal(verified.status, 200);
     const token = verified.body.sessionToken;
-    assert.equal(typeof token, "string");
+    assert.ok(typeof token === "string");
+    return token;
+  }
+  try {
+    let token = await login(expectedMember);
+    let rotated: string | undefined;
     for (const [index, [question, expected, service, answer]] of sequence.turns.entries()) {
       if (index === 1) offset += sequence.advance ?? 0;
+      action = sequence.actions?.[index];
+      if (action === "expire-topic") offset += 120_001;
+      if (action === "expire-session") offset += 600_001;
+      if (action === "login-gold") token = await login("gold");
+      if (action === "switch-vip") {
+        assert.equal((await post("/v1/member-auth/logout", {}, token)).status, 200);
+        expectedMember = "vip";
+        token = await login(expectedMember);
+      }
+      if (action === "rotate-silver") {
+        offset += 61_000;
+        rotated = await login("silver");
+      }
+      if (action === "use-new-session") token = rotated;
       lookups = [];
       decisions = [];
+      wrongScope = 0;
       const start = performance.now();
-      const { status, body } = await post("/v1/chat", { message: question }, token as string);
+      const { status, body } = await post("/v1/chat", { message: question }, token);
       const elapsedMs = Math.round(performance.now() - start);
       timings.push(elapsedMs);
-      const expectedStatus = expected === "VERIFICATION_REQUIRED" ? 401 : expected === "AI_UNAVAILABLE" ? 503 : 200;
+      const scope = token && auth.resolveSession(token);
+      const topic = (scope ? auth.currentConversationService(scope) : undefined) ?? null;
+      const expectedStatus = expected === "VERIFICATION_REQUIRED" ? 401 : expected.endsWith("_UNAVAILABLE") ? 503 : 200;
       const correct = service ? lookups.length === 1 && lookups[0] === service : lookups.length === 0;
       if (service) {
         requiredLookups++;
-        if (correct) correctLookups++;
+        if (correct && !wrongScope) correctLookups++;
+        if (lookups.length === 0 && body.code === "CLARIFICATION_NEEDED") falseNegativeClarifications++;
         wrongServiceLookups += lookups.filter((lookup) => lookup !== service).length;
       } else deniedLookups += lookups.length;
-      const match = status === expectedStatus && body.code === expected && correct &&
-        (!answer || typeof body.answer === "string" && answer.test(body.answer));
+      unauthorizedLookups += wrongScope;
+      const match = status === expectedStatus && body.code === expected && correct && !wrongScope &&
+        (!sequence.topics || sequence.topics[index] === topic) &&
+        (!answer || typeof body.answer === "string" &&
+          (typeof answer === "string" ? body.answer.includes(answer) : answer.test(body.answer)));
       if (match) passed++;
+      else scenarioPassed = false;
       console.log(JSON.stringify({ sequence: sequence.id, question, answer: body.answer, expected, status, code: body.code,
-        model: decisions, lookups, elapsedMs, passed: match }));
+        model: decisions, lookups, topic, wrongScope, elapsedMs, passed: match }));
     }
   } finally {
     server.closeAllConnections();
     server.close();
   }
+  if (scenarioPassed) scenarioPasses++;
 }
 timings.sort((a, b) => a - b);
 const rank = (percentile: number) => timings[Math.ceil(timings.length * percentile) - 1];
-console.log(JSON.stringify({ passed, total: timings.length, requiredLookups, correctLookups, deniedLookups, wrongServiceLookups,
+console.log(JSON.stringify({ passed, total: timings.length, scenarioPasses, scenarios: suite.length,
+  requiredLookups, correctLookups, deniedLookups, wrongServiceLookups, unauthorizedLookups, falseNegativeClarifications,
+  providerChecks, providerChats, backendCalls,
   p50Ms: rank(0.5), p95Ms: rank(0.95) }));
 if (passed !== timings.length) process.exitCode = 1;

@@ -9,6 +9,53 @@ import { OllamaCoverageIntentSelector } from "../src/ollama-selector.ts";
 const mri = { intent: "COVERAGE_LOOKUP", subject: "MRI", focus: "OVERVIEW" };
 const copay = { intent: "FOLLOW_UP", subject: "NONE", focus: "COPAY" };
 
+test("a named service and a personal benefit outrank a general FAQ proposal", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  answers.push({ intent: "FAQ", subject: "COPAY", focus: "OVERVIEW" });
+  const reply = await assistant.answer(verify(), "نسبة التحمل بتاعتي في الرنين كام؟");
+  assert.equal(reply.code, "COVERAGE_RESULT");
+  assert.match(reply.answer, /20%/);
+  assert.deepEqual(lookups, ["MRI"]);
+});
+
+test("a service supplied after clarification inherits the pending benefit", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  const token = verify();
+  answers.push(copay, { intent: "CAPABILITIES", subject: "SERVICES", focus: "OVERVIEW" });
+  assert.equal((await assistant.answer(token, "أنا هدفع مني كام؟")).code, "CLARIFICATION_NEEDED");
+  const reply = await assistant.answer(token, "قصدي على صورة الدم الكاملة");
+  assert.equal(reply.code, "COVERAGE_RESULT");
+  assert.match(reply.answer, /0%.*سعر الخدمة/);
+  assert.deepEqual(lookups, ["CBC"]);
+});
+
+test("mentions of a supported service inside unrelated requests do not open a lookup", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  answers.push({ intent: "OUT_OF_SCOPE", subject: "NONE", focus: "OVERVIEW" });
+  const reply = await assistant.answer(verify(), "اكتب عنوان خبر عن الرنين اللي التأمين بيغطيه");
+  assert.equal(reply.code, "OUT_OF_SCOPE");
+  assert.deepEqual(lookups, []);
+});
+
+test("semantic detection of several procedures vetoes a single literal catalog hit", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  answers.push({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
+  const reply = await assistant.answer(verify(), "هل التأمين بيغطي الرنين والجلسات اللي بترجع حركة المفاصل؟");
+  assert.equal(reply.code, "CLARIFICATION_NEEDED");
+  assert.deepEqual(lookups, []);
+});
+
+test("explaining whether a displayed limit is an amount due does not query coverage", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  const token = verify();
+  answers.push({ ...mri, focus: "LIMIT" }, copay);
+  assert.match((await assistant.answer(token, "فاضل قد إيه من حد الرنين؟")).answer, /5,000/);
+  const reply = await assistant.answer(token, "وده مبلغ أنا مطالب أدفعه؟");
+  assert.equal(reply.code, "FAQ");
+  assert.match(reply.answer, /الحد المتبقي.*المبلغ اللي عليك/);
+  assert.deepEqual(lookups, ["MRI"]);
+});
+
 function setup(onRequest?: (count: number) => void) {
   let now = Date.now();
   const auth = new DemoMemberAuth(() => now);
@@ -86,7 +133,7 @@ test("a follow-up cannot borrow another session's topic or extend the two-minute
   const { assistant, verify, answers, lookups, advance } = setup();
   const gold = verify();
   const silver = verify("M-DEMO-002", "246801");
-  answers.push(mri, { match: "MRI", quote: "MRI" }, copay, copay, { match: "COPAY", quote: "من جيبي" }, copay);
+  answers.push(mri, copay, copay, { match: "COPAY", quote: "من جيبي" }, copay);
   assert.equal((await assistant.answer(gold, "هل MRI مغطى؟")).code, "COVERAGE_RESULT");
   assert.equal((await assistant.answer(silver, "طب أدفع كام من جيبي؟")).code, "CLARIFICATION_NEEDED");
   advance(119_990);
@@ -101,7 +148,7 @@ test("a follow-up cannot borrow another session's topic or extend the two-minute
 test("missing fixture data and true policy exclusion have distinct responses; model failure is explicit", async () => {
   const { assistant, verify, answers, lookups } = setup();
   const silver = verify("M-DEMO-002", "246801");
-  answers.push({ ...mri, subject: "XRAY" }, { match: "XRAY", quote: "XRAY" }, mri, { match: "MRI", quote: "MRI" }, new Error("local provider error"));
+  answers.push({ ...mri, subject: "XRAY" }, mri, new Error("local provider error"));
   const unavailable = await assistant.answer(silver, "هل XRAY مغطاة عندي؟");
   const excluded = await assistant.answer(silver, "هل MRI مغطى عندي؟");
   const failure = await assistant.answer(silver, "طب هدفع كام؟");
@@ -117,10 +164,10 @@ test("concurrent chat cannot change a turn's topic and a cancelled turn clears c
   let enteredGrounding!: () => void;
   const groundingStarted = new Promise<void>((resolve) => { enteredGrounding = resolve; });
   const { assistant, verify, answers, lookups } = setup((count) => {
-    if (count === 4) enteredGrounding();
+    if (count === 3) enteredGrounding();
   });
   const token = verify();
-  answers.push(mri, { match: "MRI", quote: "MRI" });
+  answers.push(mri);
   assert.equal((await assistant.answer(token, "هل MRI متغطي؟")).code, "COVERAGE_RESULT");
 
   const controller = new AbortController();

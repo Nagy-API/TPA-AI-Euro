@@ -8,7 +8,17 @@
 
 ## V0.4 grounded conversation — Issue #17
 
-V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. The app corroborates the model's proposal before looking up coverage. A single service topic lasts up to two minutes in its verified session. Every accepted follow-up fetches current mock data. The model sees a synthetic question and a flag indicating whether a topic exists. Approved reply text and validated mock benefits are rendered on the server.
+V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A single service topic or pending clarification lasts up to two minutes in its verified session. Every accepted follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server.
+
+### Recall revision after independent QA
+
+[Independent QA](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7132224667) on `10f81ad` found 14/38 required lookups, 12 false-negative clarifications and 5/30 complete scenarios. Initial intent routing suppressed personalized requests, a second model vote could veto a positively identified catalog service, and asking the member to pick a service discarded the pending benefit.
+
+On the recall revision, replaying the 30 disclosed conversations through verified localhost HTTP on Node 24.14.1 and Ollama 0.40.17 (`qwen3:4b-instruct`, digest prefix `0edcdef34593`) measured **35/38 required lookups**, **2 false-negative clarifications**, **0 wrong, unexpected or unauthorized lookups**, and **62/74 exact coded checks, 20/30 complete scenarios**. There were 67 model availability checks, 79 inference requests and 35 backend calls. HTTP p50/p95 were 537/1,258 ms. Exact coded checks combine response codes, expected backend calls, stored topic and selected answer content. They do not replace the independent usefulness rubric. The original integrated suite passed 26/26 coded checks with 11/11 required lookups and zero wrong, unexpected or unauthorized lookups.
+
+Remaining lookup misses were the implicit policy percentage (QA-07), a magnetic description with a negated alternative (QA-14), and a future conditional MRI inquiry (QA-16). The model also misrouted some service-desk, dental exclusion, unrelated FX and escalation follow-ups. The shared model can still make correlated errors on paraphrases. These measured gains apply to exposed regression cases. The Draft requires a new unseen acceptance run before merge review.
+
+Reproduce with `OLLAMA_MODEL=qwen3:4b-instruct` and `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --disclosed`. The runner exits 1 when any coded check misses. See the [disclosed inputs and expectations](evals/v04-disclosed-conversations.json).
 
 ### V0.3 reproduction
 

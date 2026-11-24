@@ -16,8 +16,9 @@ export type ConversationIntent = Readonly<{
   intent: (typeof CONVERSATION_INTENTS)[number];
   subject: (typeof SUBJECTS)[number];
   focus: Focus;
+  usesPending?: true;
 }>;
 
 export interface ConversationInterpreter {
-  interpret(question: string, topic: ServiceCode | undefined, signal?: AbortSignal): Promise<ConversationIntent>;
+  interpret(question: string, topic: ServiceCode | undefined, signal?: AbortSignal, pending?: Focus): Promise<ConversationIntent>;
 }

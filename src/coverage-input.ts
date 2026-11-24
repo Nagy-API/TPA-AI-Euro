@@ -20,17 +20,18 @@ export function isThirdPartyCoverage(input: string): boolean {
 }
 
 const MRI_EVIDENCE = /\b(?:mri|magnetic resonance(?: imaging)?)\b|(?<!\p{L})[وف]?(?:(?:بال|ال|ب)?رنين|(?:ال)?ام\s+ار\s+ا[يى]|(?:ال)?تصوير\s+(?:بال|ال|ب)?مغنا?طيسي|(?:ب?جهاز|بيصور)\s+(?:بال|ال|ب)?مغناطيس)(?!\p{L})/iu;
-const CBC_EVIDENCE = /\b(?:cbc|complete blood count|full blood count)\b|(?<!\p{L})[وف]?(?:ال)?(?:سي\s+بي\s+سي|صور[هة]\s+(?:ال)?دم\s+(?:ال)?كامل[هة]|(?:عد|تعداد)\s+(?:ال)?دم\s+(?:ال)?كامل)(?!\p{L})/iu;
-const XRAY_EVIDENCE = /\b(?:x[\s-]?rays?|radiographs?|plain films?)\b|(?<!\p{L})[وف]?(?:(?:بال|ال|ب)?اشع[هة]\s+(?:ال)?(?:سيني[هة]|عادي[هة])|(?:ال)?اكس\s*را[يى])(?!\p{L})/iu;
+const CBC_EVIDENCE = /\b(?:cbc|complete blood count|full blood count)\b|(?<!\p{L})[وف]?ب?(?:ال)?(?:سي\s+بي\s+سي|صور[هة]\s+(?:ال)?دم\s+(?:ال)?كامل[هة]|(?:عد|تعداد)\s+(?:ال)?دم\s+(?:ال)?كامل)(?!\p{L})/iu;
+const XRAY_EVIDENCE = /\b(?:x[\s-]?rays?|radiographs?|plain films?)\b|(?<!\p{L})[وف]?(?:(?:بال|ال|ب)?اشع[هة]\s+(?:ال)?(?:سيني[هة]|عادي[هة]|اكس)|(?:ال)?اكس\s*را[يى])(?!\p{L})/iu;
+const CATALOG_NAMES = { MRI: MRI_EVIDENCE, CBC: CBC_EVIDENCE, XRAY: XRAY_EVIDENCE };
 const COUNTING = /(?<!\p{L})[لب]?(?:عد|بيعد|يعد|بتعد|تعداد|حساب)(?!\p{L})/u;
 const BLOOD_CELLS = /(?:كرات|خلايا)\s+(?:ال)?دم/u;
 const CELL_TYPES = /(?:حمرا(?:ء)?|حمر).*?(?:بيضا(?:ء)?|بيض)|(?:بيضا(?:ء)?|بيض).*?(?:حمرا(?:ء)?|حمر)/u;
 const PLATELETS = /صفايح|صفائح/u;
 const EXPLICIT_CORRECTION = /(?:^|[،,.]\s*)(?:لا|لكن|بس)\s+(?:انا\s+)?قصدي\s+|^\s*(?:مش|موش)\s+[^،,.؟]{1,60}[،,.]\s*(?:دي|ده|قصدي)\s+|^\s*(?:(?:طيب|طب)\s+)?بدل\s+[^،,.؟]{1,45}?(?:[،,.]\s*|\s+)(?=عايز|عاوز|محتاج|قصدي)/u;
-const REFERENCE_OR_NEGATION = /(?<!\p{L})(?:(?:مش|موش|بدون|من غير)(?!\s+(?:موافق[هة]|تحمل|دفع)(?!\p{L}))|زي|مثل|بدل|بديل|سمي|سميه|اسميه|اسمها|مثال)(?!\p{L})|(?:^|\s)(?:not|instead of|rather than|similar to|such as|rename|pretend|called)\b|[\x60]/iu;
+const REFERENCE_OR_NEGATION = /(?<!\p{L})(?:(?:مش|موش|بدون|من غير)(?!\s+(?:موافق[هة]|تحمل|دفع|اذن|تصريح)(?!\p{L}))|زي|مثل|بدل|بديل|سمي|سميه|اسميه|اسمها|مثال)(?!\p{L})|(?:^|\s)(?:not|instead of|rather than|similar to|such as|rename|pretend|called)\b|[\x60]/iu;
 // These cues catch conflicting procedures in mixed requests. Unsupported-only
 // requests already fail because they contain no positive catalog evidence.
-const COMPETING_PROCEDURE = /(?:كشف|تنظيف|حشو|خلع)\s+(?:(?:جير|عصب)\s+)?(?:اسنان|الاسنان|ضرس|سنان)|علاج\s+طبيعي|(?:اشع[هة]|تصوير)\s+(?:ال)?مقطعي|(?<!\p{L})[وف]?(?:مقطعي[هة]|(?:ال)?سونار|(?:ال)?منظار)(?!\p{L})|(?:سكر\s+تراكمي|وظائف\s+(?:ال)?كبد|تحليل\s+(?:ال)?غد[هة])|\b(?:ct scan|ultrasound|endoscopy|dental (?:exam|checkup)|physiotherapy)\b/iu;
+const COMPETING_PROCEDURE = /(?:كشف|تنظيف|حشو|خلع)\s+(?:(?:جير|عصب)\s+)?(?:اسنان|الاسنان|ضرس|سنان)|علاج\s+طبيعي|(?:اشع[هة]|تصوير)\s+(?:ال)?مقطعي|(?:تصوير|فحص)\s+(?:بـ?)?(?:ال)?موجات\s+(?:فوق\s+)?صوتي[هة]|(?<!\p{L})[وف]?(?:مقطعي[هة]|(?:ال)?سونار|(?:ال)?منظار)(?!\p{L})|(?:سكر\s+تراكمي|وظائف\s+(?:ال)?كبد|تحليل\s+(?:ال)?غد[هة])|\b(?:ct scan|ultrasound|endoscopy|dental (?:exam|checkup)|physiotherapy)\b/iu;
 const DENTAL = /تبييض\s+(?:ال)?(?:اسنان|سنان)|تقويم[^؟،.!]{0,20}(?:اسنان|سنان)|\b(?:tooth|teeth|dental)\s+(?:bleaching|whitening)\b/iu;
 const CHAT_OVERRIDE = /\b(?:ignore|override|system prompt|tool_calls|get_member_coverage|serviceCode|impersonate|pretend)\b|(?:تجاهل|اتجاهل|اكسر|الغي)\s+(?:كل\s+)?(?:ال)?(?:تعليمات|قواعد|قيود)|(?:نفذ|شغل|استدعي)\s+(?:ال)?(?:اداة|تول)|(?:اعتبر|افترض)\s+(?:انك|نفسك|اني)|(?:اديني|اعمللي|طلعلي|اصدر)\s+موافق[هة]/iu;
 
@@ -77,12 +78,45 @@ export function hasGroundedServiceQuote(input: string, quote: string, code: Serv
 export function explicitBenefitFocus(input: string): Focus | undefined {
   const question = normalizeArabic(input);
   const signals = {
-    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع)|نسبة\s+(?:ال)?(?:تحمل|علي)|\bcopay\b/iu.test(question),
-    LIMIT: /(?:حد|رصيد|سقف)\s+(?:ال)?(?:متبقي|باقي|تغطية)|(?:فاضل|باقي|هيفضل).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance)\b/iu.test(question),
-    PREAPPROVAL: /موافق[هة]|(?:ال)?اذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
+    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع)|تحم[ّ]?ل|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي)|\bcopay\b/iu.test(question),
+    LIMIT: /متبقي|(?:حد|رصيد|سقف|متاح).{0,22}(?:كام|لسه|قد ايه)|(?:فاضل|باقي|هيفضل).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance)\b/iu.test(question),
+    PREAPPROVAL: /موافق[هة]|(?:ال)?اذن|استاذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
   } satisfies Record<Exclude<Focus, "OVERVIEW">, boolean>;
   const matched = (Object.keys(signals) as (keyof typeof signals)[]).filter((focus) => signals[focus]);
   return matched.length === 1 ? matched[0] : undefined;
+}
+
+export function asksDefinition(input: string): boolean {
+  return /(?:يعني\s+(?:ايه|ايش)|معنى|الفرق بين|\b(?:what does .* mean|definition|define)\b)/iu.test(normalizeArabic(input));
+}
+
+/** A standalone benefit label can refer only to the active topic. */
+export function standaloneBenefitFocus(input: string): Focus | undefined {
+  const label = normalizeArabic(input).trim().replace(/[؟?!.]+$/gu, "").trim()
+    .replace(/^و\s*|^(?:طب|طيب)\s+/u, "");
+  if (/^(?:نسبة\s+)?(?:ال)?تحمل$|^co[ -]?pay$/iu.test(label)) return "COPAY";
+  if (/^(?:ال)?حد\s+(?:ال)?متبقي$|^remaining limit$/iu.test(label)) return "LIMIT";
+  if (/^(?:ال)?موافق[هة]\s+(?:ال)?مسبق[هة]$|^pre[ -]?approval$/iu.test(label)) return "PREAPPROVAL";
+  return undefined;
+}
+
+export function asksPolicyBenefit(input: string): boolean {
+  const question = normalizeArabic(input);
+  return /تغطي|م(?:ت)?غط[ىي]|(?:داخل|موجود)\s+(?:عندي|ليا)|داخل[هة]?\s*[؟?]|[بت]يتحسب\s+على|بتتحسب\s+ازاي|\b(?:cover|covered)\b/iu.test(question) ||
+    (!asksDefinition(question) && explicitBenefitFocus(question) !== undefined &&
+      /كام|قد ايه|عندي|عليا|علي[ّ]?ا|ليا|بتاعي|بتاعتي|محتاج|محتاجة|لازم|اذن|موافقة\s*[؟?]|تحمل\s*[؟?]|\b(?:my|how much|do i need)\b/iu.test(question));
+}
+
+export function asksWhetherReferencedAmountIsDue(input: string): boolean {
+  const question = normalizeArabic(input);
+  return /(?:\b(?:this|that) amount\b|(?:ده|دي|دا)\s+(?:ال)?مبلغ)/iu.test(question) &&
+    /(?:مطالب|مطلوب|لازم).{0,20}(?:ادفع|دفع)|\b(?:owe|must pay|have to pay)\b/iu.test(question) &&
+    !/كام|قد ايه|\bhow much\b/iu.test(question);
+}
+
+export function isServiceSelection(input: string, code: ServiceCode): boolean {
+  const remainder = coverageSubjectText(input).replace(CATALOG_NAMES[code], " ").replace(/[؟?!.،,]/gu, " ").trim();
+  return /^(?:(?:طب|طيب|ابد[اأ]|ابد[اأ]ي|قصدي|اقصد|بتكلم|بسال|اسال|على|عن|ب|في|نفسه)\s*)*$/u.test(remainder);
 }
 
 /** Verify a model proposal against positive, unambiguous evidence in user text. */

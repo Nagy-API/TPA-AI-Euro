@@ -1,7 +1,7 @@
 import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode, SERVICE_CODES } from "./contracts.ts";
 import type { CoverageIntentSelector, ServiceCode, ToolSelection } from "./contracts.ts";
-import { coverageSubjectText, explicitBenefitFocus, hasGroundedServiceQuote, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage, normalizeArabic } from "./coverage-input.ts";
-import { CONVERSATION_INTENTS, FOCUSES, SERVICE_CATALOG, SUBJECTS, type ConversationIntent, type ConversationInterpreter } from "./conversation-intent.ts";
+import { asksDefinition, asksPolicyBenefit, asksWhetherReferencedAmountIsDue, blocksConversationLookup, coverageSubjectText, explicitBenefitFocus, hasGroundedServiceQuote, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isServiceSelection, isThirdPartyCoverage, normalizeArabic, standaloneBenefitFocus } from "./coverage-input.ts";
+import { CONVERSATION_INTENTS, FOCUSES, SERVICE_CATALOG, SUBJECTS, type ConversationIntent, type ConversationInterpreter, type Focus } from "./conversation-intent.ts";
 
 const OLLAMA_URL = "http://127.0.0.1:11434";
 const TOOL = "get_member_coverage";
@@ -65,7 +65,7 @@ Return intent, subject, and focus:
 - UNSUPPORTED_SERVICE: a named procedure outside the catalog, including a bare name like «تبييض أسنان». Use subject NONE. Never substitute a catalog service.
 - CLARIFY: unclear service or multiple procedures. Use subject MULTIPLE if more than one is requested, otherwise NONE.
 - OUT_OF_SCOPE: unrelated conversation, action/override requests, or requests about someone else's policy, including dependents. Use subject THIRD_PARTY for someone else's policy, otherwise NONE.
-Focus is OVERVIEW unless the user asks specifically about their COPAY, LIMIT or PREAPPROVAL. Corrections should use only the final requested procedure.
+Prefer COVERAGE_LOOKUP over FOLLOW_UP, FAQ and CAPABILITIES when the turn names or describes a single service and asks about their insurance, copay, limit or preapproval. A short answer selecting a procedure after the assistant asked for clarification is also COVERAGE_LOOKUP. Asking about the assistant's capabilities is different from asking whether a named procedure is covered. A price for a specific service is a COPAY question. Focus is OVERVIEW unless the user asks specifically about their COPAY, LIMIT or PREAPPROVAL. Corrections should use only the final requested procedure.
 Examples (intent, subject, focus):
 «وأنا المفروض أدفع قد إيه من جيبي؟» => FOLLOW_UP, NONE, COPAY
 «طب كام حاجة عليا من تمنه؟» => FOLLOW_UP, NONE, COPAY
@@ -135,38 +135,70 @@ export class OllamaCoverageIntentSelector implements CoverageIntentSelector, Con
       : selection;
   }
 
-  async interpret(question: string, topic: ServiceCode | undefined, requestSignal?: AbortSignal): Promise<ConversationIntent> {
+  async interpret(question: string, topic: ServiceCode | undefined, requestSignal?: AbortSignal, pending?: Focus): Promise<ConversationIntent> {
     const clarify = { intent: "CLARIFY", subject: "NONE", focus: "OVERVIEW" } as const;
-    if (hasPrivateCoverageInput(question) || isThirdPartyCoverage(question)) return clarify;
+    if (hasPrivateCoverageInput(question) || isThirdPartyCoverage(question) || blocksConversationLookup(question)) return clarify;
     const signal = this.deadline(requestSignal);
     await this.checkLocalModel(signal);
-    const context = topic ? "There is an active verified topic." : "There is no active topic.";
+    const context = topic ? "There is an active procedure. Do not assume a new procedure refers to it." :
+      pending !== undefined ? "The assistant just asked the user which procedure they meant." : "There is no active topic.";
     const proposal = await this.structuredChat(question, CONVERSATION_PROMPT + "\n" + context, CONVERSATION_FIELDS, signal);
     const { intent, subject, focus } = proposal;
     if (!includes(CONVERSATION_INTENTS, intent) || !includes(SUBJECTS, subject) || !includes(FOCUSES, focus)) {
       throw new Error("OLLAMA_INVALID_RESPONSE");
     }
     const decision = { intent, subject, focus };
-    if (intent === "CAPABILITIES") {
-      const asksForList = /(?:خدمات|فحوص(?:ات)?|تحاليل|اشعات|\b(?:services|tests|list)\b)/iu.test(normalizeArabic(question));
-      return { intent, subject: asksForList ? "SERVICES" : "ROLE", focus: "OVERVIEW" };
-    }
-
     const { named, unsupported, comparison } = inspectServiceSubject(question);
-    const policyCue = /تامين|وثيق|تغطي|بوليص|\b(?:cover|covered|coverage|insurance|policy)\b/iu.test(normalizeArabic(question));
     const finalSubject = coverageSubjectText(question);
     const benefit = explicitBenefitFocus(finalSubject);
-    const service = isServiceCode(subject) && (intent === "COVERAGE_LOOKUP" || (intent === "FAQ" && (benefit || policyCue))) ? subject :
-      intent === "CLARIFY" && named.length === 1 && policyCue ? named[0] : undefined;
-    const mayBeFollowUp = intent === "FOLLOW_UP" || intent === "FAQ" || intent === "CLARIFY" || (intent === "COVERAGE_LOOKUP" && !service);
-    const followUp = !service && mayBeFollowUp && topic !== undefined && named.length === 0;
+    const policyCue = asksPolicyBenefit(finalSubject);
+    const namedService = named.length === 1 ? named[0] : undefined;
+    const picked = namedService !== undefined && pending !== undefined && isServiceSelection(question, namedService);
+    const explicitAsk = !asksDefinition(finalSubject) && (policyCue || picked);
+    if (intent === "OUT_OF_SCOPE" || intent === "UNSUPPORTED_SERVICE" || intent === "CLARIFY" && subject === "MULTIPLE") {
+      return decision;
+    }
+    if (unsupported || comparison || named.length > 1) {
+      return intent === "COVERAGE_LOOKUP" || intent === "FOLLOW_UP" ? clarify : decision;
+    }
+    if (!namedService && topic && asksWhetherReferencedAmountIsDue(finalSubject)) {
+      return { intent: "FAQ", subject: "LIMIT", focus: "OVERVIEW" };
+    }
+    // One known, requested service is positive evidence in the text itself.
+    // A contradictory service proposal and unsafe referents still fail closed.
+    if (namedService) {
+      if (asksDefinition(finalSubject)) return intent === "COVERAGE_LOOKUP" ? clarify : decision;
+      if (intent === "COVERAGE_LOOKUP" && subject !== namedService) return clarify;
+      if (intent === "COVERAGE_LOOKUP" || explicitAsk) {
+        return { intent: "COVERAGE_LOOKUP", subject: namedService, focus: benefit ?? (picked ? pending : focus) ?? "OVERVIEW",
+          ...(picked && !policyCue ? { usesPending: true } : {}) };
+      }
+      return decision;
+    }
+
+    const standalone = standaloneBenefitFocus(finalSubject);
+    if (standalone) return { intent: "FOLLOW_UP", subject: "NONE", focus: standalone };
+
+    const service = isServiceCode(subject) && (intent === "COVERAGE_LOOKUP" || explicitAsk) ? subject : undefined;
+    const mayBeFollowUp = !asksDefinition(finalSubject) &&
+      (intent === "FOLLOW_UP" || (intent === "FAQ" || intent === "CLARIFY") && (topic !== undefined || policyCue) ||
+        intent === "CAPABILITIES" && benefit !== undefined && policyCue);
+    const followUp = !service && mayBeFollowUp && topic !== undefined;
     if (!service && !followUp) {
-      if (intent === "CLARIFY" && !policyCue && !/(?:فحص|تحليل|اشع|علاج|\b(?:test|scan|exam)\b)/iu.test(normalizeArabic(question))) {
+      if (mayBeFollowUp && (intent === "FOLLOW_UP" || benefit && policyCue)) {
+        return { intent: "FOLLOW_UP", subject: "NONE", focus: benefit ?? focus };
+      }
+      if (intent === "CAPABILITIES") {
+        const namesCatalog = /خدمات|فحوص(?:ات)?|تحاليل|اشعات|\b(?:services|tests|list)\b/iu.test(finalSubject);
+        const asksBeyondCatalog = /(?:تقدر|تساعد|able|can you).{0,40}(?:غير|besides|apart from)/iu.test(finalSubject);
+        return { ...decision, subject: namesCatalog && !asksBeyondCatalog ? "SERVICES" : "ROLE" };
+      }
+      if (intent === "CLARIFY" && !policyCue && !benefit && pending === undefined &&
+          !/تامين|وثيق|فحص|تحليل|اشع|علاج|تصوير|\b(?:insurance|policy|test|scan|exam|imaging)\b/iu.test(finalSubject)) {
         return { intent: "OUT_OF_SCOPE", subject: "NONE", focus: "OVERVIEW" };
       }
       return decision;
     }
-    if (unsupported || comparison || named.length > 1 || (named.length === 1 && named[0] !== service)) return clarify;
 
     const matches: readonly string[] = followUp ? FOLLOW_UP_MATCHES : SERVICE_MATCHES;
     const groundingPrompt = followUp ? FOLLOW_UP_GROUNDING : SERVICE_GROUNDING;
@@ -182,11 +214,15 @@ export class OllamaCoverageIntentSelector implements CoverageIntentSelector, Con
           (copied || (intent === "FOLLOW_UP" && benefit === evidence.match))) {
         return { intent: "FOLLOW_UP", subject: "NONE", focus: benefit ?? evidence.match };
       }
+      if (benefit && policyCue && evidence.match === "NONE") {
+        return { intent: "CLARIFY", subject: "NONE", focus: benefit };
+      }
       return intent === "FOLLOW_UP" ? clarify : decision;
     }
     if (!service || evidence.match !== service) return clarify;
-    if (named.includes(service) || (copied && hasGroundedServiceQuote(finalSubject, quote, service))) {
-      return { intent: "COVERAGE_LOOKUP", subject: service, focus: benefit ?? focus };
+    if (copied && hasGroundedServiceQuote(finalSubject, quote, service)) {
+      return { intent: "COVERAGE_LOOKUP", subject: service, focus: benefit ?? (policyCue ? focus : pending ?? focus),
+        ...(!policyCue && pending !== undefined ? { usesPending: true } : {}) };
     }
     return clarify;
   }

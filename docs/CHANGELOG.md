@@ -107,3 +107,9 @@
 - Added explicit conversational intents and approved Egyptian Arabic replies for verified local Ollama chat. A scoped topic supports fresh copay, limit and preapproval lookups. The fixture selector stays the default.
 - Distinguished unsupported procedures, missing fixture data and confirmed policy exclusions. Protected lookups require corroborated service evidence, and the server renders benefits from the validated policy result.
 - Reproduced the reported Gold conversation in the existing Web Demo. Recorded test, model, tool and latency evidence, including the safe rehabilitation miss, in [Project Status](../PROJECT_STATUS.md#v04-grounded-conversation--issue-17).
+
+## 2026-11-24 — V0.4 recall revision after independent QA
+
+- Resolve positively identified catalog requests without requiring a second model vote. Retain corroboration for descriptive services and non-explicit follow-ups, and keep competing, unsupported and out-of-scope requests away from policy lookups.
+- Keep a scoped, time-bounded pending benefit when asking which procedure the user meant. A later choice can complete that request. An active topic and pending clarification cannot coexist.
+- Added exposed multi-turn HTTP regressions and tests for personalized versus general benefits, clarification, and non-lookup replies. The replay recovered 35/38 required lookups with zero wrong, unexpected or unauthorized lookups. Fresh independent QA remains pending.
