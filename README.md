@@ -1,6 +1,6 @@
 # TPA AI Service — In-House AI Layer
 
-> **Status:** V0.3 local Ollama proof of concept and synthetic Web Chat are merged into `main`. Fixture mode remains the default; real TPA integration and production readiness are NOT complete.
+> **Status:** V0.4 grounded conversation is under review for the synthetic Web Demo. Fixture mode remains the default. Real TPA integration and production validation are pending.
 >
 > **Last updated:** 2026-11-24. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
 >
@@ -151,11 +151,11 @@ $env:OLLAMA_MODEL = 'qwen3:4b-instruct'
 npm run dev
 ```
 
-Open [the same local Web Demo](http://127.0.0.1:3000/demo) for the public fictional accounts and test codes. Try «الفحص اللي بيصور بالـمغناطيس وأنا جوه الجهاز، التأمين بيشيله؟» and then «وطب نسبة التحمل كام؟». The banner identifies the active mode. Use only synthetic questions and keep credentials, identifiers and private information out of chat. See the [local evaluation and troubleshooting runbook](docs/evaluation-runbook.md#local-ollama-evaluation).
+Open [the same local Web Demo](http://127.0.0.1:3000/demo) for the public fictional accounts and test codes. Try «الدكتور طالب مني أدخل جهاز بيصور ركبتي بالمغناطيس، التأمين هيساعدني في تكلفته؟» and then «طب أنا هدفع كام من جيبي؟». You can also ask «إيه الخدمات المتاحة؟» or «يعني إيه نسبة تحمل؟». Use only synthetic chat questions. Keep credentials and identifiers in the authentication form.
 
-The service checks for a locally installed GGUF model and calls only Ollama on `127.0.0.1:11434`. Ollama first checks intent eligibility, then may select one allowed read-only coverage tool with an MRI, CBC, or XRAY code. The verified session and mock policy engine supply scope and coverage. An unavailable model or invalid provider response returns `AI_UNAVAILABLE` with HTTP 503. Fixture mode remains the default and can be selected by restarting with `DEMO_INTENT_MODE=fixture`.
+The service checks for a local GGUF model and calls only Ollama on `127.0.0.1:11434`. Ollama identifies a conversational intent and selects the subject and focus for an approved Egyptian Arabic reply. For a lookup, a second model call and application evidence checks must agree before the server invokes the read-only mock backend. Benefit amounts, currency, coverage status and preapproval requirements come from the validated backend result. A named service outside the demo returns `UNSUPPORTED_SERVICE`. An allowlisted service without a policy record returns `COVERAGE_NOT_AVAILABLE`. A policy exclusion remains `COVERAGE_RESULT`. An unavailable model or invalid provider response returns `AI_UNAVAILABLE` with HTTP 503.
 
-Chat has a 30-second server deadline and a 35-second browser deadline. A server deadline returns `CHAT_TIMEOUT` with HTTP 503. Recognized third-party requests clarify and clear the remembered topic, and exact co-pay follow-ups use the session's existing topic without another model request. Keep shared chat text synthetic. The input filter blocks recognizable credentials and identifiers while allowing ordinary amounts, percentages, and counts.
+Chat has a 30-second server deadline and a 35-second browser deadline. A server deadline returns `CHAT_TIMEOUT` with HTTP 503. One verified service topic lasts up to two minutes. An accepted follow-up fetches fresh coverage without extending that window. Concurrent Ollama turns in the same session receive `CHAT_BUSY` while the first turn is running. The model gets the current synthetic question and a flag indicating whether a topic exists. Run `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts` with `OLLAMA_MODEL` set for the integrated V0.4 evaluation. Add `--independent` for the reviewer-authored sequence or `--fresh` for the verifier-authored sequence. The older Ollama evaluators exercise the V0.3 selector for historical comparison.
 
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 

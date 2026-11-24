@@ -101,3 +101,9 @@
 - Nagy approved the bounded, synthetic, local-only model integration after architecture review. [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16) squash-merged into `main`, SHA `b44596071798aeee1fac6e1162022754e8185c81`. No deployment, branch deletion or paid API calls.
 - GitHub-hosted Node tests and docs validator passed on the resulting merge commit. Known limitation: first fresh 24-case grounding holdout yielded 11/12 required coverage lookups and 0 wrong/unauthorized lookups in those cases; the system clarified a valid CBC paraphrase.
 - Updated root status/hand-off docs for merged local Ollama experiment and local-only browser trial. Real identity, policy APIs, WhatsApp, production hardening and broader model accuracy remain out of scope.
+
+## 2026-11-24 — V0.4 grounded conversation draft
+
+- Added explicit conversational intents and approved Egyptian Arabic replies for verified local Ollama chat. A scoped topic supports fresh copay, limit and preapproval lookups. The fixture selector stays the default.
+- Distinguished unsupported procedures, missing fixture data and confirmed policy exclusions. Protected lookups require corroborated service evidence, and the server renders benefits from the validated policy result.
+- Reproduced the reported Gold conversation in the existing Web Demo. Recorded test, model, tool and latency evidence, including the safe rehabilitation miss, in [Project Status](../PROJECT_STATUS.md#v04-grounded-conversation--issue-17).

@@ -3,6 +3,7 @@ import { DemoMemberAuth } from "./demo-auth/member-auth.ts";
 import { createDemoServer } from "./http-server.ts";
 import { MockTpaBackend } from "./mock-backend.ts";
 import { createDemoIntentSelector } from "./selector-factory.ts";
+import { OllamaCoverageIntentSelector } from "./ollama-selector.ts";
 
 if (process.env.NODE_ENV === "production" || process.env.ENABLE_DEMO_AUTH !== "true") {
   throw new Error("Refusing to start: fake authentication may run only with ENABLE_DEMO_AUTH=true and NODE_ENV!=production");
@@ -16,7 +17,10 @@ if (authMode === "verified" && intentMode !== "fixture" && intentMode !== "ollam
 if (intentMode === "ollama" && authMode !== "verified") throw new Error("OLLAMA_REQUIRES_VERIFIED_DEMO");
 const memberAuth = authMode === "verified" ? new DemoMemberAuth() : undefined;
 const selector = createDemoIntentSelector(process.env);
-const assistant = new CoverageAssistant(new MockTpaBackend(memberAuth), selector, memberAuth);
+const assistant = new CoverageAssistant(
+  new MockTpaBackend(memberAuth), selector, memberAuth,
+  selector instanceof OllamaCoverageIntentSelector ? selector : undefined
+);
 const app = createDemoServer(assistant, true, memberAuth, intentMode === "ollama");
 const port = Number(process.env.PORT ?? "3000");
 app.listen(port, "127.0.0.1", () => {

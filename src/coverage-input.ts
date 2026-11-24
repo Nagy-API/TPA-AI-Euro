@@ -1,7 +1,8 @@
 import { DEMO_MEMBERS } from "./demo-auth/fixtures.ts";
-import type { ServiceCode } from "./contracts.ts";
+import { SERVICE_CODES, type ServiceCode } from "./contracts.ts";
+import type { Focus } from "./conversation-intent.ts";
 
-function normalizeArabic(input: string): string {
+export function normalizeArabic(input: string): string {
   return input.normalize("NFKC").replace(/[\u0640\u064b-\u065f\u0670]/gu, "").replace(/[أإآٱ]/gu, "ا");
 }
 
@@ -30,11 +31,63 @@ const REFERENCE_OR_NEGATION = /(?<!\p{L})(?:(?:مش|موش|بدون|من غير)
 // These cues catch conflicting procedures in mixed requests. Unsupported-only
 // requests already fail because they contain no positive catalog evidence.
 const COMPETING_PROCEDURE = /(?:كشف|تنظيف|حشو|خلع)\s+(?:(?:جير|عصب)\s+)?(?:اسنان|الاسنان|ضرس|سنان)|علاج\s+طبيعي|(?:اشع[هة]|تصوير)\s+(?:ال)?مقطعي|(?<!\p{L})[وف]?(?:مقطعي[هة]|(?:ال)?سونار|(?:ال)?منظار)(?!\p{L})|(?:سكر\s+تراكمي|وظائف\s+(?:ال)?كبد|تحليل\s+(?:ال)?غد[هة])|\b(?:ct scan|ultrasound|endoscopy|dental (?:exam|checkup)|physiotherapy)\b/iu;
+const DENTAL = /تبييض\s+(?:ال)?(?:اسنان|سنان)|تقويم[^؟،.!]{0,20}(?:اسنان|سنان)|\b(?:tooth|teeth|dental)\s+(?:bleaching|whitening)\b/iu;
+const CHAT_OVERRIDE = /\b(?:ignore|override|system prompt|tool_calls|get_member_coverage|serviceCode|impersonate|pretend)\b|(?:تجاهل|اتجاهل|اكسر|الغي)\s+(?:كل\s+)?(?:ال)?(?:تعليمات|قواعد|قيود)|(?:نفذ|شغل|استدعي)\s+(?:ال)?(?:اداة|تول)|(?:اعتبر|افترض)\s+(?:انك|نفسك|اني)|(?:اديني|اعمللي|طلعلي|اصدر)\s+موافق[هة]/iu;
+
+export function blocksConversationLookup(input: string): boolean {
+  return CHAT_OVERRIDE.test(normalizeArabic(input));
+}
+
+export function coverageSubjectText(input: string): string {
+  const normalized = normalizeArabic(input).replace(/\s+/gu, " ");
+  return normalized.split(EXPLICIT_CORRECTION).at(-1) ?? "";
+}
+
+export function inspectServiceSubject(input: string) {
+  const question = coverageSubjectText(input);
+  const evidence: Record<ServiceCode, boolean> = {
+    MRI: MRI_EVIDENCE.test(question),
+    CBC: CBC_EVIDENCE.test(question) || (COUNTING.test(question) && BLOOD_CELLS.test(question) &&
+      (CELL_TYPES.test(question) || PLATELETS.test(question))),
+    XRAY: XRAY_EVIDENCE.test(question)
+  };
+  return {
+    named: SERVICE_CODES.filter((code) => evidence[code]),
+    unsupported: COMPETING_PROCEDURE.test(question) || DENTAL.test(question),
+    comparison: REFERENCE_OR_NEGATION.test(question)
+  };
+}
+
+export function hasGroundedServiceQuote(input: string, quote: string, code: ServiceCode): boolean {
+  if (inspectServiceSubject(quote).named.includes(code)) return true;
+  const utterance = normalizeArabic(input);
+  const evidence = normalizeArabic(quote);
+  switch (code) {
+    case "MRI":
+      return /مغنا?طيس|magnet/iu.test(evidence) && /صور|تصوير|اشع[هة]|imaging|scan/iu.test(utterance);
+    case "CBC":
+      return /صفايح|صفائح|platelets|حمرا|حمر|red (?:blood )?cells/iu.test(evidence) &&
+        /دم|كريات|كرات|خلايا|blood/iu.test(utterance) && /بيضا|بيض|white (?:blood )?cells/iu.test(utterance) &&
+        /صفايح|صفائح|platelets/iu.test(utterance);
+    case "XRAY":
+      return false;
+  }
+}
+
+export function explicitBenefitFocus(input: string): Focus | undefined {
+  const question = normalizeArabic(input);
+  const signals = {
+    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع)|نسبة\s+(?:ال)?(?:تحمل|علي)|\bcopay\b/iu.test(question),
+    LIMIT: /(?:حد|رصيد|سقف)\s+(?:ال)?(?:متبقي|باقي|تغطية)|(?:فاضل|باقي|هيفضل).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance)\b/iu.test(question),
+    PREAPPROVAL: /موافق[هة]|(?:ال)?اذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
+  } satisfies Record<Exclude<Focus, "OVERVIEW">, boolean>;
+  const matched = (Object.keys(signals) as (keyof typeof signals)[]).filter((focus) => signals[focus]);
+  return matched.length === 1 ? matched[0] : undefined;
+}
 
 /** Verify a model proposal against positive, unambiguous evidence in user text. */
 export function isGroundedCoverageService(input: string, proposed: ServiceCode): boolean {
-  const normalized = normalizeArabic(input).replace(/\s+/gu, " ");
-  const question = normalized.split(EXPLICIT_CORRECTION).at(-1) ?? "";
+  const question = coverageSubjectText(input);
   if (REFERENCE_OR_NEGATION.test(question) || COMPETING_PROCEDURE.test(question)) return false;
 
   const evidence: Record<ServiceCode, boolean> = {

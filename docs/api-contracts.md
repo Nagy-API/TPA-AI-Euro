@@ -84,6 +84,10 @@ Example safe minimal response:
 
 Proposed errors: `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `UNKNOWN_SERVICE` (422), `CONTEXT_UNAVAILABLE` (503), `RATE_LIMITED` (429), `SESSION_EXPIRED` (401), `HUMAN_REVIEW_REQUIRED` (409 or domain state, to agree). Never expose account existence during identification. Use opaque correlation IDs for troubleshooting.
 
+## Local V0.4 chat codes
+
+The Ollama Web Demo uses the existing verified `POST /v1/chat` request and answer envelope. It adds HTTP 200 codes `CAPABILITIES`, `FAQ`, `OUT_OF_SCOPE`, `UNSUPPORTED_SERVICE`, and `COVERAGE_NOT_AVAILABLE`. The last code means the mock policy engine returned `UNKNOWN` for an allowlisted service. A confirmed `NOT_COVERED` policy result uses `COVERAGE_RESULT`. Concurrent Ollama chat turns in a single verified session can receive HTTP 409 `CHAT_BUSY`. Fixture and legacy chat retain their previous response codes.
+
 ## Backend contract review checklist
 
 - [ ] Tenant and member scoping must be server-side and enforced on every query.

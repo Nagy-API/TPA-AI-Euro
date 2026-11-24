@@ -1,9 +1,11 @@
 import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
-import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend } from "./contracts.ts";
+import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend, VerifiedSession } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
+import { blocksConversationLookup, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
+import { SERVICE_CATALOG, type ConversationInterpreter } from "./conversation-intent.ts";
+import { CLARIFY_SERVICE, conversationReply, formatFocusedCoverage, OTHER_ACCOUNT, UNSUPPORTED_SERVICE } from "./conversation-replies.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
 const SAFE_RETRY = "البيانات مش متاحة دلوقتي، من فضلك حاول مرة تانية أو تواصل مع خدمة العملاء. (بيانات تجريبية)";
@@ -17,10 +19,16 @@ export class CoverageAssistant {
   private readonly backend: TpaBackend;
   private readonly selector: CoverageIntentSelector;
   private readonly memberAuth?: DemoMemberAuth;
-  constructor(backend: TpaBackend, selector: CoverageIntentSelector, memberAuth?: DemoMemberAuth) {
+  private readonly interpreter?: ConversationInterpreter;
+  private readonly inFlight = new WeakSet<VerifiedSession>();
+  constructor(
+    backend: TpaBackend, selector: CoverageIntentSelector, memberAuth?: DemoMemberAuth,
+    interpreter?: ConversationInterpreter
+  ) {
     this.backend = backend;
     this.selector = selector;
     this.memberAuth = memberAuth;
+    this.interpreter = interpreter;
   }
 
   async answer(sessionToken: string | undefined, question: unknown, requestSignal?: AbortSignal): Promise<AssistantReply> {
@@ -43,6 +51,17 @@ export class CoverageAssistant {
     if (remainingMs <= 0) return VERIFICATION_REQUIRED;
     const expiry = remainingMs <= CHAT_REQUEST_TIMEOUT_MS ? AbortSignal.timeout(remainingMs) : undefined;
     const signal = requestSignal && expiry ? AbortSignal.any([requestSignal, expiry]) : requestSignal ?? expiry;
+    if (this.interpreter && this.memberAuth) {
+      if (this.inFlight.has(session)) {
+        return { status: 409, code: "CHAT_BUSY", answer: "استنى رد السؤال الحالي وبعدين ابعت سؤالك." };
+      }
+      this.inFlight.add(session);
+      try {
+        return await this.answerConversation(session, message, this.interpreter, this.memberAuth, signal);
+      } finally {
+        this.inFlight.delete(session);
+      }
+    }
     const otherPerson = isThirdPartyCoverage(message);
     const followUp = this.memberAuth && !otherPerson && isCoverageFollowUp(message) ? message : "";
     let selection: ToolSelection;
@@ -81,11 +100,80 @@ export class CoverageAssistant {
     if (this.memberAuth && !this.memberAuth.isActive(session)) return COVERAGE_UNAVAILABLE;
     return { status: 200, code: "COVERAGE_RESULT", answer: formatCoverage(coverage) };
   }
+
+  private async answerConversation(
+    session: VerifiedSession, message: string, interpreter: ConversationInterpreter,
+    auth: DemoMemberAuth, signal?: AbortSignal
+  ): Promise<AssistantReply> {
+    const clear = () => auth.resolveConversationService(session, "", undefined);
+    const interrupted = () => !auth.isActive(session) ? VERIFICATION_REQUIRED : signal?.aborted ? CHAT_TIMEOUT : undefined;
+    const decline = (code: string, answer: string): AssistantReply => {
+      clear();
+      return { status: 200, code, answer };
+    };
+    if (hasPrivateCoverageInput(message)) {
+      return decline("CLARIFICATION_NEEDED", "اكتب اسم الفحص أو سؤالك عن التأمين من غير أرقام العضوية أو بيانات التحقق.");
+    }
+    if (isThirdPartyCoverage(message)) return decline("OUT_OF_SCOPE", OTHER_ACCOUNT);
+    if (blocksConversationLookup(message)) return decline("OUT_OF_SCOPE", "أقدر أراجع بيانات التغطية لحسابك التجريبي. طلبات تعديل الوثيقة أو إصدار موافقة بتحتاج الجهة المختصة.");
+    const clues = inspectServiceSubject(message);
+    if (clues.named.length > 1) {
+      const reply = conversationReply({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
+      return decline(reply.code, reply.answer);
+    }
+    if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
+      return decline("UNSUPPORTED_SERVICE", UNSUPPORTED_SERVICE);
+    }
+
+    const topic = auth.currentConversationService(session);
+    let decision;
+    try {
+      decision = await interpreter.interpret(message, topic, signal);
+    } catch {
+      clear();
+      return interrupted() ?? { status: 503, code: "AI_UNAVAILABLE", answer: "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
+    }
+    const stopped = interrupted();
+    if (stopped) {
+      clear();
+      return stopped;
+    }
+    const followUp = decision.intent === "FOLLOW_UP";
+    const serviceCode = followUp && decision.subject === "NONE" && decision.focus !== "OVERVIEW"
+      ? auth.currentConversationService(session) :
+      decision.intent === "COVERAGE_LOOKUP" && isServiceCode(decision.subject) ? decision.subject : undefined;
+    if (!serviceCode) {
+      const reply = conversationReply(decision);
+      return decline(reply.code, reply.answer);
+    }
+    if (clues.unsupported || clues.comparison ||
+        (clues.named.length === 1 && (followUp || clues.named[0] !== serviceCode))) {
+      return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);
+    }
+    if (!followUp) clear();
+
+    let coverage: Coverage;
+    try {
+      coverage = validateCoverageResponse(await this.backend.getCoverage(session, serviceCode), serviceCode);
+    } catch {
+      clear();
+      return interrupted() ?? COVERAGE_UNAVAILABLE;
+    }
+    const finished = interrupted();
+    if (finished) {
+      clear();
+      return finished;
+    }
+    if (coverage.coverageStatus === "UNKNOWN") {
+      return decline("COVERAGE_NOT_AVAILABLE", formatFocusedCoverage(coverage, decision.focus) ?? SAFE_RETRY);
+    }
+    if (!followUp) auth.resolveConversationService(session, "", serviceCode);
+    return { status: 200, code: "COVERAGE_RESULT", answer: formatFocusedCoverage(coverage, decision.focus) ?? formatCoverage(coverage) };
+  }
 }
 
 function formatCoverage(coverage: Coverage): string {
-  const serviceNames: Record<string, string> = { MRI: "الرنين المغناطيسي", CBC: "صورة الدم الكاملة", XRAY: "الأشعة السينية" };
-  const name = serviceNames[coverage.serviceCode];
+  const name = SERVICE_CATALOG[coverage.serviceCode].name;
   if (coverage.coverageStatus === "UNKNOWN") return `مش قادرين نحدد تغطية ${name} من البيانات الحالية. راجع خدمة العملاء. (بيانات تجريبية)`;
   if (coverage.coverageStatus === "NOT_COVERED") return `${name} غير مغطّى حسب الوثيقة التجريبية الحالية. لو عندك استفسار راجع خدمة العملاء. (بيانات تجريبية)`;
   if (coverage.coverageStatus !== "COVERED" && coverage.coverageStatus !== "COVERED_WITH_CONDITIONS") return SAFE_RETRY;

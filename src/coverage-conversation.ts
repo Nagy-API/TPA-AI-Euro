@@ -17,15 +17,18 @@ export function isCoverageFollowUp(message: string): boolean {
 export class CoverageConversation {
   private topic?: Readonly<{ serviceCode: ServiceCode; expiresAt: number }>;
 
+  current(now: number): ServiceCode | undefined {
+    return this.topic && this.topic.expiresAt > now ? this.topic.serviceCode : undefined;
+  }
+
   resolve(followUp: string, explicitService: ServiceCode | undefined, now: number, sessionExpiresAt: number): ServiceCode | undefined {
     if (explicitService) {
       this.topic = { serviceCode: explicitService, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
       return explicitService;
     }
 
-    if (this.topic && this.topic.expiresAt > now && isCoverageFollowUp(followUp)) {
-      return this.topic.serviceCode;
-    }
+    const current = this.current(now);
+    if (current && isCoverageFollowUp(followUp)) return current;
 
     this.topic = undefined;
     return undefined;

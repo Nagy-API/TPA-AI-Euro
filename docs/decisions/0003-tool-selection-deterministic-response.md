@@ -18,6 +18,12 @@ The application also checks recognizable third-party subjects before model or po
 
 The application requires positive evidence in the actual question for one catalog service that agrees with the selector proposal. The guard recognizes names and bounded paraphrases, and clarifies on missing, conflicting or uncertain evidence. Exact authenticated co-pay follow-ups can use a previously grounded topic. This favors precision over recall for the synthetic catalog. Detecting arbitrary unsupported comparisons or third-party wording in free text remains limited. See the [service-grounding evidence](../../PROJECT_STATUS.md#pr-16-service-grounding-review).
 
+### V0.4 decision for verified local Ollama
+
+The Web Demo routes Ollama turns through explicit conversational intents and approved Arabic reply text. The model picks the subject and focus. A second, independently prompted call to the same local model checks the proposed service or contextual follow-up. The app also requires evidence in the user message. It can verify an explicit catalog mention directly or check a source excerpt for service-specific evidence. For follow-ups, an independently confirmed benefit cue can corroborate the contextual reading. Deterministic checks reject recognized scope changes, competing procedures and override requests. Both model calls can still make correlated semantic errors. Policy and authorization remain server-side.
+
+The server keeps only the latest successfully validated service in the verified session, for up to two minutes. An accepted follow-up re-fetches data without extending that lifetime. Session rotation, expiry and logout remove access. Non-coverage turns clear the topic. The backend response determines coverage status, financial values, approval requirements and missing fixture data. No benefit value, identity field or tool arguments from the model reach the backend.
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.

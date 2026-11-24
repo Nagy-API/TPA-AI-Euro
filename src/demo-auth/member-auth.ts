@@ -136,6 +136,11 @@ export class DemoMemberAuth {
     return session.expiresAt - this.now();
   }
 
+  currentConversationService(session: VerifiedSession): ServiceCode | undefined {
+    const now = this.now();
+    return this.findActiveRecord(session, now)?.conversation.current(now);
+  }
+
   /** null denotes an inactive session. undefined means the service needs clarification. */
   resolveConversationService(session: VerifiedSession, followUp: string, serviceCode: ServiceCode | undefined): ServiceCode | null | undefined {
     const now = this.now();

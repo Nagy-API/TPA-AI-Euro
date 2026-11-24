@@ -6,6 +6,50 @@
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama intent-selection **MERGED into `main`** (synthetic local PoC); backend contract and real service integration remain deferred.
 
+## V0.4 grounded conversation — Issue #17
+
+V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. The app corroborates the model's proposal before looking up coverage. A single service topic lasts up to two minutes in its verified session. Every accepted follow-up fetches current mock data. The model sees a synthetic question and a flag indicating whether a topic exists. Approved reply text and validated mock benefits are rendered on the server.
+
+### V0.3 reproduction
+
+The indirect knee-imaging question passed model eligibility and Ollama proposed MRI. The application rejected the proposal because the existing lexical guard expected the magnet cue next to the imaging phrase. The indirect copay question missed the fixture-style follow-up matcher, had no saved MRI topic and failed the model's single-turn eligibility screen. Dental and capability questions also failed eligibility by design. The orchestrator routed all those paths to the same generic clarification.
+
+### Observed end-to-end replies
+
+The existing RTL Web Demo was exercised in a verified fictional Gold session with real loopback Ollama. The five reported messages passed in one browser conversation. Two more turns verified distinct role and FAQ replies. The browser returned no console errors or warnings during that flow. At 768 px and 390 px the document was RTL and stayed within the viewport. Logout returned to identification.
+
+| Gold member message | Actual reply content | Verified HTTP lookup |
+| --- | --- | --- |
+| الدكتور طالب مني أدخل جهاز بيصور ركبتي بالمغناطيس، التأمين هيساعدني في تكلفته؟ | الرنين المغناطيسي مغطّى حسب بيانات الوثيقة التجريبية. نسبة التحمل: 20%. الحد المتبقي: 5,000 جنيه. لازم موافقة مسبقة من المختص قبل تقديم الخدمة، وده مش قرار موافقة. | MRI |
+| طب أنا هدفع كام من جيبي؟ | بالنسبة لـالرنين المغناطيسي، نسبة التحمل 20% من التكلفة المؤهلة. المبلغ بالجنيه محتاج سعر الخدمة. | MRI re-fetch |
+| طب تبييض الأسنان متغطي عندي ولا لأ؟ | الخدمة دي مش ضمن الخدمات اللي أقدر أراجعها في الديمو. ده ما يحددش إذا كانت وثيقتك بتغطيها. اسأل خدمة العملاء عن الخدمة دي. | 0 |
+| تبييض أسنان | The same service-availability reply. | 0 |
+| إيه الخدمات المتاحة | في الديمو أقدر أراجع الرنين المغناطيسي، صورة الدم الكاملة، الأشعة السينية. نتيجة كل فحص بتعتمد على بيانات الوثيقة التجريبية. | 0 |
+| إنت بتساعدني في إيه؟ | أقدر أراجع تغطية فحص في وثيقتك التجريبية، وأقولك نسبة التحمل والحد المتبقي ولو محتاج موافقة مسبقة، حسب البيانات المتاحة. | 0 |
+| يعني إيه نسبة تحمل؟ | نسبة التحمل هي الجزء اللي عليك من تكلفة الخدمة المؤهلة للتغطية. النسبة بتختلف حسب الخدمة والوثيقة. | 0 |
+
+Verified HTTP separately observed Gold plain X-ray returning `COVERAGE_NOT_AVAILABLE` based on the missing mock policy entry and Silver MRI returning `COVERAGE_RESULT` with an explicit exclusion. An expired session returned 401 before contacting Ollama. Selecting a nonexistent local model returned 503 `AI_UNAVAILABLE` without a lookup, with the provider still listening on loopback.
+
+### Verification
+
+| Integrated Ollama HTTP run | Exact status, reply and lookup | Correct / required lookups | Unexpected / wrong-service lookups | p50 / p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Issue #17 and development replay | 26/26 | 11/11 | 0 / 0 | 589 / 1,363 ms |
+| Reviewer sequence replay after fixes | 5/5 | 4/4 | 0 / 0 | 1,134 / 1,459 ms |
+| Fresh verifier sequence, first run | 2/3 | 1/1 | 0 / 0 | 619 / 1,380 ms |
+
+Across the final three runs, the server made **16 correct required lookups**, with **zero lookups on the 18 non-lookup turns**. The first reviewer run matched 2/5, including one of four required lookups. The replay uses the same questions after improving service and follow-up corroboration. In the untouched verifier sequence, the model correctly identified an indirect wrist MRI and the app refused a grandchild's question before inference. Ollama clarified a rehabilitation question instead of identifying it as unsupported. It made zero coverage calls for that turn, and the fresh evaluator exits 1 to report that mismatch.
+
+Local `npm test` passed 92/92. Strict TypeScript 5.8.3 passed for `src`, `scripts`, and `tests` with `--noEmit --strict --allowImportingTsExtensions --module NodeNext --moduleResolution NodeNext --target ES2022 --types node` and the locally installed Node declaration path. `npm run docs:check` and `git diff --check` passed.
+
+### Model behavior and remaining risks
+
+- On the copay follow-up, the first model pass emitted `FOLLOW_UP` with an overly broad `OVERVIEW`. The contextual pass identified copay and the application rendered the freshly fetched MRI copay. On a CBC billing follow-up, both model calls initially leaned toward the limit. The explicit bill cue selected copay from the verified CBC object. The service and capability replies use maintained approved phrasing.
+- On a generic chest test, a model proposed XRAY and the independent check refused to identify a service. The backend saw zero calls. The test suite also checks that a copied service from a superseded clause and an irrelevant copied excerpt cannot authorize a lookup.
+- Scope recognition and semantic evidence are bounded. Both passes share a local model, which can produce correlated errors and vary across runs. The finite evaluation does not establish production coverage, safety or privacy. A real policy integration, approved identity, and privacy controls remain pending.
+
+Reproduce with `OLLAMA_MODEL=qwen3:4b-instruct` and `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts`. Add `--independent` for the reviewer sequence and `--fresh` for the verifier sequence. The runner prints synthetic transcripts, model decisions, actual lookup codes and per-turn latency. See the [local setup](README.md#run-with-local-ollama-synthetic-demo).
+
 ## PR 16 service-grounding review
 
 - The coverage assistant requires a model proposal to agree with positive evidence for exactly one supported service in the question before saving a topic or querying the backend. The check recognizes catalog names and bounded Egyptian Arabic paraphrases, blocks conflicting evidence, and clarifies when evidence is missing. The same check is used by the standalone Ollama selector. The verified-session, tenant, and deadline behavior is unchanged.
