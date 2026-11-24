@@ -15,7 +15,7 @@ test("synthetic evaluation records passes for expected selections", async () => 
     }
   };
   const results = await evaluateIntents(selector, cases);
-  assert.equal(results.length, 14);
+  assert.equal(results.length, cases.length);
   assert.ok(results.every(result => result.passed));
   assert.ok(results.some(result => result.critical));
 });

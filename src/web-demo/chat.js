@@ -17,6 +17,7 @@ const challenges = "/v1/member-auth/challenges";
 const opaqueId = /^[A-Za-z0-9_-]{43}$/;
 const failure = "في مشكلة في الاتصال بخدمة التجربة. جرّب تاني بعد شوية.";
 const expired = "انتهت الجلسة أو بقت غير صالحة. اتحقق برقم العضوية من جديد.";
+const chatTimeoutMs = Number(ask.dataset.chatTimeoutMs);
 const stages = {
   identify: { panel: identify, title: "ابدأ برقم العضوية", input: member },
   verify: { panel: verify, title: "تحقق من العضوية", input: otp },
@@ -93,7 +94,7 @@ async function post(path, body, signal, token) {
   return { status: response.status, data: await response.json() };
 }
 
-async function runRequest(loading, action, onFailure = failure) {
+async function runRequest(loading, action, onFailure = failure, timeoutMs = 8_000) {
   if (pending) return;
   const initialStage = stage;
   const controller = new AbortController();
@@ -103,7 +104,7 @@ async function runRequest(loading, action, onFailure = failure) {
   status.textContent = loading;
   error.textContent = "";
   try {
-    completeMessage = await action(AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]));
+    completeMessage = await action(AbortSignal.any([controller.signal, AbortSignal.timeout(timeoutMs)]));
   } catch {
     if (pending === controller) error.textContent = onFailure;
   } finally {
@@ -217,7 +218,7 @@ ask.addEventListener("submit", (event) => {
     appendMessage("member", message);
     appendMessage("demo", reply.data.answer);
     question.value = "";
-  });
+  }, failure, chatTimeoutMs);
 });
 
 logout.addEventListener("click", () => {

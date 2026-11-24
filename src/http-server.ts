@@ -1,22 +1,37 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { CoverageAssistant } from "./coverage-assistant.ts";
+import { CHAT_TIMEOUT, type CoverageAssistant } from "./coverage-assistant.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
+import { CHAT_REQUEST_TIMEOUT_MS } from "./contracts.ts";
 
 const MAX_BYTES = 2048;
+const CHAT_BROWSER_GRACE_MS = 5_000;
 const CHALLENGES_PATH = "/v1/member-auth/challenges";
 const VERIFY_PATH = /^\/v1\/member-auth\/challenges\/([A-Za-z0-9_-]{43})\/verify$/;
 const LOGOUT_PATH = "/v1/member-auth/logout";
 const LOOPBACK_HOST = /^(?:127\.0\.0\.1|localhost|\[::1\])(?::[0-9]{1,5})?$/i;
 const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
+const DEMO_PAGE = readFileSync(new URL("./web-demo/index.html", import.meta.url), "utf8");
 const DEMO_ASSETS = new Map<string, { type: string; body: Buffer }>(([
-  ["/demo", "index.html", "text/html"],
   ["/demo/style.css", "style.css", "text/css"],
   ["/demo/chat.js", "chat.js", "text/javascript"]
 ] as const).map(([path, file, type]) => [
   path, { type, body: readFileSync(new URL(`./web-demo/${file}`, import.meta.url)) }
 ] as const));
+
+function demoPage(useOllama: boolean, chatTimeoutMs: number) {
+  const label = useOllama ? "Synthetic Data / Local Ollama" : "Synthetic Data / Offline Simulation / Not Real AI";
+  const description = useOllama
+    ? "اختيار الخدمة بموديل محلي. استخدم بيانات اختبار وهمية فقط."
+    : "محاكاة بدون اتصال خارجي. استخدم بيانات اختبار وهمية فقط.";
+  return {
+    type: "text/html",
+    body: Buffer.from(DEMO_PAGE.replace("{{demo-mode-label}}", label)
+      .replace("{{demo-mode-description}}", description)
+      .replace("{{chat-timeout-ms}}", String(chatTimeoutMs + CHAT_BROWSER_GRACE_MS)))
+  };
+}
 
 function writeDemoAsset(res: ServerResponse, asset: { type: string; body: Buffer }): void {
   res.writeHead(200, {
@@ -56,7 +71,11 @@ function isLocalRequest(req: IncomingMessage): boolean {
 }
 
 /** Both the verified and compatibility demos require explicit enablement and loopback HTTP. */
-export function createDemoServer(assistant: CoverageAssistant, demoEnabled: boolean, memberAuth?: DemoMemberAuth) {
+export function createDemoServer(
+  assistant: CoverageAssistant, demoEnabled: boolean, memberAuth?: DemoMemberAuth,
+  useOllama = false, chatTimeoutMs = CHAT_REQUEST_TIMEOUT_MS
+) {
+  const page = demoPage(useOllama, chatTimeoutMs);
   return createServer(async (req, res) => {
     if (req.url === "/health" && req.method === "GET") {
       writeJson(res, 200, { status: "ok", mode: "demo", productionReady: false });
@@ -66,7 +85,9 @@ export function createDemoServer(assistant: CoverageAssistant, demoEnabled: bool
     const identify = req.url === CHALLENGES_PATH;
     const verify = VERIFY_PATH.exec(req.url ?? "");
     const logout = req.url === LOGOUT_PATH;
-    const asset = req.method === "GET" && memberAuth ? DEMO_ASSETS.get(req.url ?? "") : undefined;
+    const asset = req.method === "GET" && memberAuth
+      ? req.url === "/demo" ? page : DEMO_ASSETS.get(req.url ?? "")
+      : undefined;
     const api = req.method === "POST" && (chat || (memberAuth && (identify || verify || logout)));
     if (!asset && !api) {
       writeJson(res, 404, { error: "NOT_FOUND" });
@@ -92,8 +113,22 @@ export function createDemoServer(assistant: CoverageAssistant, demoEnabled: bool
       writeJson(res, 200, { sessionRevoked: true });
       return;
     }
+    const controller = chat ? new AbortController() : undefined;
+    const deadline = controller && setTimeout(() => {
+      controller.abort();
+      if (!res.destroyed && !res.writableEnded) {
+        writeJson(res, CHAT_TIMEOUT.status, { code: CHAT_TIMEOUT.code, answer: CHAT_TIMEOUT.answer });
+      }
+    }, chatTimeoutMs);
+    function onClose() {
+      controller?.abort();
+      clearTimeout(deadline);
+    }
+    if (controller) res.once("close", onClose);
+
     try {
       const json = await readBody(req);
+      if (controller?.signal.aborted || res.destroyed) return;
       if (memberAuth && identify) {
         writeJson(res, 202, memberAuth.identify(json.memberIdentifier));
         return;
@@ -103,10 +138,14 @@ export function createDemoServer(assistant: CoverageAssistant, demoEnabled: bool
         writeJson(res, session ? 200 : 401, session ?? { error: "VERIFICATION_FAILED" });
         return;
       }
-      const reply = await assistant.answer(token, json.message);
+      const reply = await assistant.answer(token, json.message, controller?.signal);
+      if (controller?.signal.aborted || res.destroyed) return;
       writeJson(res, reply.status, { code: reply.code, answer: reply.answer });
     } catch {
-      writeJson(res, 400, { error: "INVALID_JSON_OR_TOO_LARGE" });
+      if (!res.destroyed && !res.writableEnded) writeJson(res, 400, { error: "INVALID_JSON_OR_TOO_LARGE" });
+    } finally {
+      clearTimeout(deadline);
+      res.off("close", onClose);
     }
   });
 }

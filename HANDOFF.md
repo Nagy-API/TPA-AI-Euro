@@ -1,13 +1,16 @@
-# Current handoff — TPA AI Euro (2026-11-23)
+# Current handoff — TPA AI Euro (2026-11-24)
 
-**Current checkpoint.** Nagy requested the local Web Chat in Issue #11 so he can try the completed synthetic journey in a browser. Further speculative work remains paused pending the dependencies below. Start future tasks from verified live GitHub `main`.
+**Current checkpoint.** [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13) is on `codex/ollama-coverage-intent` for architectural review. The canonical checkout is the root `TPA-AI` folder. Start future tasks from verified live GitHub `main`. Preserve the historical agent folders and archive.
+
+- Reproduce with [local Ollama setup](README.md#run-with-local-ollama-synthetic-demo) and the [evaluation runbook](docs/evaluation-runbook.md#local-ollama-evaluation). The installed `qwen3:4b-instruct` performed tool calling and the verified browser/HTTP flow passed. Fixture mode stays default.
+- Check the [PR #16 service-grounding evidence](PROJECT_STATUS.md#pr-16-service-grounding-review). The exposed H-12 still produced a CBC proposal but now clarifies with zero lookups. The fresh holdout observed zero wrong-service or unauthorized lookups and 11/12 correct required lookups. Review the remaining recall and third-party wording limits. Keep the PR in Draft.
 
 - Repo: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**.
 - Earlier offline V0.1 member verification and coverage demo merged as PR #1 (`aec8b58f2ef9cea806b10157a34d067a5370b3b6`).
 - V0.2 offline session-scoped co-pay follow-ups merged as [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) (`a5edbec7d908f3bfd9e3e88a9415e2241e076649`). PR head `058ee88bc9f550c128e98aaf3a1c6e8be66d0a37` had 2/2 green GitHub Actions checks; agent reported 60/60 local tests. Check actual current `main` checks, including any documentation-only commit since then.
 - The default assistant is **offline keyword matching**, NOT a real LLM. Real paid provider integration and evaluation deferred. OTPs, member IDs, tiers, coverage values and session data are fake and only for localhost demo. No actual TPA backend, DB, production identity, WhatsApp or medical workflow integration.
 - [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) contains proposed backend contract; user explicitly **DEFERRED** it until Core Backend / TPA domain availability. Do not infer its proposal is implemented.
-- The bounded [Issue #11](https://github.com/Nagy-API/TPA-AI-Euro/issues/11) changes are on `feat/local-web-demo`, based on `6435cf3c8baf960a27e6919ab1dabdf87e2e045d`. Start with the [README run instructions](README.md#run-without-an-api-key-non-ai-offline-demo) and open `http://127.0.0.1:3000/demo`.
+- The bounded [Issue #11](https://github.com/Nagy-API/TPA-AI-Euro/issues/11) Web Chat changes merged via [PR #12](https://github.com/Nagy-API/TPA-AI-Euro/pull/12) at `752664ea34b0bce0f0ef2bedba2af3af3a42098f`. The [fixture run instructions](README.md#run-without-an-api-key-non-ai-offline-demo) remain available.
 - Local evidence includes 63/63 Node tests, docs validation, 14 offline intent fixtures and strict TypeScript. Chrome verified Gold, Silver and VIP MRI follow-ups at desktop, tablet and mobile widths, plus invalid OTP, logout, retry after a synthetic HTTP 503, automatic session expiry and reload reset. See [Project Status](PROJECT_STATUS.md#local-web-chat-demo) for details.
 
 ## Collaboration rules (Nagy)

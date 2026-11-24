@@ -91,8 +91,8 @@ test("verified Gold and Silver members get their own offline coverage results", 
   assert.equal(silverReply.body.code, "COVERAGE_RESULT");
   assert.match(silverReply.body.answer, /غير مغطّى/);
 
-  assert.deepEqual(demo.select.mock.calls.map((call) => call.arguments), [
-    ["هل الرنين المغناطيسي مغطى؟"], ["هل الرنين المغناطيسي مغطى؟"]
+  assert.deepEqual(demo.select.mock.calls.map((call) => call.arguments[0]), [
+    "هل الرنين المغناطيسي مغطى؟", "هل الرنين المغناطيسي مغطى؟"
   ]);
 });
 

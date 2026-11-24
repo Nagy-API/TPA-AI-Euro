@@ -16,8 +16,9 @@ export class ClaudeIntentSelector implements CoverageIntentSelector {
     this.fetcher = fetcher;
   }
 
-  async selectCoverageIntent(question: string): Promise<ToolSelection> {
+  async selectCoverageIntent(question: string, requestSignal?: AbortSignal): Promise<ToolSelection> {
     if (!this.apiKey || !this.model) throw new Error("LLM_NOT_CONFIGURED");
+    const timeout = AbortSignal.timeout(12_000);
     const response = await this.fetcher("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -25,7 +26,7 @@ export class ClaudeIntentSelector implements CoverageIntentSelector {
         "anthropic-version": "2023-06-01",
         "content-type": "application/json"
       },
-      signal: AbortSignal.timeout(12_000),
+      signal: requestSignal ? AbortSignal.any([timeout, requestSignal]) : timeout,
       body: JSON.stringify({
         model: this.model,
         max_tokens: 160,

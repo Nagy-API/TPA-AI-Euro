@@ -10,6 +10,14 @@ Financial/coverage values and medical approvals must not be invented by an LLM. 
 
 Use Claude Messages API tool use to select exactly one service code (`MRI`, `CBC`, `XRAY`) from a public *fictional* catalog. Code validates this tool name and argument, uses the already-verified trusted session to look up a fake policy-engine result, and formats the result deterministically. No member ID/tier/tenant or result value is accepted from the LLM. The model never grants/rejects medical care. An offline keyword selector is provided for no-key tests and must be described as non-AI.
 
+### 2026-11-24 — Local Ollama extension pending architectural review
+
+Verified demo mode may opt into Ollama at a fixed loopback endpoint with a locally installed model. The adapter first asks for a schema-constrained eligibility decision without tools, then asks an eligible question to select the same single allowlisted tool. Both responses are untrusted and parsed at runtime. Multiple distinct service calls clarify without a lookup. Selector failures surface as `AI_UNAVAILABLE`. Fixture selection stays the default. The application owns identity, conversation topic, backend access and formatting. See [local evidence](../../PROJECT_STATUS.md#v03-local-ollama-review).
+
+The application also checks recognizable third-party subjects before model or policy access and clears the conversation topic on refusal. The HTTP route owns the chat deadline and passes cancellation to the model adapter. The same verified session continues to enforce member and tenant authorization on each lookup. See the [review follow-up evidence](../../PROJECT_STATUS.md#pr-16-architectural-review-follow-up).
+
+The application requires positive evidence in the actual question for one catalog service that agrees with the selector proposal. The guard recognizes names and bounded paraphrases, and clarifies on missing, conflicting or uncertain evidence. Exact authenticated co-pay follow-ups can use a previously grounded topic. This favors precision over recall for the synthetic catalog. Detecting arbitrary unsupported comparisons or third-party wording in free text remains limited. See the [service-grounding evidence](../../PROJECT_STATUS.md#pr-16-service-grounding-review).
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.

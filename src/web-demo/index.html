@@ -20,8 +20,8 @@
       <p>جرّب رحلة العضو من التحقق لحد السؤال عن التغطية ونسبة التحمل.</p>
     </div>
     <div class="disclosure">
-      <strong lang="en" dir="ltr">Synthetic Data / Offline Simulation / Not Real AI</strong>
-      <span>محاكاة بدون اتصال خارجي. استخدم بيانات اختبار وهمية فقط.</span>
+      <strong lang="en" dir="ltr">{{demo-mode-label}}</strong>
+      <span>{{demo-mode-description}}</span>
     </div>
     <noscript><p>فعّل JavaScript عشان تقدر تستخدم التجربة.</p></noscript>
     <div class="layout">
@@ -55,7 +55,7 @@
           </form>
           <div id="chat" hidden>
             <ol class="messages" id="messages" role="log" aria-label="رسائل المحادثة" tabindex="0"></ol>
-            <form id="ask" method="post" autocomplete="off">
+            <form id="ask" method="post" autocomplete="off" data-chat-timeout-ms="{{chat-timeout-ms}}">
               <div class="suggestions" aria-label="أسئلة مقترحة" role="group">
                 <button class="suggestion" type="button">هل الرنين المغناطيسي مغطى؟</button>
                 <button class="suggestion" type="button">وطب نسبة التحمل كام؟</button>

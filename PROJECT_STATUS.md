@@ -1,9 +1,49 @@
 # TPA AI Euro — Project Status (source of truth)
 
-**Updated:** 2026-11-23  
+**Updated:** 2026-11-24
+
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
-**Current milestone:** V0.2 offline coverage follow-ups merged into `main`. The local Web Chat demo is on `feat/local-web-demo` for review.
+**Current milestone:** V0.3 local Ollama is available on `codex/ollama-coverage-intent` for architectural review. V0.2 and the local Web Chat are on `main`.
+
+## PR 16 service-grounding review
+
+- The coverage assistant requires a model proposal to agree with positive evidence for exactly one supported service in the question before saving a topic or querying the backend. The check recognizes catalog names and bounded Egyptian Arabic paraphrases, blocks conflicting evidence, and clarifies when evidence is missing. The same check is used by the standalone Ollama selector. The verified-session, tenant, and deadline behavior is unchanged.
+- Frozen implementation: `ab69987344ef0f55baf949cf864b95166054fd80`. Ollama `0.40.17`, `qwen3:4b-instruct`, installed digest `0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0`. The new [24-case dataset](evals/ollama-grounding-holdout-cases.json) was authored after the implementation commit and evaluated once without changing inputs or code afterward. SHA-256 of the evaluated file bytes: `24ea4cf1cf752422718d23138b28011f12d6e85ba9301077ef96aa67a4bdd5e5`. The two older HTTP sets are exposed regression data.
+
+| Verified HTTP dataset | Exact | Correct / required lookups | Denied cases with lookup | Wrong service / unauthorized lookups | Clarification false negatives | Model checks / eligibility / tool requests / raw proposals | p50 / p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Issue #15 replay | 28/29 | 14/15 | 0/14 | 0 / 0 | 1 | 22 / 22 / 14 / 15 | 303 / 917 ms |
+| Exposed first holdout replay | 16/16 | 7/7 | 0/9 | 0 / 0 | 0 | 10 / 10 / 8 / 8 | 294 / 892 ms |
+| Fresh service-grounding holdout | 23/24 | 11/12 | 0/12 | 0 / 0 | 1 | 19 / 19 / 12 / 13 | 328 / 1,104 ms |
+
+- In the exposed replay, H-12 still elicited a CBC tool proposal, but the application clarified with zero lookups. H-05 reached the intended CBC lookup and H-08 clarified without a provider request or lookup. QA-12 still clarified before tool selection on a valid corrected XRAY request.
+- In the fresh holdout, G-07 generated a correct CBC proposal that the guard rejected because the blood-cell description fell outside its recognized phrasing. G-21's third-party wording reached eligibility and clarified without a tool request or lookup. The fresh observed route match was **95.8%**, while correct required lookups were **91.7%**. This run does not meet a 95% required-lookup target. The bounded language rules can require clarification for valid questions, and a finite synthetic set cannot establish behavior for arbitrary service or ownership wording.
+- Local verification: `npm test` **87/87**, with **57/57** in the separate non-HTTP run and **30/30** in the HTTP integration run. Strict TypeScript 5.9.3 targeting ES2022 and `npm run docs:check` passed. `npm run eval:ollama` matched **21/21** development cases. The review and fresh holdout exit 1 on their documented misses. The exposed first holdout exits 0. Commands are in the [evaluation runbook](docs/evaluation-runbook.md#verified-http-evaluation).
+
+## PR 16 architectural review follow-up
+
+- The application refuses recognizable third-party subjects before Ollama or coverage and clears the active service topic. Exact bounded co-pay follow-ups resolve from the authenticated session without Ollama. The adapter blocks recognizable credentials, demo IDs, and code-like numeric patterns while allowing ordinary percentages, amounts and counts. `INT-012` now expects clarification because the text includes a fictional membership ID.
+- Chat has a **30 s HTTP / 35 s browser** deadline. Local HTTP regressions cover cancellation during slow inference, client disconnect, imminent session expiry, and a single successful explicit retry after a timeout. The synthetic Gold browser smoke completed a numeric MRI question in **10,221 ms**, including **9,100 ms** of injected delay before real Ollama inference. The browser held the submit control disabled while pending. A third-party turn refused coverage, the next co-pay follow-up asked for a topic, and logout returned to verification.
+- On Ollama **0.40.17**, installed `qwen3:4b-instruct` matched **21/21** selector development cases with the updated expected behavior. The bare keyword selector matched **14/21** against those same labels. These cases informed tuning.
+
+| Verified HTTP dataset | Exact matches | Correct requested lookups | Unexpected lookups | p50 | p95 | Max |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Original Issue #15 questions and scenarios | 28/29 | 14/15 | 0 | 327 ms | 1,241 ms | 1,420 ms |
+| First frozen holdout run | 13/16 | 6/7 | 1 | 315 ms | 1,138 ms | 1,138 ms |
+
+- Review cases `QA-07` and `QA-29` each made one matching lookup (CBC and MRI). `QA-12` clarified at eligibility and made zero lookups. `QA-18` received two raw proposals (MRI, CBC) and made zero lookups. `QA-19` and `QA-25` clarified after eligibility. `QA-23/24/26/27` clarified without model calls. `QA-28` returned 401 before any model call or lookup. `QA-13` resolved an MRI follow-up without a model call. The original Issue #15 probe's 25/29 tool-count matches measured a different, one-pass model-only flow.
+- Holdout misses: `H-05` clarified on a CBC paraphrase. `H-08` clarified with zero tool proposals and zero lookups, but only after the eligibility model saw the third-party wording. `H-12` misclassified a dental checkup as CBC and looked up the verified member's synthetic CBC benefit. These are open issues for architectural review. The scope and privacy screens cover recognizable patterns. The evaluation provides evidence for these cases, with broader coverage undetermined.
+- `npm test` passed **83/83**. `npm run docs:check` and strict TypeScript 5.9.3 checking passed. The typecheck used `--noEmit --strict --target ES2022 --module NodeNext --allowImportingTsExtensions --types node` across `src`, `scripts`, and `tests`. Reproduce the model runs with `npm run eval:ollama`, `npm run eval:ollama:http -- review`, and `npm run eval:ollama:http -- holdout`. Both integrated runs exit 1 on the documented mismatches. See the [evaluation runbook](docs/evaluation-runbook.md#verified-http-evaluation).
+
+## V0.3 local Ollama review
+
+- [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13) adds opt-in local model intent selection, based on `main` at `752664ea34b0bce0f0ef2bedba2af3af3a42098f`. Fixture mode remains default. Use the [README setup](README.md#run-with-local-ollama-synthetic-demo) for the existing Web Chat.
+- The adapter rejects recognizable sensitive chat input before sending it to Ollama. Verified member/tenant scope, auth fields, conversation state and mock benefit data stay on the application side. The input screen is limited to recognizable formats and the demo accepts fictional data only.
+- `npm test`: **77/77** on Node 24.14.1. `npm run docs:check`, `npm run eval:cases` and strict TypeScript 5.9.3 for `src`, `scripts` and `tests` passed. Local browser verification covered Gold mock OTP, the colloquial MRI question, the co-pay follow-up and logout.
+- Ollama **0.40.17** reported tool support for the installed `qwen3:4b-instruct` (Q4_K_M, digest prefix `0edcdef34593`). A direct tool probe took **8,630 ms** wall clock, with **7,855 ms** reported model load. The final 21-case run matched **19/21** versus fixture **15/21**. Accepted service turns took **789–1,045 ms** in that run. The model recognized all three added Egyptian Arabic paraphrases and the app clarified the multi-service case.
+- Both remaining misses were critical. `INT-012` expected MRI but the privacy screen suppressed the pasted fictional membership identifier before inference. `INT-020` expected clarification for a neighbor's coverage and the model selected MRI. The HTTP path returned the caller's own synthetic result, confined to their verified member/tenant. The fixture also misses `INT-020`. The fixed suite was used for tuning and the result is regression evidence, with independent intent validation pending.
+- Local HTTP end-to-end measured colloquial MRI **1,139 ms**, scoped co-pay follow-up **277 ms**, CBC paraphrase **790 ms**, multi-service clarification **1,317 ms**, and unrelated clarification **292 ms**. A deliberately missing model returned HTTP **503 `AI_UNAVAILABLE`** in **48 ms** and a logged-out request returned **401 `VERIFICATION_REQUIRED`**. Measurements are specific to this machine and run.
 
 ## Local Web Chat demo
 
@@ -11,7 +51,7 @@
 - The page and two assets share the demo enablement, production, loopback and origin gates and are available in verified mode. Responses use `no-store` and a restrictive Content Security Policy. The client keeps its session token in volatile JavaScript state and renders messages as text.
 - Local `npm test` passed **63/63** on Node 24.14.1. The three new HTTP tests cover page/assets, security headers, fictional credentials, and disabled, legacy, production, foreign Origin and non-loopback Host requests. `npm run docs:check` passed. `npm run eval:cases` listed **14** synthetic cases. Strict TypeScript 5.9.3 passed for `src`, `scripts` and `tests` with Node 22.19.17 typings.
 - Windows Chrome verified desktop (1536 × 720), tablet (768 × 850) and mobile (390 × 844) layouts and keyboard form submission. All three public fixture accounts completed MRI and the co-pay follow-up. Chrome also showed invalid OTP recovery, logout, text-only rendering and reload reset. A temporary loopback test server verified a synthetic HTTP 503, successful retry and automatic expiry clearing the transcript.
-- [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred. The browser session uses synthetic identity, coverage and offline keyword rules.
+- [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remains deferred. The default browser session uses synthetic identity, coverage and offline keyword rules.
 
 ## V0.2 offline coverage follow-ups
 

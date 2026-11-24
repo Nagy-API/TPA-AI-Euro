@@ -9,13 +9,15 @@ if (process.env.NODE_ENV === "production" || process.env.ENABLE_DEMO_AUTH !== "t
 }
 const authMode = process.env.DEMO_AUTH_MODE ?? "verified";
 if (authMode !== "verified" && authMode !== "legacy") throw new Error("UNSUPPORTED_DEMO_AUTH_MODE");
-if (authMode === "verified" && (process.env.DEMO_INTENT_MODE ?? "fixture") !== "fixture") {
+const intentMode = process.env.DEMO_INTENT_MODE ?? "fixture";
+if (authMode === "verified" && intentMode !== "fixture" && intentMode !== "ollama") {
   throw new Error("VERIFIED_DEMO_REQUIRES_OFFLINE_SELECTOR");
 }
+if (intentMode === "ollama" && authMode !== "verified") throw new Error("OLLAMA_REQUIRES_VERIFIED_DEMO");
 const memberAuth = authMode === "verified" ? new DemoMemberAuth() : undefined;
 const selector = createDemoIntentSelector(process.env);
 const assistant = new CoverageAssistant(new MockTpaBackend(memberAuth), selector, memberAuth);
-const app = createDemoServer(assistant, true, memberAuth);
+const app = createDemoServer(assistant, true, memberAuth, intentMode === "ollama");
 const port = Number(process.env.PORT ?? "3000");
 app.listen(port, "127.0.0.1", () => {
   const address = app.address();

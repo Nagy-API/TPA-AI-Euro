@@ -77,7 +77,8 @@ test("explicit legacy mode keeps fixed-token coverage without enabling challenge
 test("entrypoint refuses production and non-offline verified mode before startup", () => {
   for (const [settings, expected] of [
     [{ NODE_ENV: "production" }, /Refusing to start/],
-    [{ DEMO_INTENT_MODE: "claude" }, /VERIFIED_DEMO_REQUIRES_OFFLINE_SELECTOR/]
+    [{ DEMO_INTENT_MODE: "claude" }, /VERIFIED_DEMO_REQUIRES_OFFLINE_SELECTOR/],
+    [{ DEMO_INTENT_MODE: "ollama", DEMO_AUTH_MODE: "legacy" }, /OLLAMA_REQUIRES_VERIFIED_DEMO/]
   ] as const) {
     const result = spawnSync(process.execPath, NODE_ARGS, {
       env: { ...demoEnv(), ...settings },
@@ -88,4 +89,14 @@ test("entrypoint refuses production and non-offline verified mode before startup
     assert.equal(result.status, 1);
     assert.match(result.stderr, expected);
   }
+});
+
+test("explicit Ollama mode serves the existing verified web demo without calling the model at startup", { timeout: 10_000 }, async (t) => {
+  const baseUrl = await startEntrypoint(t, {
+    ...demoEnv(), DEMO_INTENT_MODE: "ollama", OLLAMA_MODEL: "qwen3:4b-instruct"
+  });
+  const demo = await fetch(baseUrl + "/demo");
+  assert.equal(demo.status, 200);
+  assert.match(await demo.text(), /Synthetic Data \/ Local Ollama/);
+  assert.equal((await post(baseUrl, "/v1/chat", { message: "Is MRI covered?" })).status, 401);
 });
