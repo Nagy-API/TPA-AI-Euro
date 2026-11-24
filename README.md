@@ -1,6 +1,6 @@
 # TPA AI Service — In-House AI Layer
 
-> **Status:** V0.2 synthetic demo and Web Chat are on `main`. This feature branch adds opt-in local Ollama inference for synthetic review.
+> **Status:** V0.3 local Ollama proof of concept and synthetic Web Chat are merged into `main`. Fixture mode remains the default; real TPA integration and production readiness are NOT complete.
 >
 > **Last updated:** 2026-11-24. **GitHub repository:** [`Nagy-API/TPA-AI-Euro`](https://github.com/Nagy-API/TPA-AI-Euro).
 >
@@ -202,3 +202,9 @@ Preview the labeled synthetic cases with `npm run eval:cases` or run `npm run ev
 - Nagy approved and [PR #10](https://github.com/Nagy-API/TPA-AI-Euro/pull/10) was squash-merged to `main` at `a5edbec7d908f3bfd9e3e88a9415e2241e076649`. The chat remembers one synthetic service for a short follow-up and always refetches mock coverage. This remains a **deterministic, offline demo, NOT a deployed LLM application**.
 - After this bounded milestone, **do not create more speculative modules just to keep agents busy**. The project is paused for dependencies; see [Project Status](PROJECT_STATUS.md) and the [deferred contracts issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9).
 - Continue only when the Backend/TPA team supplies accepted auth/coverage contracts and sandbox, Nagy approves an LLM provider + privacy/budget, or a new confirmed product requirement has been prioritized.
+
+## V0.3 merged checkpoint (2026-11-24)
+
+Nagy approved [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16), merged into `main` at `b44596071798aeee1fac6e1162022754e8185c81`. The local model `qwen3:4b-instruct` selects a validated read-only coverage tool using only synthetic question text; trusted session, service-grounding checks and mock policy engine remain deterministic. The repository remains **PUBLIC** and is not permitted to contain real member data. The original PR-head and merged-main hosted Node tests/docs checks both passed.
+
+**Measured limitation:** on the first frozen 24-case grounding holdout, 23/24 matched the expected HTTP behavior with 11/12 required coverage lookups (91.7% recall) and zero wrong/unauthorized lookup *observed in that finite dataset*. One valid CBC paraphrase was safely clarified. These numbers are not a production benchmark. No real TPA API, real identity or cloud model is connected. Run `DEMO_INTENT_MODE=ollama` only for fictional data on localhost. See [Project Status](PROJECT_STATUS.md) for measured evidence and remaining dependencies.

@@ -102,3 +102,10 @@ The offline integration candidate was approved and merged into `main` via PR #1.
 - [ ] **Production separate gate:** real persistence, authentication, security/compliance, monitoring and approvals.
 
 **Do not create follow-up artificial work while the project is paused.** This roadmap is not a % complete indicator for the full TPA system. The current deliverable is the finished offline, fictional V0.2 prototype.
+
+## V0.3 — Local model PoC merged (2026-11-24)
+
+- [x] Approved Ollama `qwen3:4b-instruct` read-only intent selector integrated with verified synthetic Web Chat on `main` via PR #16. Default offline fixture option retained.
+- [x] Model selection validated by runtime checks and application-side service-grounding guard; local synthetic evaluation showed 11/12 required lookups on first 24-case frozen grounding holdout (known recall miss).
+- [ ] Nagy personally trials the integrated local demo and decides whether quality justifies more model evaluation; no speculative new feature requests until evidence.
+- [ ] Core/backend production API identity/coverage contract and approved synthetic sandbox (Issue #9), or provider/budget/privacy signoff, are separate dependency gates.

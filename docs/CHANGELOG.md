@@ -95,3 +95,9 @@
 
 - Added a fail-closed service evidence check before policy lookups and topic storage. The check applies to model proposals for all three catalog services and handles common Egyptian Arabic paraphrases, conflicting evidence, and recognized third-party requests.
 - The exposed dental-to-CBC case now clarifies despite the model's invalid service proposal. The fresh verified HTTP holdout recorded 11/12 correct required lookups and zero wrong-service or unauthorized lookups. See [Project Status](../PROJECT_STATUS.md#pr-16-service-grounding-review).
+
+## 2026-11-24 — Ollama V0.3 approved and merged into main
+
+- Nagy approved the bounded, synthetic, local-only model integration after architecture review. [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16) squash-merged into `main`, SHA `b44596071798aeee1fac6e1162022754e8185c81`. No deployment, branch deletion or paid API calls.
+- GitHub-hosted Node tests and docs validator passed on the resulting merge commit. Known limitation: first fresh 24-case grounding holdout yielded 11/12 required coverage lookups and 0 wrong/unauthorized lookups in those cases; the system clarified a valid CBC paraphrase.
+- Updated root status/hand-off docs for merged local Ollama experiment and local-only browser trial. Real identity, policy APIs, WhatsApp, production hardening and broader model accuracy remain out of scope.

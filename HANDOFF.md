@@ -1,9 +1,9 @@
 # Current handoff — TPA AI Euro (2026-11-24)
 
-**Current checkpoint.** [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13) is on `codex/ollama-coverage-intent` for architectural review. The canonical checkout is the root `TPA-AI` folder. Start future tasks from verified live GitHub `main`. Preserve the historical agent folders and archive.
+**Current checkpoint:** Nagy approved [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16), and the V0.3 local Ollama PoC is now **merged into `main`** at `b44596071798aeee1fac6e1162022754e8185c81`. Start future work from verified live `main`, not the historical feature branch. The canonical checkout is the root `TPA-AI` folder. Preserve the historical agent folders and archive pending separate cleanup approval.
 
 - Reproduce with [local Ollama setup](README.md#run-with-local-ollama-synthetic-demo) and the [evaluation runbook](docs/evaluation-runbook.md#local-ollama-evaluation). The installed `qwen3:4b-instruct` performed tool calling and the verified browser/HTTP flow passed. Fixture mode stays default.
-- Check the [PR #16 service-grounding evidence](PROJECT_STATUS.md#pr-16-service-grounding-review). The exposed H-12 still produced a CBC proposal but now clarifies with zero lookups. The fresh holdout observed zero wrong-service or unauthorized lookups and 11/12 correct required lookups. Review the remaining recall and third-party wording limits. Keep the PR in Draft.
+- Check the [PR #16 service-grounding evidence](PROJECT_STATUS.md#pr-16-service-grounding-review). The exposed H-12 still produced a CBC proposal but now clarifies with zero lookups. The fresh holdout observed zero wrong-service or unauthorized lookups and 11/12 correct required lookups. Review the remaining recall and third-party wording limits. The PR was approved for **local synthetic PoC only**, merged, and is no longer Draft.
 
 - Repo: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**.
 - Earlier offline V0.1 member verification and coverage demo merged as PR #1 (`aec8b58f2ef9cea806b10157a34d067a5370b3b6`).
@@ -26,3 +26,10 @@
 1. `README.md`, `AGENTS.md`, `PROJECT_STATUS.md`, `ROADMAP.md`.
 2. `docs/architecture.md`, `docs/api-contracts.md`, `src/contracts.ts`, `src/demo-auth/**` and the current coverage + conversation code.
 3. GitHub: live `main` SHA, latest CI, pending Issues/PRs. Record actual evidence, not assumptions. Scope tasks only after the dependency is real.
+
+## V0.3 completed — where to resume
+
+- Live evidence at merge: PR #16 merged, GitHub `test` and `validate` both passed on `main` merge commit `b44596071798aeee1fac6e1162022754e8185c81`. Later documentation commits need their own checks.
+- **Local tryout:** run `ollama list` and verify `qwen3:4b-instruct`, then from canonical root `TPA-AI` start Node demo with `ENABLE_DEMO_AUTH=true`, `DEMO_AUTH_MODE=verified`, `DEMO_INTENT_MODE=ollama`, `OLLAMA_MODEL=qwen3:4b-instruct`; open `http://127.0.0.1:3000/demo`. The browser is a diagnostic UI. Fixture mode is still the default if Ollama mode isn't explicitly selected.
+- **Known limitation:** one valid CBC paraphrase failed safe with clarification. Fresh 24-case holdout yielded 11/12 correct required lookups and zero wrong-service/unauthorized lookups on measured cases, not proof of clinical/production accuracy. Do not chase arbitrary regex rules to fit known test sets.
+- **Other dependencies:** Core Backend/TPA contracts [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) remain deferred. No real member records, real coverage or live Meta/WhatsApp. No paid APIs used. Workspace cleanup [Issue #14](https://github.com/Nagy-API/TPA-AI-Euro/issues/14) remains separate.

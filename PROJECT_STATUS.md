@@ -4,7 +4,7 @@
 
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
-**Current milestone:** V0.3 local Ollama is available on `codex/ollama-coverage-intent` for architectural review. V0.2 and the local Web Chat are on `main`.
+**Current milestone:** V0.3 local Ollama intent-selection **MERGED into `main`** (synthetic local PoC); backend contract and real service integration remain deferred.
 
 ## PR 16 service-grounding review
 
@@ -114,3 +114,15 @@ Nagy requested **no more artificial backlog or endless free-only features** afte
 5. **FUTURE PRODUCTION GATE** — Real identity/OTP provider, secret management, persistence, tenancy, security/privacy/compliance, monitoring, redacted audit, load/reliability tests, and human/domain sign-off. Not a V0.2 commitment.
 
 **No credible end-to-end schedule or % complete for the full TPA or production AI layer can be derived without team size, accepted requirements and integration access.** We have completed the narrow offline prototype scope, NOT the full TPA/AI delivery. Repository is **PUBLIC** and must hold only synthetic data and safe docs; making it private later cannot undo historical public disclosure.
+
+## V0.3 final release decision — merged 2026-11-24
+
+- [x] Nagy authorized merge of [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16) into `main`; squash commit `b44596071798aeee1fac6e1162022754e8185c81`.
+- [x] GitHub hosted `test` and `validate` both passed on merged-main commit. Development agent reported `npm test` 87/87 and strict TS/docs checks locally; these are separate evidence sources.
+- [x] Ollama 0.40.17 / `qwen3:4b-instruct` local evaluation reported 23/24 total matches, 11/12 required coverage lookups (91.7% recall) and zero wrong or unauthorized lookups **in the 24 measured holdout cases**. Correct CBC paraphrase G-07 was clarified, indicating a recall limitation. No arbitrary generalization to broader production questions.
+- [x] Verified demo remains loopback-only and uses synthetic OTP, fake members and policies, no paid provider. UI defaults to fixture mode; `DEMO_INTENT_MODE=ollama` is opt-in. The Ollama tool only chooses from MRI/CBC/XRAY; the session and mock coverage engine determine authorization and financial figures.
+- [ ] User-run browser trial from canonical local `TPA-AI` folder with merged main and Ollama enabled, to assess actual product value beyond narrow fixture evaluation.
+- [ ] External blockers: real TPA service contract/identity [Issue #9](https://github.com/Nagy-API/TPA-AI-Euro/issues/9) deferred, real medical data prohibited, no WhatsApp production integration or security certification.
+- [ ] Historical local clones/backup cleanup [Issue #14](https://github.com/Nagy-API/TPA-AI-Euro/issues/14) is separate and requires exact-path deletion approval. No folders deleted by this merge.
+
+**Do not interpret this local AI PoC approval as approval for production deployment, cloud provider costs, real identity/medical information, or broad TPA coverage.**
