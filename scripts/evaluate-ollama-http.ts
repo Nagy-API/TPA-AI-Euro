@@ -19,8 +19,8 @@ type Case = {
 
 const dataset = process.argv[2];
 const model = process.env.OLLAMA_MODEL;
-if ((dataset !== "review" && dataset !== "holdout") || process.env.DEMO_INTENT_MODE !== "ollama" || !model) {
-  console.error("Set DEMO_INTENT_MODE=ollama and OLLAMA_MODEL, then run npm run eval:ollama:http -- review|holdout");
+if (!dataset || !["review", "holdout", "grounding-holdout"].includes(dataset) || process.env.DEMO_INTENT_MODE !== "ollama" || !model) {
+  console.error("Set DEMO_INTENT_MODE=ollama and OLLAMA_MODEL, then run npm run eval:ollama:http -- review|holdout|grounding-holdout");
   process.exit(2);
 }
 const cases = JSON.parse(readFileSync(new URL(`../evals/ollama-${dataset}-cases.json`, import.meta.url), "utf8")) as Case[];
@@ -100,7 +100,12 @@ async function verify() {
 let passed = 0;
 let correctCoverage = 0;
 let coverageCases = 0;
-let unexpectedLookups = 0;
+let deniedCases = 0;
+let deniedWithLookups = 0;
+let wrongServiceLookups = 0;
+let unauthorizedLookups = 0;
+let clarificationFalseNegatives = 0;
+const provider = { modelChecks: 0, eligibility: 0, toolRequests: 0, proposals: 0 };
 const timings: number[] = [];
 try {
   for (const item of cases) {
@@ -126,18 +131,27 @@ try {
     const matches = reply.status === expectedStatus && reply.body.code === expectedCode && lookupMatches &&
       (!item.noModel || trace.modelChecks === 0 && trace.eligibility === 0 && trace.toolRequests === 0);
     if (matches) passed++;
+    provider.modelChecks += trace.modelChecks;
+    provider.eligibility += trace.eligibility;
+    provider.toolRequests += trace.toolRequests;
+    provider.proposals += trace.proposals.length;
     if (expectedService) {
       coverageCases++;
       if (matches) correctCoverage++;
-    } else if (trace.lookups.length) {
-      unexpectedLookups++;
+      if (reply.body.code === "CLARIFICATION_NEEDED" && trace.lookups.length === 0) clarificationFalseNegatives++;
+    } else {
+      deniedCases++;
+      if (trace.lookups.length) deniedWithLookups++;
     }
+    wrongServiceLookups += trace.lookups.filter((code) => code !== expectedService).length;
+    if (item.expected === "VERIFICATION_REQUIRED") unauthorizedLookups += trace.lookups.length;
     console.log(JSON.stringify({ id: item.id, expected: item.expected, passed: matches,
       status: reply.status, code: reply.body.code, ...trace, elapsedMs }));
   }
   timings.sort((a, b) => a - b);
   const rank = (percentile: number) => timings[Math.ceil(timings.length * percentile) - 1];
-  console.log(JSON.stringify({ dataset, total: cases.length, passed, coverageCases, correctCoverage, unexpectedLookups,
+  console.log(JSON.stringify({ dataset, total: cases.length, passed, coverageCases, correctCoverage, deniedCases,
+    deniedWithLookups, wrongServiceLookups, unauthorizedLookups, clarificationFalseNegatives, provider,
     minMs: timings[0], p50Ms: rank(0.5), p95Ms: rank(0.95), maxMs: timings.at(-1) }));
   if (passed !== cases.length) process.exitCode = 1;
 } finally {

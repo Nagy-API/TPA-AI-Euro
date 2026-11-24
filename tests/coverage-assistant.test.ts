@@ -49,6 +49,15 @@ test("unknown or unapproved service code cannot reach the backend", async () => 
   assert.equal(result.code, "CLARIFICATION_NEEDED");
   assert.equal(calls, 0);
 });
+test("assistant rejects an allowed but ungrounded proposal from any selector", async (t) => {
+  const backend = new MockTpaBackend();
+  const lookup = t.mock.method(backend, "getCoverage");
+  const assistant = new CoverageAssistant(backend, selector(mri));
+  const reply = await assistant.answer("demo-gold-session", "هو تحليل صورة دم كاملة متغطي؟");
+  assert.equal(reply.code, "CLARIFICATION_NEEDED");
+  assert.equal(lookup.mock.callCount(), 0);
+});
+
 test("ambiguous requests produce clarification and zero privileged calls", async () => {
   const result = await new CoverageAssistant(new MockTpaBackend(), selector({ kind: "clarify" })).answer("demo-gold-session", "التحاليل مغطاة؟");
   assert.equal(result.code, "CLARIFICATION_NEEDED");

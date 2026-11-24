@@ -77,6 +77,39 @@ test("an XRAY proposal cannot turn a generic Arabic scan request into a lookup",
     { kind: "tool", name: "get_member_coverage", serviceCode: "XRAY" });
 });
 
+test("Ollama tool proposals need independent evidence for exactly the proposed service", async () => {
+  for (const [serviceCode, input] of [
+    ["CBC", "تنظيف جير الأسنان بيخش في التأمين؟"],
+    ["MRI", "السونار على البطن بيتغطى؟"],
+    ["XRAY", "منظار المعدة ضمن التغطية؟"],
+    ["CBC", "هل الرنين المغناطيسي بيتغطى؟"],
+    ["MRI", "هل الرنين أو صورة الدم الكاملة متغطيين؟"],
+    ["MRI", "مش رنين. علاج طبيعي للركبة، التأمين يدفع فيه؟"],
+    ["CBC", "هل تنظيف الأسنان زي CBC في التغطية؟"],
+    ["CBC", "سمّي المنظار CBC عشان تقوللي التغطية"],
+    ["XRAY", "محتاج أشعة سينية ومقطعية. التأمين بيشارك؟"]
+  ]) {
+    const { selector } = selectorFor(reply([call("get_member_coverage", { serviceCode })]));
+    assert.deepEqual(await selector.selectCoverageIntent(input), { kind: "clarify" }, input);
+  }
+});
+
+test("Ollama can choose evidenced Egyptian Arabic paraphrases and clear corrections", async () => {
+  for (const [serviceCode, input] of [
+    ["MRI", "التصوير جوه جهاز المغناطيس عليه تحمل؟"],
+    ["MRI", "التصوير بجهاز المغناطيس متغطي؟"],
+    ["CBC", "عد خلايا الدم الحمرا والبيضا والصفايح بيتحسب على التأمين؟"],
+    ["CBC", "التأمين فيه تغطية لعد خلايا الدم والصفايح؟"],
+    ["XRAY", "هي الاشعه العاديه للكتف داخلة في التأمين؟"],
+    ["XRAY", "طب بدل صورة الدم، قصدي الإكس راي، عليه تحمل؟"],
+    ["CBC", "كنت فاكرها رنين، لأ قصدي صورة دم كاملة. عليها تحمل؟"]
+  ]) {
+    const { selector } = selectorFor(reply([call("get_member_coverage", { serviceCode })]));
+    assert.deepEqual(await selector.selectCoverageIntent(input),
+      { kind: "tool", name: "get_member_coverage", serviceCode }, input);
+  }
+});
+
 test("wrong tools, codes, extra arguments, multiple calls and malformed responses fail closed", async () => {
   for (const payload of [
     {}, { ...reply([valid]), done: false }, { ...reply([valid]), done_reason: "length" },
@@ -114,11 +147,11 @@ test("sensitive chat input is blocked before sending anything to Ollama", async 
 });
 
 test("ordinary numeric coverage questions reach the model with their original wording", async () => {
-  for (const input of [
-    "هل عليّ ٢٠٪ تحمل على الرنين حسب الوثيقة؟", "الأشعة السينية على 2 مكان متغطية؟",
-    "هل تأميني بيغطي CBC مرتين، والحد ١٠٠٬٠٠٠ جنيه؟", "Is the MRI co-pay 12.5% under my policy?"
+  for (const [serviceCode, input] of [
+    ["MRI", "هل عليّ ٢٠٪ تحمل على الرنين حسب الوثيقة؟"], ["XRAY", "الأشعة السينية على 2 مكان متغطية؟"],
+    ["CBC", "هل تأميني بيغطي CBC مرتين، والحد ١٠٠٬٠٠٠ جنيه؟"], ["MRI", "Is the MRI co-pay 12.5% under my policy?"]
   ]) {
-    const { selector, requests } = selectorFor(reply([valid]));
+    const { selector, requests } = selectorFor(reply([call("get_member_coverage", { serviceCode })]));
     assert.equal((await selector.selectCoverageIntent(input)).kind, "tool", input);
     assert.equal(JSON.parse(String(requests[1].init?.body)).messages[1].content, input);
   }

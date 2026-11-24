@@ -57,14 +57,35 @@ async function start(t: TestContext, deadline: number) {
   const verified = auth.verify(challengeId, "135790");
   assert.ok(verified);
   const token = verified.sessionToken;
-  function chat(signal?: AbortSignal) {
+  function chat(signal?: AbortSignal, message = "هو الرنين المغناطيسي متغطي؟") {
     return fetch(base + "/v1/chat", {
       method: "POST", headers: { "content-type": "application/json", "x-demo-session": token },
-      body: JSON.stringify({ message: "هو الرنين المغناطيسي متغطي؟" }), signal
+      body: JSON.stringify({ message }), signal
     });
   }
   return { base, state, chat, started, cancelled, expireSoon: () => { now += 10 * 60_000 - 75; } };
 }
+
+test("verified HTTP denies ungrounded allowed tool proposals and clears the previously grounded topic", async (t) => {
+  const demo = await start(t, 2_000);
+  for (const message of [
+    "هل جلسة العلاج الطبيعي متغطية؟",
+    "التصوير المقطعي للصدر تبع التأمين؟",
+    "محتاج أعرف هل عملية خلع ضرس عليها تحمل",
+    "محتاج صورة دم كاملة. التأمين بيغطيها؟",
+    "أنا عايز الرنين وصورة دم كاملة، التأمين يغطي أنهي واحد؟"
+  ]) {
+    const established = await demo.chat();
+    assert.equal((await established.json()).code, "COVERAGE_RESULT");
+    const before = demo.state.lookups;
+    const denied = await demo.chat(undefined, message);
+    assert.equal(denied.status, 200);
+    assert.equal((await denied.json()).code, "CLARIFICATION_NEEDED", message);
+    const followUp = await demo.chat(undefined, "طب نسبة التحمل كام؟");
+    assert.equal((await followUp.json()).code, "CLARIFICATION_NEEDED");
+    assert.equal(demo.state.lookups, before, message);
+  }
+});
 
 test("server deadline aborts a slow upstream, surfaces a timeout and permits an explicit retry", { timeout: 2_000 }, async (t) => {
   const demo = await start(t, 120);

@@ -1,6 +1,6 @@
 import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode, SERVICE_CODES } from "./contracts.ts";
-import type { CoverageIntentSelector, ToolSelection } from "./contracts.ts";
-import { hasPrivateCoverageInput, hasUnspecifiedArabicImaging, isThirdPartyCoverage } from "./coverage-input.ts";
+import type { CoverageIntentSelector, ServiceCode, ToolSelection } from "./contracts.ts";
+import { hasPrivateCoverageInput, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
 
 const OLLAMA_URL = "http://127.0.0.1:11434";
 const TOOL = "get_member_coverage";
@@ -8,7 +8,7 @@ const MAX_RESPONSE_BYTES = 64 * 1024;
 const MODEL_NAME = /^[a-z0-9][a-z0-9._-]*:[a-z0-9][a-z0-9._-]*$/i;
 const CLOUD_NAME = /(?:^|[:._-])cloud(?:$|[:._-])/i;
 
-const CATALOG = "MRI = magnetic resonance imaging (تصوير بالرنين المغناطيسي); CBC = complete blood count examining red cells, white cells and platelets (صورة دم كاملة); XRAY = plain X-ray/radiograph (أشعة سينية أو أشعة عادية).";
+const CATALOG = "MRI = magnetic resonance imaging (تصوير بالرنين المغناطيسي); CBC = complete blood count examining red cells, white cells and platelets (صورة دم كاملة أو عد خلايا الدم والصفائح); XRAY = plain X-ray/radiograph (أشعة سينية أو أشعة عادية).";
 const CORRECTED_SERVICE = "If the user explicitly rules out or corrects a service, count only the service they now want checked.";
 const ELIGIBILITY_PROMPT = [
   "Classify Egyptian Arabic and English. First check whose insurance the question refers to.",
@@ -92,7 +92,7 @@ export class OllamaCoverageIntentSelector implements CoverageIntentSelector {
 
     const payload = await this.chat(question, SYSTEM_PROMPT, signal, { tools: [COVERAGE_TOOL], maxTokens: 128 });
     const selection = parseSelection(payload);
-    return selection.kind === "tool" && selection.serviceCode === "XRAY" && hasUnspecifiedArabicImaging(question)
+    return selection.kind === "tool" && !isGroundedCoverageService(question, selection.serviceCode)
       ? { kind: "clarify" }
       : selection;
   }
@@ -171,7 +171,7 @@ function isEligible(content: string): boolean {
   return value.eligible;
 }
 
-function parseSelection(payload: unknown): ToolSelection {
+function parseSelection(payload: unknown): { kind: "clarify" } | { kind: "tool"; name: typeof TOOL; serviceCode: ServiceCode } {
   const calls = assistantMessage(payload).tool_calls;
   if (calls === undefined || (Array.isArray(calls) && calls.length === 0)) return { kind: "clarify" };
   if (!Array.isArray(calls) || calls.length > SERVICE_CODES.length) throw new Error("OLLAMA_INVALID_RESPONSE");

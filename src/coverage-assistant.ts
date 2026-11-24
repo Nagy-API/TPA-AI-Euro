@@ -2,7 +2,7 @@ import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { isThirdPartyCoverage } from "./coverage-input.ts";
+import { isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
@@ -55,7 +55,8 @@ export class CoverageAssistant {
     }
     if (expiry?.aborted) return VERIFICATION_REQUIRED;
     if (requestSignal?.aborted) return CHAT_TIMEOUT;
-    const explicitService = selection.kind === "tool" && selection.name === "get_member_coverage" && isServiceCode(selection.serviceCode)
+    const explicitService = selection.kind === "tool" && selection.name === "get_member_coverage" &&
+      isServiceCode(selection.serviceCode) && isGroundedCoverageService(message, selection.serviceCode)
       ? selection.serviceCode
       : undefined;
     const serviceCode = this.memberAuth
