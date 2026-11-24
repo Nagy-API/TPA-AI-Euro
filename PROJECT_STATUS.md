@@ -20,6 +20,21 @@ Remaining lookup misses were the implicit policy percentage (QA-07), a magnetic 
 
 Reproduce with `OLLAMA_MODEL=qwen3:4b-instruct` and `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --disclosed`. The runner exits 1 when any coded check misses. See the [disclosed inputs and expectations](evals/v04-disclosed-conversations.json).
 
+### Typed turn resolution after QA2
+
+The second independent run measured 30/40 required lookups and 15/30 complete conversations. See the [per-failure trace and diagnosis](docs/v04-qa2-diagnostics.md). The resolver now makes explicit coverage, contextual coverage, clarification and static replies distinct actions. It rechecks session dialogue after semantic inference and before any lookup. Pending focus and active service use the same time-bounded session slot.
+
+Verified HTTP replay on Ollama 0.40.17 with `qwen3:4b-instruct` (digest prefix `0edcdef34593`):
+
+| Suite | Required lookups | Complete conversations | Matched turns | Wrong / unexpected / unauthorized lookups | p50 / p95 |
+|---|---:|---:|---:|---:|---:|
+| QA2, now disclosed | 38/40 | 20/30 | 57/69 | 0 / 0 / 0 | 561 / 1,142 ms |
+| Original independent suite, disclosed | 35/38 | 20/30 | 62/74 | 0 / 0 / 0 | 566 / 1,297 ms |
+
+On QA2 the first-pass model agreed with the expected route and service on 24/40 required turns, both before and after the revision. For contextual turns, the metric checks the raw FOLLOW_UP intent. For service-bearing turns it checks raw COVERAGE_LOOKUP and the target code. The metric measures route/service agreement without application state or benefit focus. The final application matched 38/40 lookups with 60 availability probes, 69 inference requests and two false-negative clarifications. Remaining cases include a misidentified reference to MRI and a personal copay follow-up classified as FAQ with no corroboration. The runner deliberately exits 1 on the disclosed suites because reply and state expectations still fail.
+
+Run `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --qa2` with the same local model setting to reproduce. The installed model's proposal errors and the reply gaps warrant comparing a larger local model if approved. Fresh independent QA is required for acceptance. Neither replay establishes generalization or complete-scenario usefulness at the 90% threshold.
+
 ### V0.3 reproduction
 
 The indirect knee-imaging question passed model eligibility and Ollama proposed MRI. The application rejected the proposal because the existing lexical guard expected the magnet cue next to the imaging phrase. The indirect copay question missed the fixture-style follow-up matcher, had no saved MRI topic and failed the model's single-turn eligibility screen. Dental and capability questions also failed eligibility by design. The orchestrator routed all those paths to the same generic clarification.

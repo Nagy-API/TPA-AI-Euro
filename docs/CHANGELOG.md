@@ -113,3 +113,9 @@
 - Resolve positively identified catalog requests without requiring a second model vote. Retain corroboration for descriptive services and non-explicit follow-ups, and keep competing, unsupported and out-of-scope requests away from policy lookups.
 - Keep a scoped, time-bounded pending benefit when asking which procedure the user meant. A later choice can complete that request. An active topic and pending clarification cannot coexist.
 - Added exposed multi-turn HTTP regressions and tests for personalized versus general benefits, clarification, and non-lookup replies. The replay recovered 35/38 required lookups with zero wrong, unexpected or unauthorized lookups. Fresh independent QA remains pending.
+
+## 2026-11-24 — Typed resolution after the second V0.4 acceptance review
+
+- Split semantic proposals and conditional grounding from deterministic turn resolution. Store one expiring active service or pending clarification per verified session.
+- Added tests for service correction, pending expiry, general price questions and recovery from a mistaken first-pass route.
+- Preserved the second independent suite as an exposed HTTP replay. See the [baseline diagnosis](v04-qa2-diagnostics.md) and [candidate evidence](../PROJECT_STATUS.md#typed-turn-resolution-after-qa2).

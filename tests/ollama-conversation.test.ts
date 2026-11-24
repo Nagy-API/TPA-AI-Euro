@@ -18,6 +18,18 @@ test("a named service and a personal benefit outrank a general FAQ proposal", as
   assert.deepEqual(lookups, ["MRI"]);
 });
 
+test("a grounded balance follow-up can recover a mistaken capabilities proposal", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  const token = verify("M-DEMO-002", "246801");
+  answers.push({ ...mri, subject: "CBC" });
+  await assistant.answer(token, "هل CBC مغطى؟");
+  answers.push({ intent: "CAPABILITIES", subject: "SERVICES", focus: "OVERVIEW" },
+    { match: "LIMIT", quote: "الباقي من سقف التغطية" });
+  const reply = await assistant.answer(token, "فاضل قد إيه من سقف التغطية؟");
+  assert.match(reply.answer, /400 جنيه/);
+  assert.deepEqual(lookups, ["CBC", "CBC"]);
+});
+
 test("a service supplied after clarification inherits the pending benefit", async () => {
   const { assistant, verify, answers, lookups } = setup();
   const token = verify();
@@ -29,11 +41,41 @@ test("a service supplied after clarification inherits the pending benefit", asyn
   assert.deepEqual(lookups, ["CBC"]);
 });
 
+test("correcting the active service replaces it before subsequent benefit questions", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  const token = verify("M-DEMO-003", "357912");
+  answers.push({ ...mri, subject: "CBC" }, { intent: "CLARIFY", subject: "NONE", focus: "OVERVIEW" }, copay);
+  assert.match((await assistant.answer(token, "صورة الدم الكاملة مغطاة؟")).answer, /10,000/);
+  assert.match((await assistant.answer(token, "قصدي الرنين بدل الفحص")).answer, /12,000/);
+  assert.match((await assistant.answer(token, "ونسبة التحمل؟")).answer, /الرنين.*0%/);
+  assert.deepEqual(lookups, ["CBC", "MRI", "MRI"]);
+});
+
+test("a repeated request to identify the service does not extend the clarification TTL", async () => {
+  const { assistant, verify, answers, lookups, advance } = setup();
+  const token = verify();
+  answers.push(copay, copay, mri);
+  assert.equal((await assistant.answer(token, "هشيل قد إيه من جيبي؟")).code, "CLARIFICATION_NEEDED");
+  advance(119_999);
+  assert.equal((await assistant.answer(token, "طب ونسبة التحمل؟")).code, "CLARIFICATION_NEEDED");
+  advance(2);
+  assert.equal((await assistant.answer(token, "الرنين")).code, "CLARIFICATION_NEEDED");
+  assert.deepEqual(lookups, []);
+});
+
 test("mentions of a supported service inside unrelated requests do not open a lookup", async () => {
   const { assistant, verify, answers, lookups } = setup();
   answers.push({ intent: "OUT_OF_SCOPE", subject: "NONE", focus: "OVERVIEW" });
   const reply = await assistant.answer(verify(), "اكتب عنوان خبر عن الرنين اللي التأمين بيغطيه");
   assert.equal(reply.code, "OUT_OF_SCOPE");
+  assert.deepEqual(lookups, []);
+});
+
+test("a general price question does not become a personal lookup from a catalog name alone", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  answers.push({ intent: "FAQ", subject: "COPAY", focus: "OVERVIEW" });
+  const reply = await assistant.answer(verify(), "هو سعر الرنين في المراكز عادة بيختلف؟");
+  assert.equal(reply.code, "FAQ");
   assert.deepEqual(lookups, []);
 });
 

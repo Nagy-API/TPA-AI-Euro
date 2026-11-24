@@ -1,5 +1,5 @@
 import type { ServiceCode } from "./contracts.ts";
-import type { Focus } from "./conversation-intent.ts";
+import type { DialogueContext, Focus } from "./conversation-intent.ts";
 
 const TOPIC_TTL_MS = 2 * 60_000;
 
@@ -16,33 +16,33 @@ export function isCoverageFollowUp(message: string): boolean {
 
 /** Offline deterministic topic resolution, NOT a real LLM. One slot per verified session. */
 export class CoverageConversation {
-  private topic?: Readonly<{ serviceCode: ServiceCode; expiresAt: number }>;
-  private clarification?: Readonly<{ focus: Focus; expiresAt: number }>;
+  private state?: Readonly<{ value: Exclude<DialogueContext, { kind: "idle" }>; expiresAt: number }>;
 
-  current(now: number): ServiceCode | undefined {
-    return this.topic && this.topic.expiresAt > now ? this.topic.serviceCode : undefined;
+  context(now: number): DialogueContext {
+    return this.state && this.state.expiresAt > now ? this.state.value : { kind: "idle" };
   }
 
-  pending(now: number): Focus | undefined {
-    return this.clarification && this.clarification.expiresAt > now ? this.clarification.focus : undefined;
+  current(now: number): ServiceCode | undefined {
+    const context = this.context(now);
+    return context.kind === "active" ? context.service : undefined;
   }
 
   awaitService(focus: Focus, now: number, sessionExpiresAt: number): void {
-    this.topic = undefined;
-    this.clarification = { focus, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
+    const prior = this.context(now);
+    if (prior.kind === "pending" && (prior.focus === focus || focus === "OVERVIEW")) return;
+    this.state = { value: { kind: "pending", focus }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
   }
 
   resolve(followUp: string, explicitService: ServiceCode | undefined, now: number, sessionExpiresAt: number): ServiceCode | undefined {
-    this.clarification = undefined;
     if (explicitService) {
-      this.topic = { serviceCode: explicitService, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
+      this.state = { value: { kind: "active", service: explicitService }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
       return explicitService;
     }
 
     const current = this.current(now);
     if (current && isCoverageFollowUp(followUp)) return current;
 
-    this.topic = undefined;
+    this.state = undefined;
     return undefined;
   }
 }

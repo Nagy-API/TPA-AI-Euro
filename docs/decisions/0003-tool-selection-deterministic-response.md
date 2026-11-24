@@ -24,6 +24,12 @@ The Web Demo routes Ollama turns through explicit conversational intents and app
 
 The server keeps the latest successfully validated service or the benefit awaiting clarification in the verified session, for up to two minutes. A pending clarification cannot authorize a lookup by itself. An accepted follow-up re-fetches data without extending the service lifetime. Session rotation, expiry and logout remove access. Non-coverage turns clear the topic, except for a general explanation of the meaning of a displayed amount. The backend response determines coverage status, financial values, approval requirements and missing fixture data. No benefit value, identity field or tool arguments from the model reach the backend.
 
+### Typed resolution following the second acceptance review
+
+The Ollama adapter returns a validated semantic proposal. A deterministic resolver combines it with evidence from the current message and an idle, active, or pending dialogue snapshot. Its `TurnResolution` permits a scoped lookup, a clarification with the missing information and focus, or an approved reply. A second Ollama call is requested only for unresolved service descriptions or contextual benefit questions. It provides evidence for the same decision. It has no access to the session or backend and cannot dispatch a tool.
+
+The executor re-reads session dialogue after inference. A lookup that replaces the topic commits the new service only after a valid backend result. A contextual lookup keeps the existing expiry. Repeating the same clarification does not extend its lifetime. Privacy, scope, service conflicts and unsupported procedures still block protected actions. See [QA2 trace diagnosis](../v04-qa2-diagnostics.md).
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.

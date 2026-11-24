@@ -16,9 +16,22 @@ export type ConversationIntent = Readonly<{
   intent: (typeof CONVERSATION_INTENTS)[number];
   subject: (typeof SUBJECTS)[number];
   focus: Focus;
-  usesPending?: true;
 }>;
 
+export type DialogueContext =
+  | Readonly<{ kind: "idle" }>
+  | Readonly<{ kind: "active"; service: ServiceCode }>
+  | Readonly<{ kind: "pending"; focus: Focus }>;
+
+export type TurnResolution =
+  | Readonly<{ action: "lookup"; service: ServiceCode; focus: Focus; topic: "keep" | "replace" }>
+  | Readonly<{ action: "clarify"; focus: Focus; reason: "service" | "multiple" | "conflict" }>
+  | Readonly<{ action: "reply"; reply: ConversationIntent; topic: "clear" | "keep" }>;
+
+export type GroundingKind = "service" | "follow-up";
+export type TurnEvidence = Readonly<{ match: string; quote: string }>;
+
 export interface ConversationInterpreter {
-  interpret(question: string, topic: ServiceCode | undefined, signal?: AbortSignal, pending?: Focus): Promise<ConversationIntent>;
+  interpret(question: string, context: DialogueContext, signal?: AbortSignal): Promise<ConversationIntent>;
+  ground(question: string, kind: GroundingKind, signal?: AbortSignal): Promise<TurnEvidence>;
 }

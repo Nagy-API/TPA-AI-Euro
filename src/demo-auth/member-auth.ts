@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { ServiceCode, VerifiedSession } from "../contracts.ts";
 import { CoverageConversation } from "../coverage-conversation.ts";
-import type { Focus } from "../conversation-intent.ts";
+import type { DialogueContext, Focus } from "../conversation-intent.ts";
 import { DEMO_MEMBERS } from "./fixtures.ts";
 
 const CHALLENGE_TTL_MS = 2 * 60_000;
@@ -142,9 +142,9 @@ export class DemoMemberAuth {
     return this.findActiveRecord(session, now)?.conversation.current(now);
   }
 
-  pendingConversationFocus(session: VerifiedSession): Focus | undefined {
+  conversationContext(session: VerifiedSession): DialogueContext {
     const now = this.now();
-    return this.findActiveRecord(session, now)?.conversation.pending(now);
+    return this.findActiveRecord(session, now)?.conversation.context(now) ?? { kind: "idle" };
   }
 
   awaitConversationService(session: VerifiedSession, focus: Focus): void {

@@ -9,15 +9,20 @@ import { createDemoServer } from "../src/http-server.ts";
 import { MockTpaBackend } from "../src/mock-backend.ts";
 import { OllamaCoverageIntentSelector } from "../src/ollama-selector.ts";
 
-type Turn = readonly [question: string, code: string, service?: ServiceCode, answer?: RegExp | string];
+type Turn = readonly [question: string, code?: string, service?: ServiceCode, answer?: RegExp | string, status?: number];
 type Action = "expire-topic" | "switch-vip" | "expire-session" | "login-gold" | "rotate-silver" |
   "use-new-session" | "provider-outage" | "mismatched-backend";
 type Member = "gold" | "silver" | "vip" | "unverified";
 type Sequence = { id: string; turns: readonly Turn[]; advance?: number; silver?: boolean; missingModel?: boolean;
-  member?: Member; actions?: (Action | undefined)[]; topics?: (ServiceCode | null)[] };
+  member?: Member; actions?: (Action | undefined)[]; topics?: (ServiceCode | null)[]; proposalKinds?: ("named" | "contextual" | undefined)[] };
 type DisclosedSequence = {
   id: string; member: Member;
   turns: { question: string; code: string; lookup: ServiceCode | null; topic: ServiceCode | null; answerIncludes?: string; action?: Action }[];
+};
+type Qa2Sequence = {
+  id: number; member: "G" | "S" | "V" | "-";
+  turns: { message: string; status: number; lookup: "M" | "C" | "X" | "-"; topic: "M" | "C" | "X" | "-";
+    answer: string; action: "topic" | "switch" | "expire" | "rotate" | "new" | "outage" | "wrong" | null }[];
 };
 const sequences: Sequence[] = [
   { id: "issue-17", turns: [
@@ -86,8 +91,28 @@ let scenarioPasses = 0;
 let providerChecks = 0;
 let providerChats = 0;
 let backendCalls = 0;
+let rawProposalsExpected = 0;
+let rawProposalsCorrect = 0;
 
-const suite: Sequence[] = process.argv.includes("--disclosed") ?
+function disclosedQa2(): Sequence[] {
+  const data = JSON.parse(readFileSync(new URL("../evals/v04-qa2-disclosed.json", import.meta.url), "utf8")) as Qa2Sequence[];
+  const members = { G: "gold", S: "silver", V: "vip", "-": "unverified" } as const;
+  const services = { M: "MRI", C: "CBC", X: "XRAY", "-": undefined } as const;
+  const actions = { topic: "expire-topic", switch: "switch-vip", expire: "expire-session", rotate: "rotate-silver",
+    new: "use-new-session", outage: "provider-outage", wrong: "mismatched-backend" } as const;
+  const contextual = new Set(["1.2", "2.2", "3.2", "5.2", "8.3", "26.2", "30.2"]);
+  return data.map(({ id, member, turns }) => ({
+    id: "QA2-" + id,
+    member: members[member],
+    turns: turns.map(t => [t.message, undefined, services[t.lookup], new RegExp(t.answer, "u"), t.status]),
+    topics: turns.map(t => services[t.topic] ?? null),
+    actions: turns.map(t => t.action ? actions[t.action] : undefined),
+    proposalKinds: turns.map((t, index) => t.lookup === "-" ? undefined :
+      contextual.has(`${id}.${index + 1}`) ? "contextual" : "named")
+  }));
+}
+
+const suite: Sequence[] = process.argv.includes("--qa2") ? disclosedQa2() : process.argv.includes("--disclosed") ?
   (JSON.parse(readFileSync(new URL("../evals/v04-disclosed-conversations.json", import.meta.url), "utf8")) as DisclosedSequence[])
     .map(({ id, member, turns }) => ({
       id, member, topics: turns.map((turn) => turn.topic), actions: turns.map((turn) => turn.action),
@@ -99,7 +124,7 @@ for (const sequence of suite) {
   let offset = 0;
   const auth = new DemoMemberAuth(() => Date.now() + offset);
   const backend = new MockTpaBackend(auth);
-  let decisions: unknown[] = [];
+  let decisions: { intent?: string; subject?: string; focus?: string; match?: string; quote?: string }[] = [];
   let lookups: ServiceCode[] = [];
   let action: Action | undefined;
   let expectedMember: Member = sequence.member ?? (sequence.silver ? "silver" : "gold");
@@ -123,10 +148,10 @@ for (const sequence of suite) {
           chunks.push(value);
         }
         const payload = JSON.parse(Buffer.concat(chunks).toString("utf8")) as { message: { content: string } };
-        const value = JSON.parse(payload.message.content) as { intent?: string; subject?: string; focus?: string; match?: string };
-        decisions.push(value.match ?? { intent: value.intent, subject: value.subject, focus: value.focus });
+        const value = JSON.parse(payload.message.content) as { intent?: string; subject?: string; focus?: string; match?: string; quote?: string };
+        decisions.push({ intent: value.intent, subject: value.subject, focus: value.focus, match: value.match, quote: value.quote });
       } catch {
-        decisions.push("INVALID_PROVIDER_RESPONSE");
+        decisions.push({ intent: "INVALID_PROVIDER_RESPONSE" });
       } finally {
         void reader?.cancel().catch(() => {});
       }
@@ -173,7 +198,7 @@ for (const sequence of suite) {
   try {
     let token = await login(expectedMember);
     let rotated: string | undefined;
-    for (const [index, [question, expected, service, answer]] of sequence.turns.entries()) {
+    for (const [index, [question, expected, service, answer, fixedStatus]] of sequence.turns.entries()) {
       if (index === 1) offset += sequence.advance ?? 0;
       action = sequence.actions?.[index];
       if (action === "expire-topic") offset += 120_001;
@@ -192,13 +217,16 @@ for (const sequence of suite) {
       lookups = [];
       decisions = [];
       wrongScope = 0;
+      const priorScope = token && auth.resolveSession(token);
+      const before = priorScope ? auth.conversationContext(priorScope) : { kind: "idle" };
       const start = performance.now();
       const { status, body } = await post("/v1/chat", { message: question }, token);
       const elapsedMs = Math.round(performance.now() - start);
       timings.push(elapsedMs);
       const scope = token && auth.resolveSession(token);
       const topic = (scope ? auth.currentConversationService(scope) : undefined) ?? null;
-      const expectedStatus = expected === "VERIFICATION_REQUIRED" ? 401 : expected.endsWith("_UNAVAILABLE") ? 503 : 200;
+      const after = scope ? auth.conversationContext(scope) : { kind: "idle" };
+      const expectedStatus = fixedStatus ?? (expected === "VERIFICATION_REQUIRED" ? 401 : expected?.endsWith("_UNAVAILABLE") ? 503 : 200);
       const correct = service ? lookups.length === 1 && lookups[0] === service : lookups.length === 0;
       if (service) {
         requiredLookups++;
@@ -206,15 +234,24 @@ for (const sequence of suite) {
         if (lookups.length === 0 && body.code === "CLARIFICATION_NEEDED") falseNegativeClarifications++;
         wrongServiceLookups += lookups.filter((lookup) => lookup !== service).length;
       } else deniedLookups += lookups.length;
+      const proposalKind = sequence.proposalKinds?.[index];
+      const first = decisions[0];
+      if (proposalKind) {
+        rawProposalsExpected++;
+        if (proposalKind === "named" ? first?.intent === "COVERAGE_LOOKUP" && first.subject === service :
+          first?.intent === "FOLLOW_UP") {
+          rawProposalsCorrect++;
+        }
+      }
       unauthorizedLookups += wrongScope;
-      const match = status === expectedStatus && body.code === expected && correct && !wrongScope &&
+      const match = status === expectedStatus && (!expected || body.code === expected) && correct && !wrongScope &&
         (!sequence.topics || sequence.topics[index] === topic) &&
         (!answer || typeof body.answer === "string" &&
           (typeof answer === "string" ? body.answer.includes(answer) : answer.test(body.answer)));
       if (match) passed++;
       else scenarioPassed = false;
-      console.log(JSON.stringify({ sequence: sequence.id, question, answer: body.answer, expected, status, code: body.code,
-        model: decisions, lookups, topic, wrongScope, elapsedMs, passed: match }));
+      console.log(JSON.stringify({ sequence: sequence.id, turn: index + 1, question, answer: body.answer, expected, status, code: body.code,
+        model: decisions, lookups, before, after, topic, wrongScope, elapsedMs, passed: match }));
     }
   } finally {
     server.closeAllConnections();
@@ -226,6 +263,6 @@ timings.sort((a, b) => a - b);
 const rank = (percentile: number) => timings[Math.ceil(timings.length * percentile) - 1];
 console.log(JSON.stringify({ passed, total: timings.length, scenarioPasses, scenarios: suite.length,
   requiredLookups, correctLookups, deniedLookups, wrongServiceLookups, unauthorizedLookups, falseNegativeClarifications,
-  providerChecks, providerChats, backendCalls,
+  providerChecks, providerChats, backendCalls, rawProposalsCorrect, rawProposalsExpected,
   p50Ms: rank(0.5), p95Ms: rank(0.95) }));
 if (passed !== timings.length) process.exitCode = 1;

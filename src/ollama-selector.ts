@@ -1,7 +1,7 @@
 import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode, SERVICE_CODES } from "./contracts.ts";
 import type { CoverageIntentSelector, ServiceCode, ToolSelection } from "./contracts.ts";
-import { asksDefinition, asksPolicyBenefit, asksWhetherReferencedAmountIsDue, blocksConversationLookup, coverageSubjectText, explicitBenefitFocus, hasGroundedServiceQuote, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isServiceSelection, isThirdPartyCoverage, normalizeArabic, standaloneBenefitFocus } from "./coverage-input.ts";
-import { CONVERSATION_INTENTS, FOCUSES, SERVICE_CATALOG, SUBJECTS, type ConversationIntent, type ConversationInterpreter, type Focus } from "./conversation-intent.ts";
+import { blocksConversationLookup, hasPrivateCoverageInput, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
+import { CONVERSATION_INTENTS, FOCUSES, SERVICE_CATALOG, SUBJECTS, type ConversationIntent, type ConversationInterpreter, type DialogueContext, type GroundingKind, type TurnEvidence } from "./conversation-intent.ts";
 
 const OLLAMA_URL = "http://127.0.0.1:11434";
 const TOOL = "get_member_coverage";
@@ -135,96 +135,32 @@ export class OllamaCoverageIntentSelector implements CoverageIntentSelector, Con
       : selection;
   }
 
-  async interpret(question: string, topic: ServiceCode | undefined, requestSignal?: AbortSignal, pending?: Focus): Promise<ConversationIntent> {
-    const clarify = { intent: "CLARIFY", subject: "NONE", focus: "OVERVIEW" } as const;
-    if (hasPrivateCoverageInput(question) || isThirdPartyCoverage(question) || blocksConversationLookup(question)) return clarify;
+  async interpret(question: string, context: DialogueContext, requestSignal?: AbortSignal): Promise<ConversationIntent> {
+    if (hasPrivateCoverageInput(question) || isThirdPartyCoverage(question) || blocksConversationLookup(question)) {
+      return { intent: "CLARIFY", subject: "NONE", focus: "OVERVIEW" };
+    }
     const signal = this.deadline(requestSignal);
     await this.checkLocalModel(signal);
-    const context = topic ? "There is an active procedure. Do not assume a new procedure refers to it." :
-      pending !== undefined ? "The assistant just asked the user which procedure they meant." : "There is no active topic.";
-    const proposal = await this.structuredChat(question, CONVERSATION_PROMPT + "\n" + context, CONVERSATION_FIELDS, signal);
-    const { intent, subject, focus } = proposal;
+    const hint = context.kind === "active" ? "There is an active procedure. Do not assume a new procedure refers to it." :
+      context.kind === "pending" ? "The assistant just asked the user which procedure they meant." : "There is no active topic.";
+    const { intent, subject, focus } = await this.structuredChat(question, CONVERSATION_PROMPT + "\n" + hint, CONVERSATION_FIELDS, signal);
     if (!includes(CONVERSATION_INTENTS, intent) || !includes(SUBJECTS, subject) || !includes(FOCUSES, focus)) {
       throw new Error("OLLAMA_INVALID_RESPONSE");
     }
-    const decision = { intent, subject, focus };
-    const { named, unsupported, comparison } = inspectServiceSubject(question);
-    const finalSubject = coverageSubjectText(question);
-    const benefit = explicitBenefitFocus(finalSubject);
-    const policyCue = asksPolicyBenefit(finalSubject);
-    const namedService = named.length === 1 ? named[0] : undefined;
-    const picked = namedService !== undefined && pending !== undefined && isServiceSelection(question, namedService);
-    const explicitAsk = !asksDefinition(finalSubject) && (policyCue || picked);
-    if (intent === "OUT_OF_SCOPE" || intent === "UNSUPPORTED_SERVICE" || intent === "CLARIFY" && subject === "MULTIPLE") {
-      return decision;
-    }
-    if (unsupported || comparison || named.length > 1) {
-      return intent === "COVERAGE_LOOKUP" || intent === "FOLLOW_UP" ? clarify : decision;
-    }
-    if (!namedService && topic && asksWhetherReferencedAmountIsDue(finalSubject)) {
-      return { intent: "FAQ", subject: "LIMIT", focus: "OVERVIEW" };
-    }
-    // One known, requested service is positive evidence in the text itself.
-    // A contradictory service proposal and unsafe referents still fail closed.
-    if (namedService) {
-      if (asksDefinition(finalSubject)) return intent === "COVERAGE_LOOKUP" ? clarify : decision;
-      if (intent === "COVERAGE_LOOKUP" && subject !== namedService) return clarify;
-      if (intent === "COVERAGE_LOOKUP" || explicitAsk) {
-        return { intent: "COVERAGE_LOOKUP", subject: namedService, focus: benefit ?? (picked ? pending : focus) ?? "OVERVIEW",
-          ...(picked && !policyCue ? { usesPending: true } : {}) };
-      }
-      return decision;
-    }
+    return { intent, subject, focus };
+  }
 
-    const standalone = standaloneBenefitFocus(finalSubject);
-    if (standalone) return { intent: "FOLLOW_UP", subject: "NONE", focus: standalone };
-
-    const service = isServiceCode(subject) && (intent === "COVERAGE_LOOKUP" || explicitAsk) ? subject : undefined;
-    const mayBeFollowUp = !asksDefinition(finalSubject) &&
-      (intent === "FOLLOW_UP" || (intent === "FAQ" || intent === "CLARIFY") && (topic !== undefined || policyCue) ||
-        intent === "CAPABILITIES" && benefit !== undefined && policyCue);
-    const followUp = !service && mayBeFollowUp && topic !== undefined;
-    if (!service && !followUp) {
-      if (mayBeFollowUp && (intent === "FOLLOW_UP" || benefit && policyCue)) {
-        return { intent: "FOLLOW_UP", subject: "NONE", focus: benefit ?? focus };
-      }
-      if (intent === "CAPABILITIES") {
-        const namesCatalog = /خدمات|فحوص(?:ات)?|تحاليل|اشعات|\b(?:services|tests|list)\b/iu.test(finalSubject);
-        const asksBeyondCatalog = /(?:تقدر|تساعد|able|can you).{0,40}(?:غير|besides|apart from)/iu.test(finalSubject);
-        return { ...decision, subject: namesCatalog && !asksBeyondCatalog ? "SERVICES" : "ROLE" };
-      }
-      if (intent === "CLARIFY" && !policyCue && !benefit && pending === undefined &&
-          !/تامين|وثيق|فحص|تحليل|اشع|علاج|تصوير|\b(?:insurance|policy|test|scan|exam|imaging)\b/iu.test(finalSubject)) {
-        return { intent: "OUT_OF_SCOPE", subject: "NONE", focus: "OVERVIEW" };
-      }
-      return decision;
+  async ground(question: string, kind: GroundingKind, requestSignal?: AbortSignal): Promise<TurnEvidence> {
+    if (hasPrivateCoverageInput(question) || isThirdPartyCoverage(question) || blocksConversationLookup(question)) {
+      return { match: "NONE", quote: "" };
     }
-
-    const matches: readonly string[] = followUp ? FOLLOW_UP_MATCHES : SERVICE_MATCHES;
-    const groundingPrompt = followUp ? FOLLOW_UP_GROUNDING : SERVICE_GROUNDING;
-    const evidence = await this.structuredChat(question, groundingPrompt, { match: enumField(matches), quote: { type: "string" } }, signal);
-    if (!includes(matches, evidence.match) || typeof evidence.quote !== "string") {
-      throw new Error("OLLAMA_INVALID_RESPONSE");
-    }
-    const normalizeQuote = (text: string) => normalizeArabic(text).toLowerCase().replace(/ى/gu, "ي").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-    const quote = normalizeQuote(evidence.quote);
-    const copied = quote.length >= 3 && ` ${normalizeQuote(finalSubject)} `.includes(` ${quote} `);
-    if (followUp) {
-      if (includes(FOCUSES, evidence.match) && evidence.match !== "OVERVIEW" &&
-          (copied || (intent === "FOLLOW_UP" && benefit === evidence.match))) {
-        return { intent: "FOLLOW_UP", subject: "NONE", focus: benefit ?? evidence.match };
-      }
-      if (benefit && policyCue && evidence.match === "NONE") {
-        return { intent: "CLARIFY", subject: "NONE", focus: benefit };
-      }
-      return intent === "FOLLOW_UP" ? clarify : decision;
-    }
-    if (!service || evidence.match !== service) return clarify;
-    if (copied && hasGroundedServiceQuote(finalSubject, quote, service)) {
-      return { intent: "COVERAGE_LOOKUP", subject: service, focus: benefit ?? (policyCue ? focus : pending ?? focus),
-        ...(!policyCue && pending !== undefined ? { usesPending: true } : {}) };
-    }
-    return clarify;
+    const matches = kind === "service" ? SERVICE_MATCHES : FOLLOW_UP_MATCHES;
+    const prompt = kind === "service" ? SERVICE_GROUNDING : FOLLOW_UP_GROUNDING;
+    const { match, quote } = await this.structuredChat(question, prompt, {
+      match: enumField(matches), quote: { type: "string" }
+    }, this.deadline(requestSignal));
+    if (!includes(matches, match) || typeof quote !== "string") throw new Error("OLLAMA_INVALID_RESPONSE");
+    return { match, quote };
   }
 
   private deadline(requestSignal?: AbortSignal): AbortSignal {

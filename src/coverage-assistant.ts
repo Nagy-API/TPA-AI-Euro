@@ -2,10 +2,11 @@ import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend, VerifiedSession } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { asksWhetherReferencedAmountIsDue, blocksConversationLookup, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
+import { blocksConversationLookup, explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
 import { SERVICE_CATALOG, type ConversationInterpreter } from "./conversation-intent.ts";
 import { CLARIFY_SERVICE, conversationReply, formatFocusedCoverage, OTHER_ACCOUNT, UNSUPPORTED_SERVICE } from "./conversation-replies.ts";
+import { resolveTurn } from "./turn-resolution.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
 const SAFE_RETRY = "البيانات مش متاحة دلوقتي، من فضلك حاول مرة تانية أو تواصل مع خدمة العملاء. (بيانات تجريبية)";
@@ -119,18 +120,23 @@ export class CoverageAssistant {
     const clues = inspectServiceSubject(message);
     if (clues.named.length > 1) {
       const reply = conversationReply({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
-      auth.awaitConversationService(session, "OVERVIEW");
+      auth.awaitConversationService(session, explicitBenefitFocus(message) ?? "OVERVIEW");
       return { status: 200, ...reply };
     }
     if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
       return decline("UNSUPPORTED_SERVICE", UNSUPPORTED_SERVICE);
     }
 
-    const topic = auth.currentConversationService(session);
-    const pending = auth.pendingConversationFocus(session);
-    let decision;
+    let resolution;
     try {
-      decision = await interpreter.interpret(message, topic, signal, pending);
+      const context = auth.conversationContext(session);
+      const proposal = await interpreter.interpret(message, context, signal);
+      resolution = resolveTurn(message, auth.conversationContext(session), proposal);
+      if (resolution.action === "ground" && !interrupted()) {
+        const kind = resolution.kind;
+        const evidence = await interpreter.ground(message, kind, signal);
+        resolution = resolveTurn(message, auth.conversationContext(session), proposal, { kind, evidence });
+      }
     } catch {
       clear();
       return interrupted() ?? { status: 503, code: "AI_UNAVAILABLE", answer: "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
@@ -140,27 +146,21 @@ export class CoverageAssistant {
       clear();
       return stopped;
     }
-    const followUp = decision.intent === "FOLLOW_UP";
-    if (decision.usesPending && auth.pendingConversationFocus(session) === undefined) {
+    if (resolution.action === "reply") {
+      if (resolution.topic === "clear") clear();
+      return { status: 200, ...conversationReply(resolution.reply) };
+    }
+    if (resolution.action === "ground" || resolution.action === "clarify" && resolution.reason === "conflict") {
       return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);
     }
-    const serviceCode = followUp && decision.subject === "NONE" && decision.focus !== "OVERVIEW"
-      ? auth.currentConversationService(session) :
-      decision.intent === "COVERAGE_LOOKUP" && isServiceCode(decision.subject) ? decision.subject : undefined;
-    if (!serviceCode) {
-      const reply = conversationReply(decision);
-      if (reply.code === "FAQ" && topic && asksWhetherReferencedAmountIsDue(message)) return { status: 200, ...reply };
-      if (followUp || decision.intent === "CLARIFY" && !clues.comparison && !clues.unsupported) {
-        auth.awaitConversationService(session, decision.focus);
-        return { status: 200, ...reply };
-      }
-      return decline(reply.code, reply.answer);
+    if (resolution.action === "clarify") {
+      auth.awaitConversationService(session, resolution.focus);
+      const reply = conversationReply({ intent: resolution.reason === "multiple" ? "CLARIFY" : "FOLLOW_UP",
+        subject: resolution.reason === "multiple" ? "MULTIPLE" : "NONE", focus: resolution.focus });
+      return { status: 200, ...reply };
     }
-    if (clues.unsupported || clues.comparison ||
-        (clues.named.length === 1 && (followUp || clues.named[0] !== serviceCode))) {
-      return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);
-    }
-    if (!followUp) clear();
+    const { service: serviceCode, focus, topic } = resolution;
+    if (topic === "replace") clear();
 
     let coverage: Coverage;
     try {
@@ -175,10 +175,10 @@ export class CoverageAssistant {
       return finished;
     }
     if (coverage.coverageStatus === "UNKNOWN") {
-      return decline("COVERAGE_NOT_AVAILABLE", formatFocusedCoverage(coverage, decision.focus) ?? SAFE_RETRY);
+      return decline("COVERAGE_NOT_AVAILABLE", formatFocusedCoverage(coverage, focus) ?? SAFE_RETRY);
     }
-    if (!followUp) auth.resolveConversationService(session, "", serviceCode);
-    return { status: 200, code: "COVERAGE_RESULT", answer: formatFocusedCoverage(coverage, decision.focus) ?? formatCoverage(coverage) };
+    if (topic === "replace") auth.resolveConversationService(session, "", serviceCode);
+    return { status: 200, code: "COVERAGE_RESULT", answer: formatFocusedCoverage(coverage, focus) ?? formatCoverage(coverage) };
   }
 }
 

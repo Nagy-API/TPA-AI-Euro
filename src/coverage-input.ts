@@ -19,7 +19,7 @@ export function isThirdPartyCoverage(input: string): boolean {
     OTHER_OWNER.test(normalized) || OTHER_PERSON_EN.test(normalized);
 }
 
-const MRI_EVIDENCE = /\b(?:mri|magnetic resonance(?: imaging)?)\b|(?<!\p{L})[وف]?(?:(?:بال|ال|ب)?رنين|(?:ال)?ام\s+ار\s+ا[يى]|(?:ال)?تصوير\s+(?:بال|ال|ب)?مغنا?طيسي|(?:ب?جهاز|بيصور)\s+(?:بال|ال|ب)?مغناطيس)(?!\p{L})/iu;
+const MRI_EVIDENCE = /\b(?:mri|magnetic resonance(?: imaging)?)\b|(?<!\p{L})[وف]?(?:(?:بال|لل|ال|ب|ل)?رنين|(?:ال)?ام\s+ار\s+ا[يى]|(?:ال)?تصوير\s+(?:بال|ال|ب)?مغنا?طيسي|(?:ب?جهاز|بيصور)\s+(?:بال|ال|ب)?مغناطيس)(?!\p{L})/iu;
 const CBC_EVIDENCE = /\b(?:cbc|complete blood count|full blood count)\b|(?<!\p{L})[وف]?ب?(?:ال)?(?:سي\s+بي\s+سي|صور[هة]\s+(?:ال)?دم\s+(?:ال)?كامل[هة]|(?:عد|تعداد)\s+(?:ال)?دم\s+(?:ال)?كامل)(?!\p{L})/iu;
 const XRAY_EVIDENCE = /\b(?:x[\s-]?rays?|radiographs?|plain films?)\b|(?<!\p{L})[وف]?(?:(?:بال|ال|ب)?اشع[هة]\s+(?:ال)?(?:سيني[هة]|عادي[هة]|اكس)|(?:ال)?اكس\s*را[يى])(?!\p{L})/iu;
 const CATALOG_NAMES = { MRI: MRI_EVIDENCE, CBC: CBC_EVIDENCE, XRAY: XRAY_EVIDENCE };
@@ -78,9 +78,9 @@ export function hasGroundedServiceQuote(input: string, quote: string, code: Serv
 export function explicitBenefitFocus(input: string): Focus | undefined {
   const question = normalizeArabic(input);
   const signals = {
-    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع)|تحم[ّ]?ل|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي)|\bcopay\b/iu.test(question),
+    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع)|تحم[ّ]?ل|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي)|كام\s+نسب[هة]|\bcopay\b/iu.test(question),
     LIMIT: /متبقي|(?:حد|رصيد|سقف|متاح).{0,22}(?:كام|لسه|قد ايه)|(?:فاضل|باقي|هيفضل).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance)\b/iu.test(question),
-    PREAPPROVAL: /موافق[هة]|(?:ال)?اذن|استاذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
+    PREAPPROVAL: /موافق[هة]|اعتماد|(?:ال)?اذن|استاذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
   } satisfies Record<Exclude<Focus, "OVERVIEW">, boolean>;
   const matched = (Object.keys(signals) as (keyof typeof signals)[]).filter((focus) => signals[focus]);
   return matched.length === 1 ? matched[0] : undefined;
@@ -103,6 +103,7 @@ export function standaloneBenefitFocus(input: string): Focus | undefined {
 export function asksPolicyBenefit(input: string): boolean {
   const question = normalizeArabic(input);
   return /تغطي|م(?:ت)?غط[ىي]|(?:داخل|موجود)\s+(?:عندي|ليا)|داخل[هة]?\s*[؟?]|[بت]يتحسب\s+على|بتتحسب\s+ازاي|\b(?:cover|covered)\b/iu.test(question) ||
+    /(?:تامين|وثيق[هة]).{0,24}(?:[بت]ي?شارك|بيسدد|بتسدد|بيشيل|بتشيل)/u.test(question) ||
     (!asksDefinition(question) && explicitBenefitFocus(question) !== undefined &&
       /كام|قد ايه|عندي|عليا|علي[ّ]?ا|ليا|بتاعي|بتاعتي|محتاج|محتاجة|لازم|اذن|موافقة\s*[؟?]|تحمل\s*[؟?]|\b(?:my|how much|do i need)\b/iu.test(question));
 }
@@ -115,8 +116,18 @@ export function asksWhetherReferencedAmountIsDue(input: string): boolean {
 }
 
 export function isServiceSelection(input: string, code: ServiceCode): boolean {
-  const remainder = coverageSubjectText(input).replace(CATALOG_NAMES[code], " ").replace(/[؟?!.،,]/gu, " ").trim();
+  const remainder = coverageSubjectText(input).replace(CATALOG_NAMES[code], " ")
+    .replace(/^\s*(?:المغناطيسي|السيني[هة])(?=\s|[؟?!.،,]|$)/u, "").replace(/[؟?!.،,]/gu, " ").trim();
   return /^(?:(?:طب|طيب|ابد[اأ]|ابد[اأ]ي|قصدي|اقصد|بتكلم|بسال|اسال|على|عن|ب|في|نفسه)\s*)*$/u.test(remainder);
+}
+
+/** Accept a replacement only when the abandoned referent is the current general topic. */
+export function correctedServiceSelection(input: string): ServiceCode | undefined {
+  const correction = /^(?:(?:لا|بس|لكن)\s*[،,]?\s*|كنت\s+)?(?:اقصد|قصدي)\s+(.+?)\s+بدل\s+(?:ال)?(?:تحليل|فحص|تصوير)\s*[؟?!.]*$/u.exec(normalizeArabic(input).trim());
+  if (!correction) return undefined;
+  const [, replacement] = correction;
+  const { named, unsupported, comparison } = inspectServiceSubject(replacement);
+  return named.length === 1 && !unsupported && !comparison && isServiceSelection(replacement, named[0]) ? named[0] : undefined;
 }
 
 /** Verify a model proposal against positive, unambiguous evidence in user text. */
