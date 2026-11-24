@@ -29,15 +29,16 @@ With the same environment, run:
 ```powershell
 npm run eval:ollama:http -- review
 npm run eval:ollama:http -- holdout
+npm run eval:ollama:http -- grounding-holdout
 ```
 
-The first command transcribes the [Issue #15](https://github.com/Nagy-API/TPA-AI-Euro/issues/15) matrix supplied in chat. The second uses separate cases written after selector tuning and reserved for the first frozen run. Both use the real verified HTTP route, loopback Ollama, and the synthetic coverage backend. Each case begins with a fresh session, except the deliberate unauthenticated row. Topic setup requests run before measurement. A test clock expires the topic without waiting two minutes.
+The first command transcribes the [Issue #15](https://github.com/Nagy-API/TPA-AI-Euro/issues/15) matrix supplied in chat. The second replays the first holdout, which was exposed before the service-grounding change. The third runs a separate dataset authored after freezing that change. All use the real verified HTTP route, loopback Ollama, and the synthetic coverage backend. Each case begins with a fresh session, except deliberate unauthenticated rows. Topic setup requests run before measurement. A test clock expires the topic without waiting two minutes.
 
-Each row reports the HTTP status and response code, local model checks, eligibility calls, tool-selection calls, raw tool proposals, actual backend lookup codes and elapsed HTTP time. A prediction matches when the status, response code and exact lookup match the expectation, including zero provider calls for explicitly marked cases. This method differs from the original raw one-pass probe. A clear XRAY intent can retrieve a mock policy response with an unknown coverage status.
+Each row reports the HTTP status and response code, local model checks, eligibility calls, tool-selection calls, raw tool proposals, actual backend lookup codes and elapsed HTTP time. A prediction matches when the status, response code and exact lookup match the expectation, including zero provider calls for explicitly marked cases. The summary counts correct requested lookups, denied cases with lookups, wrong services, unauthorized lookups, and expected-service cases that got clarification. Model checks and inference totals exclude setup turns. A clear XRAY intent can retrieve a mock policy response with an unknown coverage status.
 
 The app gives chat 30 seconds and returns HTTP 503 `CHAT_TIMEOUT` on deadline. The browser waits up to 35 seconds, allowing time to receive the server's response. Disconnect and imminent session expiry cancel provider fetches. Clicking send again after an error starts an explicit retry. Auth-only browser requests keep their 8-second deadline.
 
-See [measured results](../PROJECT_STATUS.md#pr-16-architectural-review-follow-up) for the integrated runs and remaining misclassifications.
+See [measured results](../PROJECT_STATUS.md#pr-16-service-grounding-review) for the integrated runs and remaining misclassifications.
 
 ## Deferred paid live run
 

@@ -90,3 +90,8 @@
 
 - Added application-side third-party refusal with topic clearing, more precise credential screening, and a bounded chat deadline that cancels Ollama on timeout, disconnect, or imminent session expiry. Existing exact co-pay follow-ups resolve in the authenticated session without inference.
 - Re-ran the 29 supplied Issue #15 scenarios and a separate 16-case frozen holdout through verified HTTP. Recorded outcomes, proposal and lookup counts, latency and open issues in [Project Status](../PROJECT_STATUS.md#pr-16-architectural-review-follow-up).
+
+## 2026-11-24 — Ground service selection before coverage
+
+- Added a fail-closed service evidence check before policy lookups and topic storage. The check applies to model proposals for all three catalog services and handles common Egyptian Arabic paraphrases, conflicting evidence, and recognized third-party requests.
+- The exposed dental-to-CBC case now clarifies despite the model's invalid service proposal. The fresh verified HTTP holdout recorded 11/12 correct required lookups and zero wrong-service or unauthorized lookups. See [Project Status](../PROJECT_STATUS.md#pr-16-service-grounding-review).

@@ -16,6 +16,8 @@ Verified demo mode may opt into Ollama at a fixed loopback endpoint with a local
 
 The application also checks recognizable third-party subjects before model or policy access and clears the conversation topic on refusal. The HTTP route owns the chat deadline and passes cancellation to the model adapter. The same verified session continues to enforce member and tenant authorization on each lookup. See the [review follow-up evidence](../../PROJECT_STATUS.md#pr-16-architectural-review-follow-up).
 
+The application requires positive evidence in the actual question for one catalog service that agrees with the selector proposal. The guard recognizes names and bounded paraphrases, and clarifies on missing, conflicting or uncertain evidence. Exact authenticated co-pay follow-ups can use a previously grounded topic. This favors precision over recall for the synthetic catalog. Detecting arbitrary unsupported comparisons or third-party wording in free text remains limited. See the [service-grounding evidence](../../PROJECT_STATUS.md#pr-16-service-grounding-review).
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.

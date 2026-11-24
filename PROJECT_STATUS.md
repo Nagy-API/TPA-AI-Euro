@@ -6,6 +6,21 @@
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama is available on `codex/ollama-coverage-intent` for architectural review. V0.2 and the local Web Chat are on `main`.
 
+## PR 16 service-grounding review
+
+- The coverage assistant requires a model proposal to agree with positive evidence for exactly one supported service in the question before saving a topic or querying the backend. The check recognizes catalog names and bounded Egyptian Arabic paraphrases, blocks conflicting evidence, and clarifies when evidence is missing. The same check is used by the standalone Ollama selector. The verified-session, tenant, and deadline behavior is unchanged.
+- Frozen implementation: `ab69987344ef0f55baf949cf864b95166054fd80`. Ollama `0.40.17`, `qwen3:4b-instruct`, installed digest `0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0`. The new [24-case dataset](evals/ollama-grounding-holdout-cases.json) was authored after the implementation commit and evaluated once without changing inputs or code afterward. SHA-256 of the evaluated file bytes: `24ea4cf1cf752422718d23138b28011f12d6e85ba9301077ef96aa67a4bdd5e5`. The two older HTTP sets are exposed regression data.
+
+| Verified HTTP dataset | Exact | Correct / required lookups | Denied cases with lookup | Wrong service / unauthorized lookups | Clarification false negatives | Model checks / eligibility / tool requests / raw proposals | p50 / p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Issue #15 replay | 28/29 | 14/15 | 0/14 | 0 / 0 | 1 | 22 / 22 / 14 / 15 | 303 / 917 ms |
+| Exposed first holdout replay | 16/16 | 7/7 | 0/9 | 0 / 0 | 0 | 10 / 10 / 8 / 8 | 294 / 892 ms |
+| Fresh service-grounding holdout | 23/24 | 11/12 | 0/12 | 0 / 0 | 1 | 19 / 19 / 12 / 13 | 328 / 1,104 ms |
+
+- In the exposed replay, H-12 still elicited a CBC tool proposal, but the application clarified with zero lookups. H-05 reached the intended CBC lookup and H-08 clarified without a provider request or lookup. QA-12 still clarified before tool selection on a valid corrected XRAY request.
+- In the fresh holdout, G-07 generated a correct CBC proposal that the guard rejected because the blood-cell description fell outside its recognized phrasing. G-21's third-party wording reached eligibility and clarified without a tool request or lookup. The fresh observed route match was **95.8%**, while correct required lookups were **91.7%**. This run does not meet a 95% required-lookup target. The bounded language rules can require clarification for valid questions, and a finite synthetic set cannot establish behavior for arbitrary service or ownership wording.
+- Local verification: `npm test` **87/87**, with **57/57** in the separate non-HTTP run and **30/30** in the HTTP integration run. Strict TypeScript 5.9.3 targeting ES2022 and `npm run docs:check` passed. `npm run eval:ollama` matched **21/21** development cases. The review and fresh holdout exit 1 on their documented misses. The exposed first holdout exits 0. Commands are in the [evaluation runbook](docs/evaluation-runbook.md#verified-http-evaluation).
+
 ## PR 16 architectural review follow-up
 
 - The application refuses recognizable third-party subjects before Ollama or coverage and clears the active service topic. Exact bounded co-pay follow-ups resolve from the authenticated session without Ollama. The adapter blocks recognizable credentials, demo IDs, and code-like numeric patterns while allowing ordinary percentages, amounts and counts. `INT-012` now expects clarification because the text includes a fictional membership ID.
