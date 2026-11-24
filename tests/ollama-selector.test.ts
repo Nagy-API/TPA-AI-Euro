@@ -69,6 +69,14 @@ test("two different allowlisted services are ambiguous and neither is selected",
   assert.deepEqual(await selector.selectCoverageIntent(question), { kind: "clarify" });
 });
 
+test("an XRAY proposal cannot turn a generic Arabic scan request into a lookup", async () => {
+  const choice = reply([call("get_member_coverage", { serviceCode: "XRAY" })]);
+  assert.deepEqual(await selectorFor(choice).selector.selectCoverageIntent("الأشعة اللي الدكتور طلبها على إيدي مغطية؟"),
+    { kind: "clarify" });
+  assert.deepEqual(await selectorFor(choice).selector.selectCoverageIntent("قالولي أعمل أشعه سينيه، عليها تحمل؟"),
+    { kind: "tool", name: "get_member_coverage", serviceCode: "XRAY" });
+});
+
 test("wrong tools, codes, extra arguments, multiple calls and malformed responses fail closed", async () => {
   for (const payload of [
     {}, { ...reply([valid]), done: false }, { ...reply([valid]), done_reason: "length" },
@@ -95,11 +103,25 @@ test("sensitive chat input is blocked before sending anything to Ollama", async 
   for (const input of [
     "MRI for M-DEMO-002", "MRI " + "a".repeat(43), "MRI ١٣٥٧٩٠",
     "MRI for demo-tenant-a", "MRI for demo-gold", "MRI under my policy number ABC",
-    "الرنين مغطى؟ نسبة التحمل عندي ٢٠٪", "هل الرنين مغطى؟ رقم الوثيقة ABC"
+    "هل الرنين مغطى؟ رقم الوثيقة ABC", "الرنين مغطى؟ كود التحقق ١٢-٣٤-٥٦",
+    "CBC for 010 1234 5678", "MRI for synthetic@example.test", "MRI and bearer abc",
+    "MRI 1 3 5 7 9 0", "نسبة التحمل للرنين؟ رقمي القومي ١٢٣٤", "MRI card no ZX-12",
+    "CBC 01012345678 جنيه", "XRAY AFZ879"
   ]) {
-    assert.deepEqual(await selector.selectCoverageIntent(input), { kind: "clarify" });
+    assert.deepEqual(await selector.selectCoverageIntent(input), { kind: "clarify" }, input);
   }
   assert.equal(requests.length, 0);
+});
+
+test("ordinary numeric coverage questions reach the model with their original wording", async () => {
+  for (const input of [
+    "هل عليّ ٢٠٪ تحمل على الرنين حسب الوثيقة؟", "الأشعة السينية على 2 مكان متغطية؟",
+    "هل تأميني بيغطي CBC مرتين، والحد ١٠٠٬٠٠٠ جنيه؟", "Is the MRI co-pay 12.5% under my policy?"
+  ]) {
+    const { selector, requests } = selectorFor(reply([valid]));
+    assert.equal((await selector.selectCoverageIntent(input)).kind, "tool", input);
+    assert.equal(JSON.parse(String(requests[1].init?.body)).messages[1].content, input);
+  }
 });
 
 test("HTTP error, invalid JSON, oversized body and timeout are observable", async () => {

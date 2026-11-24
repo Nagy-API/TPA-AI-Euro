@@ -85,3 +85,8 @@
 
 - Added opt-in Ollama intent selection for [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13), with a fixed loopback endpoint, local-model check, eligibility screening, exact tool validation and observable failures. The same Web Chat and mock coverage flow support both fixture and Ollama modes.
 - Added simulated provider tests, verified scoping integration tests and an opt-in comparison across 21 synthetic cases. Local tests passed 77/77 with docs and typecheck. The real model matched 19/21 and the verified browser/HTTP flow passed. See [Project Status](../PROJECT_STATUS.md#v03-local-ollama-review) for timings and the two mismatches.
+
+## 2026-11-24 — PR #16 architectural review follow-up
+
+- Added application-side third-party refusal with topic clearing, more precise credential screening, and a bounded chat deadline that cancels Ollama on timeout, disconnect, or imminent session expiry. Existing exact co-pay follow-ups resolve in the authenticated session without inference.
+- Re-ran the 29 supplied Issue #15 scenarios and a separate 16-case frozen holdout through verified HTTP. Recorded outcomes, proposal and lookup counts, latency and open issues in [Project Status](../PROJECT_STATUS.md#pr-16-architectural-review-follow-up).

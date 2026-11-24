@@ -3,7 +3,7 @@
 **Current checkpoint.** [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13) is on `codex/ollama-coverage-intent` for architectural review. The canonical checkout is the root `TPA-AI` folder. Start future tasks from verified live GitHub `main`. Preserve the historical agent folders and archive.
 
 - Reproduce with [local Ollama setup](README.md#run-with-local-ollama-synthetic-demo) and the [evaluation runbook](docs/evaluation-runbook.md#local-ollama-evaluation). The installed `qwen3:4b-instruct` performed tool calling and the verified browser/HTTP flow passed. Fixture mode stays default.
-- Check the [measured results](PROJECT_STATUS.md#v03-local-ollama-review) before review. Local checks passed 77/77, strict TypeScript, and docs. The fixed model evaluation matched 19/21 and exposed a third-party intent miss. Cross-member isolation passed. Review that failure and the privacy filter's intentional clarification before approving any integration.
+- Check the [PR #16 follow-up evidence](PROJECT_STATUS.md#pr-16-architectural-review-follow-up). The supplied Issue #15 scenarios matched 28/29 with zero unexpected lookups. The first frozen holdout matched 13/16 and exposed a dental-to-CBC misroute and a third-party phrase rejected by the model after passing the local guard. Keep the PR in Draft for architectural review.
 
 - Repo: [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro), **PUBLIC**.
 - Earlier offline V0.1 member verification and coverage demo merged as PR #1 (`aec8b58f2ef9cea806b10157a34d067a5370b3b6`).

@@ -20,9 +20,24 @@ $env:OLLAMA_MODEL = 'qwen3:4b-instruct'
 npm run eval:ollama
 ```
 
-The command compares the keyword baseline and Ollama on identical inputs. It emits case ID, expected and actual result, and wall-clock duration. Exit code 1 means at least one Ollama case missed its expected outcome, including a provider error. For a chat HTTP 503 `AI_UNAVAILABLE`, verify the server at `http://127.0.0.1:11434/api/version` and confirm the exact installed model tag. Each question has a shared 30-second provider deadline, including the manifest lookup and any inference. The selector accepts only local GGUF model entries and caps each response at 64 KiB.
+The command compares the keyword baseline and Ollama on identical inputs. It emits case ID, expected and actual result, and wall-clock duration. Exit code 1 means at least one Ollama case missed its expected outcome, including a provider error. For a chat HTTP 503 `AI_UNAVAILABLE`, verify the server at `http://127.0.0.1:11434/api/version` and confirm the exact installed model tag. The selector accepts only local GGUF model entries and caps each response at 64 KiB.
 
-See [measured results](../PROJECT_STATUS.md#v03-local-ollama-review) for the reference run. The fixed suite was used during prompt tuning and provides regression evidence. Generalization needs an independent holdout.
+### Verified HTTP evaluation
+
+With the same environment, run:
+
+```powershell
+npm run eval:ollama:http -- review
+npm run eval:ollama:http -- holdout
+```
+
+The first command transcribes the [Issue #15](https://github.com/Nagy-API/TPA-AI-Euro/issues/15) matrix supplied in chat. The second uses separate cases written after selector tuning and reserved for the first frozen run. Both use the real verified HTTP route, loopback Ollama, and the synthetic coverage backend. Each case begins with a fresh session, except the deliberate unauthenticated row. Topic setup requests run before measurement. A test clock expires the topic without waiting two minutes.
+
+Each row reports the HTTP status and response code, local model checks, eligibility calls, tool-selection calls, raw tool proposals, actual backend lookup codes and elapsed HTTP time. A prediction matches when the status, response code and exact lookup match the expectation, including zero provider calls for explicitly marked cases. This method differs from the original raw one-pass probe. A clear XRAY intent can retrieve a mock policy response with an unknown coverage status.
+
+The app gives chat 30 seconds and returns HTTP 503 `CHAT_TIMEOUT` on deadline. The browser waits up to 35 seconds, allowing time to receive the server's response. Disconnect and imminent session expiry cancel provider fetches. Clicking send again after an error starts an explicit retry. Auth-only browser requests keep their 8-second deadline.
+
+See [measured results](../PROJECT_STATUS.md#pr-16-architectural-review-follow-up) for the integrated runs and remaining misclassifications.
 
 ## Deferred paid live run
 

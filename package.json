@@ -12,6 +12,7 @@
     "docs:check": "python scripts/validate_repository.py",
     "eval:cases": "node --experimental-strip-types scripts/evaluate-intents.ts --cases",
     "eval:ollama": "node --experimental-strip-types scripts/evaluate-intents.ts --ollama",
+    "eval:ollama:http": "node --experimental-strip-types scripts/evaluate-ollama-http.ts",
     "eval:live": "node --experimental-strip-types scripts/evaluate-intents.ts --live"
   }
 }

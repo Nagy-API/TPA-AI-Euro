@@ -1,11 +1,17 @@
-import { isServiceCode } from "./contracts.ts";
+import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
-import type { Coverage, CoverageIntentSelector, TpaBackend } from "./contracts.ts";
+import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
+import { isThirdPartyCoverage } from "./coverage-input.ts";
+import { isCoverageFollowUp } from "./coverage-conversation.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
 const SAFE_RETRY = "البيانات مش متاحة دلوقتي، من فضلك حاول مرة تانية أو تواصل مع خدمة العملاء. (بيانات تجريبية)";
 const COVERAGE_UNAVAILABLE: AssistantReply = Object.freeze({ status: 503, code: "COVERAGE_UNAVAILABLE", answer: SAFE_RETRY });
+const VERIFICATION_REQUIRED: AssistantReply = Object.freeze({
+  status: 401, code: "VERIFICATION_REQUIRED", answer: "الجلسة غير صالحة. لازم تتحقق من هويتك الأول."
+});
+export const CHAT_TIMEOUT: AssistantReply = Object.freeze({ status: 503, code: "CHAT_TIMEOUT", answer: SAFE_RETRY });
 
 export class CoverageAssistant {
   private readonly backend: TpaBackend;
@@ -17,7 +23,7 @@ export class CoverageAssistant {
     this.memberAuth = memberAuth;
   }
 
-  async answer(sessionToken: string | undefined, question: unknown): Promise<AssistantReply> {
+  async answer(sessionToken: string | undefined, question: unknown, requestSignal?: AbortSignal): Promise<AssistantReply> {
     if (!sessionToken) return { status: 401, code: "VERIFICATION_REQUIRED", answer: "لازم تتحقق من هويتك الأول قبل الاستفسار عن تغطيتك." };
     let session;
     try {
@@ -26,28 +32,41 @@ export class CoverageAssistant {
       return { status: 503, code: "IDENTITY_UNAVAILABLE", answer: SAFE_RETRY };
     }
     if (!session || (this.memberAuth ? !this.memberAuth.isActive(session) : session.expiresAt <= Date.now())) {
-      return { status: 401, code: "VERIFICATION_REQUIRED", answer: "الجلسة غير صالحة. لازم تتحقق من هويتك الأول." };
+      return VERIFICATION_REQUIRED;
     }
     if (typeof question !== "string" || !question.trim() || question.length > 500) {
       return { status: 400, code: "INVALID_QUESTION", answer: "اكتب سؤال واضح عن الخدمة الطبية (حتى 500 حرف)." };
     }
     const message = question.trim();
-    let selection;
+    if (requestSignal?.aborted) return CHAT_TIMEOUT;
+    const remainingMs = this.memberAuth?.remainingSessionMs(session) ?? session.expiresAt - Date.now();
+    if (remainingMs <= 0) return VERIFICATION_REQUIRED;
+    const expiry = remainingMs <= CHAT_REQUEST_TIMEOUT_MS ? AbortSignal.timeout(remainingMs) : undefined;
+    const signal = requestSignal && expiry ? AbortSignal.any([requestSignal, expiry]) : requestSignal ?? expiry;
+    const otherPerson = isThirdPartyCoverage(message);
+    const followUp = this.memberAuth && !otherPerson && isCoverageFollowUp(message) ? message : "";
+    let selection: ToolSelection;
     try {
-      selection = await this.selector.selectCoverageIntent(message);
+      selection = otherPerson || followUp ? { kind: "clarify" } : await this.selector.selectCoverageIntent(message, signal);
     } catch {
+      if (expiry?.aborted) return VERIFICATION_REQUIRED;
+      if (requestSignal?.aborted) return CHAT_TIMEOUT;
       return { status: 503, code: "AI_UNAVAILABLE", answer: SAFE_RETRY };
     }
+    if (expiry?.aborted) return VERIFICATION_REQUIRED;
+    if (requestSignal?.aborted) return CHAT_TIMEOUT;
     const explicitService = selection.kind === "tool" && selection.name === "get_member_coverage" && isServiceCode(selection.serviceCode)
       ? selection.serviceCode
       : undefined;
-    const followUp = selection.kind === "clarify" ? message : "";
     const serviceCode = this.memberAuth
       ? this.memberAuth.resolveConversationService(session, followUp, explicitService)
       : explicitService;
     if (serviceCode === null) return COVERAGE_UNAVAILABLE;
     if (!serviceCode) {
-      return { status: 200, code: "CLARIFICATION_NEEDED", answer: "تقصد أي خدمة بالتحديد؟ حاليًا في التجربة بندعم الرنين المغناطيسي، صورة الدم الكاملة، والأشعة السينية." };
+      const answer = otherPerson
+        ? "تقدر تستفسر هنا عن تغطية حسابك التجريبي الحالي بس. لو سؤالك عن تغطيتك أنت، اسأل عن الخدمة اللي محتاجها."
+        : "تقصد أي خدمة بالتحديد؟ حاليًا في التجربة بندعم الرنين المغناطيسي، صورة الدم الكاملة، والأشعة السينية.";
+      return { status: 200, code: "CLARIFICATION_NEEDED", answer };
     }
     let coverage: Coverage;
     try {
@@ -56,6 +75,8 @@ export class CoverageAssistant {
     } catch {
       return COVERAGE_UNAVAILABLE;
     }
+    if (expiry?.aborted) return VERIFICATION_REQUIRED;
+    if (requestSignal?.aborted) return CHAT_TIMEOUT;
     if (this.memberAuth && !this.memberAuth.isActive(session)) return COVERAGE_UNAVAILABLE;
     return { status: 200, code: "COVERAGE_RESULT", answer: formatCoverage(coverage) };
   }

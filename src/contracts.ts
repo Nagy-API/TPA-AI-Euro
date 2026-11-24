@@ -1,5 +1,6 @@
 /** First slice contracts: synthetic demo only, not an agreed TPA production API. */
 export const SERVICE_CODES = ["MRI", "CBC", "XRAY"] as const;
+export const CHAT_REQUEST_TIMEOUT_MS = 30_000;
 export type ServiceCode = (typeof SERVICE_CODES)[number];
 export type CoverageStatus = "COVERED" | "COVERED_WITH_CONDITIONS" | "NOT_COVERED" | "UNKNOWN";
 export type VerifiedSession = Readonly<{ memberKey: string; tenantKey: string; expiresAt: number }>;
@@ -21,7 +22,7 @@ export type ToolSelection =
   | { kind: "tool"; name: "get_member_coverage"; serviceCode: string }
   | { kind: "clarify" };
 export interface CoverageIntentSelector {
-  selectCoverageIntent(question: string): Promise<ToolSelection>;
+  selectCoverageIntent(question: string, signal?: AbortSignal): Promise<ToolSelection>;
 }
 export const isServiceCode = (value: string): value is ServiceCode =>
   SERVICE_CODES.includes(value as ServiceCode);

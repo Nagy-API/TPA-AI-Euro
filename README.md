@@ -153,7 +153,9 @@ npm run dev
 
 Open [the same local Web Demo](http://127.0.0.1:3000/demo) for the public fictional accounts and test codes. Try «الفحص اللي بيصور بالـمغناطيس وأنا جوه الجهاز، التأمين بيشيله؟» and then «وطب نسبة التحمل كام؟». The banner identifies the active mode. Use only synthetic questions and keep credentials, identifiers and private information out of chat. See the [local evaluation and troubleshooting runbook](docs/evaluation-runbook.md#local-ollama-evaluation).
 
-The service checks for a locally installed GGUF model and calls only Ollama on `127.0.0.1:11434`. Ollama first checks intent eligibility, then may select one allowed read-only coverage tool with an MRI, CBC, or XRAY code. The verified session and mock policy engine supply scope and coverage. An unavailable model, timeout or invalid response returns `AI_UNAVAILABLE` with HTTP 503. Fixture mode remains the default and can be selected by restarting with `DEMO_INTENT_MODE=fixture`.
+The service checks for a locally installed GGUF model and calls only Ollama on `127.0.0.1:11434`. Ollama first checks intent eligibility, then may select one allowed read-only coverage tool with an MRI, CBC, or XRAY code. The verified session and mock policy engine supply scope and coverage. An unavailable model or invalid provider response returns `AI_UNAVAILABLE` with HTTP 503. Fixture mode remains the default and can be selected by restarting with `DEMO_INTENT_MODE=fixture`.
+
+Chat has a 30-second server deadline and a 35-second browser deadline. A server deadline returns `CHAT_TIMEOUT` with HTTP 503. Recognized third-party requests clarify and clear the remembered topic, and exact co-pay follow-ups use the session's existing topic without another model request. Keep shared chat text synthetic. The input filter blocks recognizable credentials and identifiers while allowing ordinary amounts, percentages, and counts.
 
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 

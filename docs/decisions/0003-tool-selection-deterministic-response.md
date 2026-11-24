@@ -14,6 +14,8 @@ Use Claude Messages API tool use to select exactly one service code (`MRI`, `CBC
 
 Verified demo mode may opt into Ollama at a fixed loopback endpoint with a locally installed model. The adapter first asks for a schema-constrained eligibility decision without tools, then asks an eligible question to select the same single allowlisted tool. Both responses are untrusted and parsed at runtime. Multiple distinct service calls clarify without a lookup. Selector failures surface as `AI_UNAVAILABLE`. Fixture selection stays the default. The application owns identity, conversation topic, backend access and formatting. See [local evidence](../../PROJECT_STATUS.md#v03-local-ollama-review).
 
+The application also checks recognizable third-party subjects before model or policy access and clears the conversation topic on refusal. The HTTP route owns the chat deadline and passes cancellation to the model adapter. The same verified session continues to enforce member and tenant authorization on each lookup. See the [review follow-up evidence](../../PROJECT_STATUS.md#pr-16-architectural-review-follow-up).
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.

@@ -6,6 +6,21 @@
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama is available on `codex/ollama-coverage-intent` for architectural review. V0.2 and the local Web Chat are on `main`.
 
+## PR 16 architectural review follow-up
+
+- The application refuses recognizable third-party subjects before Ollama or coverage and clears the active service topic. Exact bounded co-pay follow-ups resolve from the authenticated session without Ollama. The adapter blocks recognizable credentials, demo IDs, and code-like numeric patterns while allowing ordinary percentages, amounts and counts. `INT-012` now expects clarification because the text includes a fictional membership ID.
+- Chat has a **30 s HTTP / 35 s browser** deadline. Local HTTP regressions cover cancellation during slow inference, client disconnect, imminent session expiry, and a single successful explicit retry after a timeout. The synthetic Gold browser smoke completed a numeric MRI question in **10,221 ms**, including **9,100 ms** of injected delay before real Ollama inference. The browser held the submit control disabled while pending. A third-party turn refused coverage, the next co-pay follow-up asked for a topic, and logout returned to verification.
+- On Ollama **0.40.17**, installed `qwen3:4b-instruct` matched **21/21** selector development cases with the updated expected behavior. The bare keyword selector matched **14/21** against those same labels. These cases informed tuning.
+
+| Verified HTTP dataset | Exact matches | Correct requested lookups | Unexpected lookups | p50 | p95 | Max |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Original Issue #15 questions and scenarios | 28/29 | 14/15 | 0 | 327 ms | 1,241 ms | 1,420 ms |
+| First frozen holdout run | 13/16 | 6/7 | 1 | 315 ms | 1,138 ms | 1,138 ms |
+
+- Review cases `QA-07` and `QA-29` each made one matching lookup (CBC and MRI). `QA-12` clarified at eligibility and made zero lookups. `QA-18` received two raw proposals (MRI, CBC) and made zero lookups. `QA-19` and `QA-25` clarified after eligibility. `QA-23/24/26/27` clarified without model calls. `QA-28` returned 401 before any model call or lookup. `QA-13` resolved an MRI follow-up without a model call. The original Issue #15 probe's 25/29 tool-count matches measured a different, one-pass model-only flow.
+- Holdout misses: `H-05` clarified on a CBC paraphrase. `H-08` clarified with zero tool proposals and zero lookups, but only after the eligibility model saw the third-party wording. `H-12` misclassified a dental checkup as CBC and looked up the verified member's synthetic CBC benefit. These are open issues for architectural review. The scope and privacy screens cover recognizable patterns. The evaluation provides evidence for these cases, with broader coverage undetermined.
+- `npm test` passed **83/83**. `npm run docs:check` and strict TypeScript 5.9.3 checking passed. The typecheck used `--noEmit --strict --target ES2022 --module NodeNext --allowImportingTsExtensions --types node` across `src`, `scripts`, and `tests`. Reproduce the model runs with `npm run eval:ollama`, `npm run eval:ollama:http -- review`, and `npm run eval:ollama:http -- holdout`. Both integrated runs exit 1 on the documented mismatches. See the [evaluation runbook](docs/evaluation-runbook.md#verified-http-evaluation).
+
 ## V0.3 local Ollama review
 
 - [Issue #13](https://github.com/Nagy-API/TPA-AI-Euro/issues/13) adds opt-in local model intent selection, based on `main` at `752664ea34b0bce0f0ef2bedba2af3af3a42098f`. Fixture mode remains default. Use the [README setup](README.md#run-with-local-ollama-synthetic-demo) for the existing Web Chat.

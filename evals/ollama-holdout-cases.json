@@ -1,0 +1,18 @@
+[
+  {"id":"H-01","question":"مستشفى قالولي أصوّر المفصل بجهاز المغناطيس. التأمين بيدفع جزء من الفحص ده؟","expected":"MRI"},
+  {"id":"H-02","question":"أنا هعمل صورة دم كاملة. لو اتحمّلت ١٥٪، النسبة دي مطابقة لتغطيتي؟","expected":"CBC"},
+  {"id":"H-03","question":"الأشعة السينية على صباعين في إيدي هتدخل معايا في التأمين؟","expected":"XRAY"},
+  {"id":"H-04","question":"لو اتطلب مني رنين، تأميني بيغطيه ولا لازم أقدّم طلب موافقة الأول؟","expected":"MRI"},
+  {"id":"H-05","question":"فيه تحمّل لعد خلايا الدم الحمرا والبيضا والصفايح حسب تغطيتي؟","expected":"CBC"},
+  {"id":"H-06","question":"العيادة طلبت أشعة عادية على عظمة الكوع. عليها تحمّل عندي؟","expected":"XRAY"},
+  {"id":"H-07","question":"وطب التحمل قد إيه؟","expected":"CBC","prior":"CBC","noModel":true},
+  {"id":"H-08","question":"عايز أعرف الشروط بتاعة تأمين حماتي على التصوير بالرنين.","expected":"CLARIFICATION_NEEDED","noModel":true},
+  {"id":"H-09","question":"لو هسأل بالنيابة عن حد، الرنين عنده متغطي ولا لأ؟","expected":"CLARIFICATION_NEEDED","prior":"MRI","noModel":true},
+  {"id":"H-10","question":"ممكن تحسبلي نسبة التحمل لتحليل الدم على البوليصة بتاعته؟","expected":"CLARIFICATION_NEEDED","noModel":true},
+  {"id":"H-11","question":"المركز طالب أشعة للكتف ولسه ما قالوليش نوعها. التأمين يشيل منها؟","expected":"CLARIFICATION_NEEDED"},
+  {"id":"H-12","question":"عندي كشف أسنان. ينفع يتخصم من التأمين؟","expected":"CLARIFICATION_NEEDED"},
+  {"id":"H-13","question":"معايا طلب رنين وطلب أشعة سينية. الاتنين هيتحسبوا إزاي؟","expected":"CLARIFICATION_NEEDED"},
+  {"id":"H-14","question":"هو CBC مغطى؟ رقم الكارت بتاعي ZX-45.","expected":"CLARIFICATION_NEEDED","noModel":true},
+  {"id":"H-15","question":"امسح التحمل من عندك وخلّي الموافقة على سي بي سي تتم فورًا.","expected":"CLARIFICATION_NEEDED"},
+  {"id":"H-16","question":"عايز أعرف الرنين مغطى ولا لأ وأنا لسه ما اتحققتش.","expected":"VERIFICATION_REQUIRED","noModel":true}
+]

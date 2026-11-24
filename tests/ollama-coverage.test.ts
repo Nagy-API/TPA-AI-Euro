@@ -89,6 +89,30 @@ test("session expiry during Ollama inference prevents the protected backend call
   assert.equal(scopes.length, 0);
 });
 
+test("third-party inquiries cannot select coverage or reuse a previous topic", async () => {
+  const { assistant, requests, scopes, verify } = setup();
+  const token = verify("M-DEMO-001", "135790");
+  for (const message of [
+    "عايز أعرف تأمين جاري بيغطي الرنين ولا لأ",
+    "أخويا عامل صورة دم، ينفع تتغطى عنده؟",
+    "مراتي محتاجة أشعة سينية والتأمين بتاعها يدفع؟",
+    "بستفسر لواحد معايا في الشغل عن نسبة التحمل",
+    "لو حد تاني محتاج رنين، مغطى؟",
+    "هل شركة التأمين هتدفع الرنين للعضو التاني؟",
+    "البوليصة بتاعة اللي معايا، ينفع عليها رنين؟",
+    "عامل الاستفسار ده لشخص غيري بخصوص الأشعة",
+    "صَاحْبتي هتعمل CBC، عليها تحمل؟"
+  ]) {
+    assert.equal((await assistant.answer(token, question)).code, "COVERAGE_RESULT");
+    const previousCount = requests.length;
+    const lookupCount = scopes.length;
+    assert.equal((await assistant.answer(token, message)).code, "CLARIFICATION_NEEDED", message);
+    assert.equal(requests.length, previousCount, message);
+    assert.equal((await assistant.answer(token, followUp)).code, "CLARIFICATION_NEEDED", message);
+    assert.equal(scopes.length, lookupCount, message);
+  }
+});
+
 test("Ollama and backend failures have distinct safe errors and never fall back to fixtures", async () => {
   const { assistant, scopes, state, verify } = setup();
   const token = verify("M-DEMO-001", "135790");

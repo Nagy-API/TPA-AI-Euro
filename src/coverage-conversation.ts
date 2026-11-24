@@ -8,6 +8,11 @@ const COPAY_FOLLOW_UPS = [
   /^(?:and )?(?:what|how much) is (?:the )?co[ -]?pay$/i
 ];
 
+export function isCoverageFollowUp(message: string): boolean {
+  const normalized = message.trim().replace(/[?؟.!]+$/u, "").trimEnd().replace(/\s+/gu, " ");
+  return COPAY_FOLLOW_UPS.some((pattern) => pattern.test(normalized));
+}
+
 /** Offline deterministic topic resolution, NOT a real LLM. One slot per verified session. */
 export class CoverageConversation {
   private topic?: Readonly<{ serviceCode: ServiceCode; expiresAt: number }>;
@@ -18,8 +23,7 @@ export class CoverageConversation {
       return explicitService;
     }
 
-    const normalized = followUp.trim().replace(/[?؟.!]+$/u, "").trimEnd().replace(/\s+/gu, " ");
-    if (this.topic && this.topic.expiresAt > now && COPAY_FOLLOW_UPS.some((pattern) => pattern.test(normalized))) {
+    if (this.topic && this.topic.expiresAt > now && isCoverageFollowUp(followUp)) {
       return this.topic.serviceCode;
     }
 
