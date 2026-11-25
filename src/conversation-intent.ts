@@ -21,12 +21,14 @@ export type ConversationIntent = Readonly<{
 export type DialogueContext =
   | Readonly<{ kind: "idle" }>
   | Readonly<{ kind: "active"; service: ServiceCode }>
+  | Readonly<{ kind: "referral"; reason: "unavailable" | "unsupported" }>
   | Readonly<{ kind: "pending"; focus: Focus }>;
 
 export type TurnResolution =
   | Readonly<{ action: "lookup"; service: ServiceCode; focus: Focus; topic: "keep" | "replace" }>
   | Readonly<{ action: "clarify"; focus: Focus; reason: "service" | "multiple" | "conflict" }>
-  | Readonly<{ action: "reply"; reply: ConversationIntent; topic: "clear" | "keep" }>;
+  | Readonly<{ action: "reply"; reply: ConversationIntent; topic: "clear" | "keep" }>
+  | Readonly<{ action: "explain"; purpose: "referral" | "unsupported" | "approval-action"; topic: "clear" | "keep" }>;
 
 export type GroundingKind = "service" | "follow-up";
 export type TurnEvidence = Readonly<{ match: string; quote: string }>;

@@ -5,7 +5,7 @@ import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
 import { blocksConversationLookup, explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
 import { SERVICE_CATALOG, type ConversationInterpreter } from "./conversation-intent.ts";
-import { CLARIFY_SERVICE, conversationReply, formatFocusedCoverage, OTHER_ACCOUNT, UNSUPPORTED_SERVICE } from "./conversation-replies.ts";
+import { CLARIFY_SERVICE, conversationReply, explainConversation, formatFocusedCoverage, OTHER_ACCOUNT } from "./conversation-replies.ts";
 import { resolveTurn } from "./turn-resolution.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
@@ -115,16 +115,21 @@ export class CoverageAssistant {
     if (hasPrivateCoverageInput(message)) {
       return decline("CLARIFICATION_NEEDED", "اكتب اسم الفحص أو سؤالك عن التأمين من غير أرقام العضوية أو بيانات التحقق.");
     }
-    if (isThirdPartyCoverage(message)) return decline("OUT_OF_SCOPE", OTHER_ACCOUNT);
-    if (blocksConversationLookup(message)) return decline("OUT_OF_SCOPE", "أقدر أراجع بيانات التغطية لحسابك التجريبي. طلبات تعديل الوثيقة أو إصدار موافقة بتحتاج الجهة المختصة.");
     const clues = inspectServiceSubject(message);
+    if (blocksConversationLookup(message)) {
+      const reply = explainConversation("approval-action");
+      return decline(reply.code, reply.answer);
+    }
+    if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
+      // This is a public catalog answer, even when a service possessive resembles an account cue.
+      auth.offerConversationReferral(session, "unsupported");
+      return { status: 200, ...explainConversation("unsupported") };
+    }
+    if (isThirdPartyCoverage(message)) return decline("OUT_OF_SCOPE", OTHER_ACCOUNT);
     if (clues.named.length > 1) {
       const reply = conversationReply({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
       auth.awaitConversationService(session, explicitBenefitFocus(message) ?? "OVERVIEW");
       return { status: 200, ...reply };
-    }
-    if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
-      return decline("UNSUPPORTED_SERVICE", UNSUPPORTED_SERVICE);
     }
 
     let resolution;
@@ -149,6 +154,11 @@ export class CoverageAssistant {
     if (resolution.action === "reply") {
       if (resolution.topic === "clear") clear();
       return { status: 200, ...conversationReply(resolution.reply) };
+    }
+    if (resolution.action === "explain") {
+      if (resolution.purpose === "unsupported") auth.offerConversationReferral(session, "unsupported");
+      else if (resolution.topic === "clear") clear();
+      return { status: 200, ...explainConversation(resolution.purpose) };
     }
     if (resolution.action === "ground" || resolution.action === "clarify" && resolution.reason === "conflict") {
       return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);
@@ -175,7 +185,8 @@ export class CoverageAssistant {
       return finished;
     }
     if (coverage.coverageStatus === "UNKNOWN") {
-      return decline("COVERAGE_NOT_AVAILABLE", formatFocusedCoverage(coverage, focus) ?? SAFE_RETRY);
+      auth.offerConversationReferral(session, "unavailable");
+      return { status: 200, code: "COVERAGE_NOT_AVAILABLE", answer: formatFocusedCoverage(coverage, focus) ?? SAFE_RETRY };
     }
     if (topic === "replace") auth.resolveConversationService(session, "", serviceCode);
     return { status: 200, code: "COVERAGE_RESULT", answer: formatFocusedCoverage(coverage, focus) ?? formatCoverage(coverage) };

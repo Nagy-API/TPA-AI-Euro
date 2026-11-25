@@ -152,6 +152,11 @@ export class DemoMemberAuth {
     this.findActiveRecord(session, now)?.conversation.awaitService(focus, now, session.expiresAt);
   }
 
+  offerConversationReferral(session: VerifiedSession, reason: "unavailable" | "unsupported"): void {
+    const now = this.now();
+    this.findActiveRecord(session, now)?.conversation.offerReferral(reason, now, session.expiresAt);
+  }
+
   /** null denotes an inactive session. undefined means the service needs clarification. */
   resolveConversationService(session: VerifiedSession, followUp: string, serviceCode: ServiceCode | undefined): ServiceCode | null | undefined {
     const now = this.now();

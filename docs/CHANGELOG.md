@@ -119,3 +119,9 @@
 - Split semantic proposals and conditional grounding from deterministic turn resolution. Store one expiring active service or pending clarification per verified session.
 - Added tests for service correction, pending expiry, general price questions and recovery from a mistaken first-pass route.
 - Preserved the second independent suite as an exposed HTTP replay. See the [baseline diagnosis](v04-qa2-diagnostics.md) and [candidate evidence](../PROJECT_STATUS.md#typed-turn-resolution-after-qa2).
+
+## 2026-11-25 — Grounded response usefulness
+
+- Retained a non-lookup referral after missing fixture data or an unsupported procedure. Added bounded replies for coverage escalation, exclusion questions and unauthorized approval or policy actions.
+- Distinguished definitions from personal questions that need a service, kept the active topic when explaining a displayed balance, and corroborated contextual coverage questions before looking up the verified topic.
+- Documented the ten incomplete reviewed QA2 scenarios and the disclosed replays in the [diagnostic report](v04-qa2-diagnostics.md).

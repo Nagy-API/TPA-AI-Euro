@@ -1,9 +1,21 @@
-import { SERVICE_CATALOG, type ConversationIntent, type Focus } from "./conversation-intent.ts";
+import { SERVICE_CATALOG, type ConversationIntent, type Focus, type TurnResolution } from "./conversation-intent.ts";
 import type { Coverage } from "./contracts.ts";
 
 export const OTHER_ACCOUNT = "أقدر أراجع تغطية حسابك التجريبي الحالي بس. صاحب الحساب التاني يقدر يسأل من جلسته بعد التحقق.";
 export const UNSUPPORTED_SERVICE = "الخدمة دي مش ضمن الخدمات اللي أقدر أراجعها في الديمو. ده ما يحددش إذا كانت وثيقتك بتغطيها. اسأل خدمة العملاء عن الخدمة دي.";
 export const CLARIFY_SERVICE = "ممكن تقول اسم الفحص اللي الدكتور طلبه أو توصف بيتعمل إزاي؟";
+
+export function explainConversation(purpose: Extract<TurnResolution, { action: "explain" }>["purpose"]) {
+  if (purpose === "approval-action") return {
+    code: "OUT_OF_SCOPE",
+    answer: "إصدار الموافقة أو تعديل الوثيقة من اختصاص الجهة المختصة. أقدر أراجع شرط الموافقة في الوثيقة التجريبية لو عايز تستفسر عنه."
+  };
+  if (purpose === "unsupported") return { code: "UNSUPPORTED_SERVICE", answer: UNSUPPORTED_SERVICE };
+  return {
+    code: "OUT_OF_SCOPE",
+    answer: "اتأكد من خدمة العملاء أو الجهة المسؤولة عن وثيقتك قبل المعاد. اسألهم عن تغطية الخدمة وأي شرط للموافقة. غياب النتيجة هنا ما يحددش اللي هتدفعه."
+  };
+}
 
 const FAQ = {
   COPAY: "نسبة التحمل هي الجزء اللي عليك من تكلفة الخدمة المؤهلة للتغطية. النسبة بتختلف حسب الخدمة والوثيقة.",
@@ -29,7 +41,7 @@ export function conversationReply({ intent, subject }: ConversationIntent) {
       return { code: intent, answer: subject === "THIRD_PARTY" ? OTHER_ACCOUNT :
         "أقدر أساعدك في استفسارات التغطية ومعاني مصطلحات التأمين في الديمو. قول لي اسم الفحص أو المصطلح اللي حابب تعرف عنه." };
     case "FOLLOW_UP":
-      return { code: "CLARIFICATION_NEEDED", answer: "بتسأل عن أنهي فحص؟ قول لي اسمه عشان أراجع بياناته في وثيقتك التجريبية." };
+      return { code: "CLARIFICATION_NEEDED", answer: "بتسأل عن أنهي فحص؟ قول لي اسم الفحص عشان أراجع بياناته في وثيقتك التجريبية." };
   }
   return { code: "CLARIFICATION_NEEDED", answer: subject === "MULTIPLE"
     ? "خلّينا نراجع فحص واحد في كل مرة. تحب نبدأ بأنهي واحد؟" : CLARIFY_SERVICE };

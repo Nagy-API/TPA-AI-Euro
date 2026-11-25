@@ -1,5 +1,35 @@
 # V0.4 second acceptance diagnosis
 
+## Response and state defects at reviewed head `4b2b732`
+
+The disclosed QA2 replay reproduced the ten incomplete scenarios below. Two initial 30-second inference timeouts in scenario 01 were additional environment failures in that replay and are excluded from this attribution of the reviewed result.
+
+| Scenario | Expected goal and observed path | Primary attribution |
+| --- | --- | --- |
+| 04.2 | Referral after an XRAY lookup returned missing data. The resolver received an idle session and rendered a generic scope reply. | Lost dialogue context and missing referral response. |
+| 05.2 | Confirm coverage for the active MRI. First pass proposed XRAY; service grounding returned NONE. Zero lookup and the topic cleared. | Model semantic error and missing contextual overview grounding. |
+| 07.1 | Identify the specific lab test before discussing the member's copay. FAQ/COPAY rendered a definition and left the session idle. | Incorrect non-lookup response and missing pending clarification. |
+| 13.1–2 | Explain dental cleaning is outside the demo, then offer a referral. A service possessive triggered the other-account guard; the follow-up was generic scope. | Incorrect non-lookup response and missing referral context. |
+| 14.1–2 | Explain Doppler is outside the demo and explain that this says nothing about payment. XRAY was rejected by grounding and both turns got clarification. | Model semantic error plus missing supported response path. |
+| 16.2 | Redirect a sports question to coverage. The model classified it as THIRD_PARTY; the renderer produced an account refusal. | Model semantic error and overly specific non-lookup reply. The topic correctly cleared. |
+| 23.3 | Ask which service the remaining benefit refers to after a refusal. FAQ/LIMIT produced a definition. | Incorrect non-lookup response. The earlier refusal correctly cleared the topic. |
+| 24.2 | Explain that issuing approval is handled by the responsible authority. The CAPABILITIES proposal ultimately rendered generic clarification. | Model semantic error plus missing refusal route for an action request. |
+| 27.3 | Explain the displayed balance is distinct from an invoice while retaining MRI. The wording narrowly missed the amount-reference branch; FAQ cleared the topic. | Lost dialogue context and incorrect non-lookup response. |
+| 30.2 | Re-fetch CBC with copay focus. First pass said FAQ/COPAY, grounding said NONE, and the resolver moved from active CBC to pending. | Missing lookup from model grounding abstention; no backend or benefit renderer failure. |
+
+None of these reproduced mismatches used a correct backend lookup and rendered the wrong benefit focus. The missed calls were 05.2 and 30.2. Grounding for contextual coverage overview now permits a verified active service only when the independent pass confirms the purpose and quotes the current input. An unsupported or unavailable result can leave a short-lived, non-lookup referral state. A referral stores neither a service code nor a benefit result.
+
+### Disclosed replay of the response revision
+
+| Suite | Complete scenarios | Exact turns | Required lookups matched | Wrong, extra, unauthorized | Model probes / inference / backend | HTTP p50 / p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| QA2 | 29/30 | 68/69 | 39/40 | 0 / 0 / 0 | 58 / 65 / 39 | 544 / 1,211 ms |
+| QA1 | 23/30 | 65/74 | 35/38 | 0 / 0 / 0 | 67 / 78 / 35 | 554 / 1,258 ms |
+
+Commands used `OLLAMA_MODEL=qwen3:4b-instruct` and `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --qa2` or `--disclosed`. Both commands report mismatches with exit 1. `npm test` passed 104/104. Strict TypeScript over `src`, `scripts` and `tests`, documentation validation and `git diff --check` passed.
+
+QA2 30.2 remained the only mismatch. The model proposed FAQ/COPAY for a personal question about the active CBC and the grounding call returned NONE. The application requested clarification without a lookup. QA1 exact mismatches were 07.2, 13.1, 13.2, 14.2, 16.1, 16.2, 17.2, 22.3 and 28.3. The three missed lookups were 07.2, 14.2 and 16.2. These include uncorroborated benefit focus and service contrast/re-entry. The non-lookup reply issues include unsupported-service typing, unrelated replies, and an abbreviated repeat of a refused approval. These exposed results do not establish independent acceptance or isolate model capacity from prompt and application behavior. Only `qwen3:4b-instruct` was listed as locally installed.
+
 The independent 69-turn trace was recorded at `3fb22a7701ddc2793a2d73d4404de9ce65a061a5`. The checked-in [disclosed input and oracle](../evals/v04-qa2-disclosed.json) preserves the original manifest. Its SHA-256 is `825ddb69d1df4f4c59d075c62133981ffc0a22b4c6586bac68f44d879161cb79` over the UTF-8 output of `JSON.stringify(JSON.parse(file))`. The replay uses the original HTTP status, reply pattern, lookup and topic expectations. See the [independent review](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7133214872).
 
 ## Baseline turns missing a required lookup

@@ -9,6 +9,42 @@ import { OllamaCoverageIntentSelector } from "../src/ollama-selector.ts";
 const mri = { intent: "COVERAGE_LOOKUP", subject: "MRI", focus: "OVERVIEW" };
 const copay = { intent: "FOLLOW_UP", subject: "NONE", focus: "COPAY" };
 
+test("a referral survives a missing fixture but cannot supply a coverage topic or outlive its TTL", async () => {
+  const { assistant, verify, answers, lookups, advance } = setup();
+  const token = verify();
+  const unrelated = { intent: "OUT_OF_SCOPE", subject: "NONE", focus: "OVERVIEW" };
+  answers.push({ ...mri, subject: "XRAY" }, unrelated, unrelated, copay);
+  assert.equal((await assistant.answer(token, "هل XRAY متغطية عندي؟")).code, "COVERAGE_NOT_AVAILABLE");
+  const referral = await assistant.answer(token, "أراجع من مين؟");
+  assert.equal(referral.code, "OUT_OF_SCOPE");
+  assert.match(referral.answer, /خدمة العملاء/);
+  advance(120_001);
+  assert.equal((await assistant.answer(token, "أراجع من مين؟")).code, "OUT_OF_SCOPE");
+  assert.equal((await assistant.answer(token, "هشيل كام من جيبي؟")).code, "CLARIFICATION_NEEDED");
+  assert.deepEqual(lookups, ["XRAY"]);
+});
+
+test("unsupported procedure and approval action replies never look up coverage", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  const token = verify();
+  assert.equal((await assistant.answer(token, "هل الدوبلر في الوثيقة؟")).code, "UNSUPPORTED_SERVICE");
+  answers.push({ intent: "CLARIFY", subject: "NONE", focus: "OVERVIEW" });
+  assert.match((await assistant.answer(token, "أدفعه على حسابي؟")).answer, /ما يحددش/);
+  assert.match((await assistant.answer(token, "اصدر موافقة للرنين")).answer, /الجهة المختصة/);
+  assert.deepEqual(lookups, []);
+});
+
+test("an overview follow-up uses the verified topic only with matching contextual evidence", async () => {
+  const { assistant, verify, answers, lookups } = setup();
+  const token = verify();
+  answers.push(mri, { ...mri, subject: "XRAY" }, { match: "OVERVIEW", quote: "الفحص مغطى" });
+  await assistant.answer(token, "هل MRI في التغطية؟");
+  assert.match((await assistant.answer(token, "أعتبر الفحص مغطى؟")).answer, /الرنين المغناطيسي/);
+  answers.push({ ...mri, subject: "XRAY" }, { match: "NONE", quote: "" });
+  await assistant.answer(token, "الفحص الجديد بمادة مختلفة مغطى؟");
+  assert.deepEqual(lookups, ["MRI", "MRI"]);
+});
+
 test("a named service and a personal benefit outrank a general FAQ proposal", async () => {
   const { assistant, verify, answers, lookups } = setup();
   answers.push({ intent: "FAQ", subject: "COPAY", focus: "OVERVIEW" });

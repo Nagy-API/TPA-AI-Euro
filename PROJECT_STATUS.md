@@ -8,7 +8,7 @@
 
 ## V0.4 grounded conversation — Issue #17
 
-V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A single service topic or pending clarification lasts up to two minutes in its verified session. Every accepted follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server.
+V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A verified session holds one service topic, pending clarification, or non-lookup referral for up to two minutes. Every accepted coverage follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server. See the [response and state diagnosis](docs/v04-qa2-diagnostics.md#response-and-state-defects-at-reviewed-head-4b2b732).
 
 ### Recall revision after independent QA
 

@@ -33,6 +33,10 @@ export class CoverageConversation {
     this.state = { value: { kind: "pending", focus }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
   }
 
+  offerReferral(reason: "unavailable" | "unsupported", now: number, sessionExpiresAt: number): void {
+    this.state = { value: { kind: "referral", reason }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
+  }
+
   resolve(followUp: string, explicitService: ServiceCode | undefined, now: number, sessionExpiresAt: number): ServiceCode | undefined {
     if (explicitService) {
       this.state = { value: { kind: "active", service: explicitService }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };

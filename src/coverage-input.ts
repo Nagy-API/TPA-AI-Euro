@@ -32,11 +32,14 @@ const REFERENCE_OR_NEGATION = /(?<!\p{L})(?:(?:مش|موش|بدون|من غير)
 // These cues catch conflicting procedures in mixed requests. Unsupported-only
 // requests already fail because they contain no positive catalog evidence.
 const COMPETING_PROCEDURE = /(?:كشف|تنظيف|حشو|خلع)\s+(?:(?:جير|عصب)\s+)?(?:اسنان|الاسنان|ضرس|سنان)|علاج\s+طبيعي|(?:اشع[هة]|تصوير)\s+(?:ال)?مقطعي|(?:تصوير|فحص)\s+(?:بـ?)?(?:ال)?موجات\s+(?:فوق\s+)?صوتي[هة]|(?<!\p{L})[وف]?(?:مقطعي[هة]|(?:ال)?سونار|(?:ال)?منظار)(?!\p{L})|(?:سكر\s+تراكمي|وظائف\s+(?:ال)?كبد|تحليل\s+(?:ال)?غد[هة])|\b(?:ct scan|ultrasound|endoscopy|dental (?:exam|checkup)|physiotherapy)\b/iu;
-const DENTAL = /تبييض\s+(?:ال)?(?:اسنان|سنان)|تقويم[^؟،.!]{0,20}(?:اسنان|سنان)|\b(?:tooth|teeth|dental)\s+(?:bleaching|whitening)\b/iu;
+const DENTAL = /تبييض\s+(?:ال)?(?:اسنان|سنان)|تنظيف\s+جير|تقويم[^؟،.!]{0,20}(?:اسنان|سنان)|\b(?:tooth|teeth|dental)\s+(?:bleaching|whitening)\b/iu;
+const DOPPLER = /(?<!\p{L})(?:ال)?دوبلر(?!\p{L})|\bdoppler\b/iu;
+const APPROVAL_ACTION = /(?<!\p{L})(?:سجل|اصدر|اعتمد|وافق\s+على|الغ[ىي]|عدل|غير|حدث)\s+(?:(?:طلب|الطلب|شرط|حالة)\s+)?(?:ال)?(?:موافق[هة]|وثيق[هة]|بوليص[هة])(?!\p{L})|\b(?:issue|grant|submit|revoke|change|modify)\s+(?:an? |the |my )?(?:approval|policy)\b/iu;
 const CHAT_OVERRIDE = /\b(?:ignore|override|system prompt|tool_calls|get_member_coverage|serviceCode|impersonate|pretend)\b|(?:تجاهل|اتجاهل|اكسر|الغي)\s+(?:كل\s+)?(?:ال)?(?:تعليمات|قواعد|قيود)|(?:نفذ|شغل|استدعي)\s+(?:ال)?(?:اداة|تول)|(?:اعتبر|افترض)\s+(?:انك|نفسك|اني)|(?:اديني|اعمللي|طلعلي|اصدر)\s+موافق[هة]/iu;
 
 export function blocksConversationLookup(input: string): boolean {
-  return CHAT_OVERRIDE.test(normalizeArabic(input));
+  const text = normalizeArabic(input);
+  return CHAT_OVERRIDE.test(text) || APPROVAL_ACTION.test(text);
 }
 
 export function coverageSubjectText(input: string): string {
@@ -54,7 +57,7 @@ export function inspectServiceSubject(input: string) {
   };
   return {
     named: SERVICE_CODES.filter((code) => evidence[code]),
-    unsupported: COMPETING_PROCEDURE.test(question) || DENTAL.test(question),
+    unsupported: COMPETING_PROCEDURE.test(question) || DENTAL.test(question) || DOPPLER.test(question),
     comparison: REFERENCE_OR_NEGATION.test(question)
   };
 }
@@ -78,7 +81,7 @@ export function hasGroundedServiceQuote(input: string, quote: string, code: Serv
 export function explicitBenefitFocus(input: string): Focus | undefined {
   const question = normalizeArabic(input);
   const signals = {
-    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع)|تحم[ّ]?ل|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي)|كام\s+نسب[هة]|\bcopay\b/iu.test(question),
+    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع)|تحم[ّ]?ل|كوبا[ىي]|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي)|كام\s+نسب[هة]|\bcopay\b/iu.test(question),
     LIMIT: /متبقي|(?:حد|رصيد|سقف|متاح).{0,22}(?:كام|لسه|قد ايه)|(?:فاضل|باقي|هيفضل).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance)\b/iu.test(question),
     PREAPPROVAL: /موافق[هة]|اعتماد|(?:ال)?اذن|استاذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
   } satisfies Record<Exclude<Focus, "OVERVIEW">, boolean>;
@@ -87,7 +90,7 @@ export function explicitBenefitFocus(input: string): Focus | undefined {
 }
 
 export function asksDefinition(input: string): boolean {
-  return /(?:يعني\s+(?:ايه|ايش)|معنى|الفرق بين|\b(?:what does .* mean|definition|define)\b)/iu.test(normalizeArabic(input));
+  return /(?:يعني\s+(?:ايه|ايش)|معنى|معنا(?:ه|ها)\s+(?:ايه|ايش)|المقصود\s+(?:ب|من)|الفرق بين|\b(?:what does .* mean|definition|define)\b)/iu.test(normalizeArabic(input));
 }
 
 /** A standalone benefit label can refer only to the active topic. */
@@ -110,9 +113,22 @@ export function asksPolicyBenefit(input: string): boolean {
 
 export function asksWhetherReferencedAmountIsDue(input: string): boolean {
   const question = normalizeArabic(input);
-  return /(?:\b(?:this|that) amount\b|(?:ده|دي|دا)\s+(?:ال)?مبلغ)/iu.test(question) &&
-    /(?:مطالب|مطلوب|لازم).{0,20}(?:ادفع|دفع)|\b(?:owe|must pay|have to pay)\b/iu.test(question) &&
+  return /(?:\b(?:this|that) (?:amount|balance)\b|(?:ده|دي|دا)\s+(?:ال)?مبلغ|(?:ال)?رصيد\s+(?:ده|دا))/iu.test(question) &&
+    /(?:مطالب|مطلوب|لازم).{0,20}(?:ادفع|دفع)|فاتور.{0,16}مطلوب|\b(?:owe|must pay|have to pay)\b/iu.test(question) &&
     !/كام|قد ايه|\bhow much\b/iu.test(question);
+}
+
+export function asksReferralFollowUp(input: string): boolean {
+  const text = normalizeArabic(input);
+  return /خدم[هة]\s+العملاء|اتواصل\s+مع\s+مين|(?:اتاكد|اسال|اراجع|استفسر)\s+من\s+مين|(?:على\s+حسابي|من\s+جيبي)|\b(?:customer service|who (?:do|should) i (?:ask|contact)|pay out of pocket)\b/iu.test(text);
+}
+
+export function asksAboutExclusion(input: string): boolean {
+  return /مستبعد|استبعاد|(?:مش|غير)\s+مغط[ىي]|\b(?:excluded|exclusion|not covered)\b/iu.test(normalizeArabic(input));
+}
+
+export function explicitlyRefersToSameProcedure(input: string): boolean {
+  return /(?<!\p{L})(?:نفس\s+(?:ال)?(?:فحص|تحليل|اشع[هة]|خدم[هة])|(?:ال)?(?:فحص|تحليل|اشع[هة]|خدم[هة])\s+(?:نفسه|نفسها))(?!\p{L})|\b(?:the same (?:test|scan|procedure|service))\b/iu.test(normalizeArabic(input));
 }
 
 export function isServiceSelection(input: string, code: ServiceCode): boolean {
