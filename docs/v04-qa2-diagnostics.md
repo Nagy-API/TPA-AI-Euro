@@ -1,5 +1,48 @@
 # V0.4 second acceptance diagnosis
 
+## Nagy manual Web Chat
+
+The working tree was clean and matched the open Draft head `0c687038c630bda9fe32cb47c118fd24634af354`. The [reported nine chat turns](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7158911501) were replayed before editing, using verified HTTP, the Gold fixture, Node 24.14.1 and local `qwen3:4b-instruct` (digest prefix `0edcdef34593`). The trace captures model JSON, catalog evidence, session state and scoped backend calls. Resolver actions were reproduced from the captured proposals and previously read state. The unsupported dental turn was handled before inference.
+
+| Turn | Initial intent / subject | Catalog evidence | State before → after | Action | Lookup and final reply |
+| --- | --- | --- | --- | --- | --- |
+| MRI coverage | COVERAGE_LOOKUP / MRI | MRI | Idle → active MRI | Lookup, overview | 1 MRI. 20% copay, 5,000 EGP remaining, preapproval. |
+| Teeth whitening | No model call | Unsupported dental procedure | Active MRI → unsupported referral | Pre-routing unsupported reply | 0. Outside the demo catalog. |
+| Microscopic fertilization | UNSUPPORTED_SERVICE / NONE | None | Unsupported referral → unsupported referral | Explain unsupported | 0. Outside the demo catalog. |
+| Available services | CAPABILITIES / SERVICES | None | Unsupported referral → idle | Reply with catalog | 0. Lists MRI, CBC and XRAY. |
+| My type | CAPABILITIES / SERVICES | None | Idle → idle | Reply with assistant role | 0. Generic capabilities. |
+| My name | CAPABILITIES / SERVICES | None | Idle → idle | Reply with assistant role | 0. Generic capabilities. |
+| Nearest branch | CAPABILITIES / SERVICES | None | Idle → idle | Reply with assistant role | 0. Generic capabilities. |
+| Full CBC name | COVERAGE_LOOKUP / CBC | CBC | Idle → idle | Reply with the coverage proposal | 0. Generic request for the procedure name. The reply path leaves no pending clarification. |
+| Colloquial CBC repeat | COVERAGE_LOOKUP / CBC | None | Idle → idle | Ground service, then clarify conflict | 0. A second call proposed CBC and copied `صوره دم`. The short label did not satisfy the service grounding rule. Same generic request. |
+
+The baseline made one backend call and matched four of nine expected reply-and-service outcomes. All initial proposals had overview focus. The corrected browser journey showed the Ollama mode banner, verified the Gold fixture, and replayed all nine turns in one session. Both CBC messages displayed 0% copay and 1,000 EGP remaining. The tier question asked whether the user meant their policy tier. Name and branch responses each explained the applicable data gap. The browser console reported zero errors or warnings.
+
+### Astra's verified-chat findings
+
+| Finding | Change and coverage |
+| --- | --- |
+| F1 · Benefit grounding | An active service requires positive evidence for the same benefit in the message. A copied date question or copied limit question labelled as copay both lead to zero extra lookups in resolver and verified HTTP tests. The existing scoped copay control still reads the authoritative fixture. |
+| F2 · Conditional coverage | Overview and focused replies retain `COVERED_WITH_CONDITIONS`. Gold MRI reports the known approval requirement. Silver CBC remains conditional, including when the backend explicitly says preapproval is not required. |
+| F3 · V0.4 HTTP cancellation | The tests use the same selector-as-interpreter wiring as `index.ts`. Deadline, disconnect and session expiry abort the grounding request with zero extra lookups. Logout and rotation suppress late grounding results. The tests check topic reset and exercise retry or re-verification where applicable. |
+
+The deterministic transport tests use the real HTTP server and Ollama adapter with synthetic provider responses and shortened deadlines. The live Ollama replays use the installed model. They do not exercise a real 30-second provider stall.
+
+### Live verified HTTP replay
+
+| Suite | Matched turns | Complete scenarios | Required lookups matched |
+| --- | ---: | ---: | ---: |
+| Manual transcript and added Silver paraphrases (`--manual`) | 16/16 | 2/2 | 5/5 |
+| Disclosed QA2 (`--qa2`) | 68/69 | 29/30 | 39/40 |
+| Disclosed QA1 (`--disclosed`) | 63/74 | 22/30 | 33/38 |
+| Original V0.4 | 25/26 | 8/9 | 10/11 |
+| Historical independent sequence (`--independent`) | 5/5 | 1/1 | 4/4 |
+| Historical verifier sequence (`--fresh`) | 2/3 | 0/1 | 1/1 |
+
+Each suite measured zero wrong-service, unexpected or unauthorized calls. In the manual replay, the Gold turns used MRI once and CBC twice. The Silver replay selected CBC directly after the service listing and also selected it from pending copay, preserving the requested benefit. Manual suite HTTP p50/p95 were 567/816 ms.
+
+QA2 still missed 30.2 because the grounding model abstained. The stricter F1 rule rejected QA1 01.2 when the model grounded a copay question as a limit based on a generic quote. That cleared the active service, so QA1 01.3 also requested clarification. This accounts for two fewer lookups than the previous disclosed QA1 result. The other QA1 lookup misses were 07.2, 14.2 and 16.2. In the original suite, the model classified the lab copay follow-up as a limit FAQ and grounding abstained. The historical verifier clarified the unsupported rehabilitation paraphrase and made zero lookups for it. These suites use disclosed cases. QA1 still falls short of the 90% complete-scenario acceptance gate.
+
 ## Response and state defects at reviewed head `4b2b732`
 
 The disclosed QA2 replay reproduced the ten incomplete scenarios below. Two initial 30-second inference timeouts in scenario 01 were additional environment failures in that replay and are excluded from this attribution of the reviewed result.

@@ -125,3 +125,9 @@
 - Retained a non-lookup referral after missing fixture data or an unsupported procedure. Added bounded replies for coverage escalation, exclusion questions and unauthorized approval or policy actions.
 - Distinguished definitions from personal questions that need a service, kept the active topic when explaining a displayed balance, and corroborated contextual coverage questions before looking up the verified topic.
 - Documented the ten incomplete reviewed QA2 scenarios and the disclosed replays in the [diagnostic report](v04-qa2-diagnostics.md).
+
+## 2026-11-25 — Verified Web Chat manual acceptance fixes
+
+- Accept a complete, unambiguous service selection in the verified chat. Resolve CBC shorthand while clarification is pending or while CBC is active. Return distinct replies for policy tier, name and nearest branch questions.
+- Require corroborating benefit evidence for contextual coverage and retain the conditional status returned by the policy fixture.
+- Added deterministic resolver cases, verified HTTP replay and transport cancellation and session revocation regressions. Recorded the baseline trace and local browser evidence in the [diagnostic report](v04-qa2-diagnostics.md#nagy-manual-web-chat).

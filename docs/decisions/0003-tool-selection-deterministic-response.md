@@ -30,6 +30,8 @@ The Ollama adapter returns a validated semantic proposal. A deterministic resolv
 
 The executor re-reads session dialogue after inference. A lookup that replaces the topic commits the new service only after a valid backend result. A contextual lookup keeps the existing expiry. Repeating the same clarification does not extend its lifetime. Privacy, scope, service conflicts and unsupported procedures still block protected actions. See [QA2 trace diagnosis](../v04-qa2-diagnostics.md).
 
+An explicit selection of one complete catalog name can start an overview lookup with no prior topic. A recognized answer to a pending service clarification uses the pending benefit. The short Egyptian Arabic CBC label `صورة دم` is accepted as a whole selection only when a service clarification is pending or CBC is already active. A repeat against active CBC keeps its expiry. A conflicting service or scope verdict prevents these shortcuts. Positive evidence of a requested benefit is required to use an active topic. A verbatim quote accompanies semantic grounding when the current text does not otherwise confirm the same benefit and policy purpose. Distinct non-lookup replies cover name, policy tier and branch questions. The only protected read remains the session-scoped coverage call.
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.

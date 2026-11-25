@@ -198,7 +198,8 @@ function formatCoverage(coverage: Coverage): string {
   if (coverage.coverageStatus === "UNKNOWN") return `مش قادرين نحدد تغطية ${name} من البيانات الحالية. راجع خدمة العملاء. (بيانات تجريبية)`;
   if (coverage.coverageStatus === "NOT_COVERED") return `${name} غير مغطّى حسب الوثيقة التجريبية الحالية. لو عندك استفسار راجع خدمة العملاء. (بيانات تجريبية)`;
   if (coverage.coverageStatus !== "COVERED" && coverage.coverageStatus !== "COVERED_WITH_CONDITIONS") return SAFE_RETRY;
-  const parts = [`${name} مغطّى حسب بيانات الوثيقة التجريبية.`];
+  const conditions = coverage.coverageStatus === "COVERED_WITH_CONDITIONS" ? " بشروط" : "";
+  const parts = [`${name} مغطّى${conditions} حسب بيانات الوثيقة التجريبية.`];
   if (coverage.copayPercent !== null && Number.isFinite(coverage.copayPercent)) parts.push(`نسبة التحمل: ${coverage.copayPercent}%.`);
   if (coverage.remainingLimit !== null && Number.isFinite(coverage.remainingLimit)) parts.push(`الحد المتبقي: ${coverage.remainingLimit.toLocaleString("en-US")} جنيه.`);
   if (coverage.requiresPreApproval === true) parts.push("لازم موافقة مسبقة من المختص قبل تقديم الخدمة، وده مش قرار موافقة.");

@@ -88,6 +88,8 @@ Proposed errors: `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `UNKNOWN_SERVICE` (
 
 The Ollama Web Demo uses the existing verified `POST /v1/chat` request and answer envelope. It adds HTTP 200 codes `CAPABILITIES`, `FAQ`, `OUT_OF_SCOPE`, `UNSUPPORTED_SERVICE`, and `COVERAGE_NOT_AVAILABLE`. The last code means the mock policy engine returned `UNKNOWN` for an allowlisted service. A confirmed `NOT_COVERED` policy result uses `COVERAGE_RESULT`. Concurrent Ollama chat turns in a single verified session can receive HTTP 409 `CHAT_BUSY`. Fixture and legacy chat retain their previous response codes.
 
+The Ollama chat uses `OUT_OF_SCOPE` for requests for the member's name, policy tier, or branch locations because those data aren't available through the verified chat. An ambiguous account question such as `نوعي إيه؟` uses `CLARIFICATION_NEEDED` with a specific question about policy tier. These replies make zero coverage calls and clear the current coverage topic. `COVERAGE_RESULT` can include conditions supported by the verified policy result.
+
 ## Backend contract review checklist
 
 - [ ] Tenant and member scoping must be server-side and enforced on every query.

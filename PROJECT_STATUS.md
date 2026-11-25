@@ -1,6 +1,6 @@
 # TPA AI Euro — Project Status (source of truth)
 
-**Updated:** 2026-11-24
+**Updated:** 2026-11-25
 
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
@@ -9,6 +9,14 @@
 ## V0.4 grounded conversation — Issue #17
 
 V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A verified session holds one service topic, pending clarification, or non-lookup referral for up to two minutes. Every accepted coverage follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server. See the [response and state diagnosis](docs/v04-qa2-diagnostics.md#response-and-state-defects-at-reviewed-head-4b2b732).
+
+### Manual Web Chat acceptance blocker
+
+Reproduced [Nagy's transcript](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7158911501) on the clean Draft head `0c687038c630bda9fe32cb47c118fd24634af354`. The model correctly proposed CBC on both failed turns. The resolver treated the full name as a reply with no pending service and rejected the short name's grounding excerpt. The tier, name and branch questions all became the same capabilities reply. See the [verified HTTP trace and Astra review](docs/v04-qa2-diagnostics.md#nagy-manual-web-chat).
+
+The fix accepts complete catalog selections and uses CBC shorthand only in a pending service clarification or an active CBC topic. The browser replayed all nine turns in the verified Gold fixture with local Ollama, including both CBC results at 0% copay and 1,000 EGP remaining. The three non-coverage questions produced distinct replies. The browser console showed no warnings or errors during replay. F1 now requires positive benefit evidence for contextual lookups, F2 preserves conditional coverage in overview and focused replies, and F3 is covered by verified V0.4 HTTP tests.
+
+`npm test` passed 116/116. Strict TypeScript 5.9.3 over `src`, `scripts`, and `tests`, `npm run docs:check`, and `git diff --check` passed. The [live replay results](docs/v04-qa2-diagnostics.md#live-verified-http-replay) include 16/16 manual regression turns and zero wrong, unexpected or unauthorized lookups across the measured suites. QA1 remains below the independent acceptance threshold.
 
 ### Recall revision after independent QA
 

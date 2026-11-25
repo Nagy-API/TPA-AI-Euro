@@ -76,6 +76,28 @@ const fresh: Sequence[] = [{ id: "fresh-verifier", turns: [
   ["طب حفيدتي هتدفع قد إيه للفحص ده؟", "OUT_OF_SCOPE"],
   ["التمارين مع أخصائي التأهيل بعد الجبيرة داخلة في وثيقتي؟", "UNSUPPORTED_SERVICE"]
 ] }];
+const manual: Sequence[] = [
+  { id: "nagy-web-chat", topics: ["MRI", null, null, null, null, null, null, "CBC", "CBC"], turns: [
+    ["هل الرنين المغناطيسي مغطى؟", "COVERAGE_RESULT", "MRI", /مغطّى بشروط.*20%.*5,000.*موافقة مسبقة/u],
+    ["طيب تبييض الاسنان", "UNSUPPORTED_SERVICE", undefined, /مش ضمن الخدمات/u],
+    ["وتلقيح المجهر", "UNSUPPORTED_SERVICE", undefined, /مش ضمن الخدمات/u],
+    ["ايه الخدمات المتاحه", "CAPABILITIES", undefined, /الرنين.*صورة الدم الكاملة.*الأشعة السينية/u],
+    ["طيب انا نوعي ايه", "CLARIFICATION_NEEDED", undefined, /تقصد فئة وثيقة التأمين/u],
+    ["طيب انا اسمي ايه", "OUT_OF_SCOPE", undefined, /اسمك المسجّل.*مش متاح/u],
+    ["اقرب فرع ليا", "OUT_OF_SCOPE", undefined, /مواقع الفروع.*أقرب فرع/u],
+    ["صورة الدم الكاملة", "COVERAGE_RESULT", "CBC", /صورة الدم الكاملة.*0%.*1,000/u],
+    ["منا بقولك صوره دم", "COVERAGE_RESULT", "CBC", /صورة الدم الكاملة.*0%.*1,000/u]
+  ] },
+  { id: "manual-follow-ups", member: "silver", topics: [null, "CBC", null, null, "CBC", null, null], turns: [
+    ["أقدر أختار من أنهي فحوصات؟", "CAPABILITIES", undefined, /صورة الدم الكاملة/u],
+    ["طب نبدأ بتعداد الدم الكامل؟", "COVERAGE_RESULT", "CBC", /مغطّى بشروط.*30%.*400/u],
+    ["هو أنا تبع أنهي فئة تأمينية؟", "OUT_OF_SCOPE", undefined, /فئة وثيقتك.*مش متاحة/u],
+    ["هدفع قد إيه من جيبي؟", "CLARIFICATION_NEEDED", undefined, /أنهي فحص/u],
+    ["أنا قصدي صورة الدم", "COVERAGE_RESULT", "CBC", /^(?!.*موافقة مسبقة).*30%.*التغطية مشروطة/u],
+    ["فين أقرب فرع أعمل فيه CBC؟", "OUT_OF_SCOPE", undefined, /مواقع الفروع/u],
+    ["صورة الدم الكاملة لأخويا", "OUT_OF_SCOPE", undefined, /صاحب الحساب التاني/u]
+  ] }
+];
 
 const model = process.env.OLLAMA_MODEL;
 assert.ok(model, "Set OLLAMA_MODEL to an installed local model");
@@ -112,7 +134,8 @@ function disclosedQa2(): Sequence[] {
   }));
 }
 
-const suite: Sequence[] = process.argv.includes("--qa2") ? disclosedQa2() : process.argv.includes("--disclosed") ?
+const suite: Sequence[] = process.argv.includes("--manual") ? manual :
+  process.argv.includes("--qa2") ? disclosedQa2() : process.argv.includes("--disclosed") ?
   (JSON.parse(readFileSync(new URL("../evals/v04-disclosed-conversations.json", import.meta.url), "utf8")) as DisclosedSequence[])
     .map(({ id, member, turns }) => ({
       id, member, topics: turns.map((turn) => turn.topic), actions: turns.map((turn) => turn.action),

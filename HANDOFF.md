@@ -1,4 +1,6 @@
-# Current handoff — TPA AI Euro (2026-11-24)
+# Current handoff — TPA AI Euro (2026-11-25)
+
+**Manual Web Chat checkpoint:** The reported conversation passed in the verified browser using the installed local Ollama model. Read the [baseline trace, regression results and Astra findings](docs/v04-qa2-diagnostics.md#nagy-manual-web-chat). The branch remains the sole change target for [Draft PR #19](https://github.com/Nagy-API/TPA-AI-Euro/pull/19). The manual replay is a disclosed regression. Fresh independent acceptance and Nagy's merge approval remain pending.
 
 **V0.4 review checkpoint:** [Issue #17](https://github.com/Nagy-API/TPA-AI-Euro/issues/17) is implemented for the local synthetic demo on `codex/v04-grounded-conversation`, based on live `main` at `c5c5f4eedb5a8c9fc8ad5a9c6c089b47ca89786c`. Read the [observed conversations and evidence](PROJECT_STATUS.md#v04-grounded-conversation--issue-17). Review the Draft PR and remaining semantic risk before any merge. The approved workflow is fixture-default and free-first.
 

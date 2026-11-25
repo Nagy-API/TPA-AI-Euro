@@ -1,6 +1,6 @@
 import { DEMO_MEMBERS } from "./demo-auth/fixtures.ts";
 import { SERVICE_CODES, type ServiceCode } from "./contracts.ts";
-import type { Focus } from "./conversation-intent.ts";
+import type { AccountQuestionPurpose, Focus } from "./conversation-intent.ts";
 
 export function normalizeArabic(input: string): string {
   return input.normalize("NFKC").replace(/[\u0640\u064b-\u065f\u0670]/gu, "").replace(/[أإآٱ]/gu, "ا");
@@ -19,10 +19,12 @@ export function isThirdPartyCoverage(input: string): boolean {
     OTHER_OWNER.test(normalized) || OTHER_PERSON_EN.test(normalized);
 }
 
-const MRI_EVIDENCE = /\b(?:mri|magnetic resonance(?: imaging)?)\b|(?<!\p{L})[وف]?(?:(?:بال|لل|ال|ب|ل)?رنين|(?:ال)?ام\s+ار\s+ا[يى]|(?:ال)?تصوير\s+(?:بال|ال|ب)?مغنا?طيسي|(?:ب?جهاز|بيصور)\s+(?:بال|ال|ب)?مغناطيس)(?!\p{L})/iu;
+const MRI_EVIDENCE = /\b(?:mri|magnetic resonance(?: imaging)?)\b|(?<!\p{L})[وف]?(?:(?:بال|لل|ال|ب|ل)?رنين(?:\s+(?:ال)?مغنا?طيسي)?|(?:ال)?ام\s+ار\s+ا[يى]|(?:ال)?تصوير\s+(?:بال|ال|ب)?مغنا?طيسي|(?:ب?جهاز|بيصور)\s+(?:بال|ال|ب)?مغناطيس)(?!\p{L})/iu;
 const CBC_EVIDENCE = /\b(?:cbc|complete blood count|full blood count)\b|(?<!\p{L})[وف]?ب?(?:ال)?(?:سي\s+بي\s+سي|صور[هة]\s+(?:ال)?دم\s+(?:ال)?كامل[هة]|(?:عد|تعداد)\s+(?:ال)?دم\s+(?:ال)?كامل)(?!\p{L})/iu;
 const XRAY_EVIDENCE = /\b(?:x[\s-]?rays?|radiographs?|plain films?)\b|(?<!\p{L})[وف]?(?:(?:بال|ال|ب)?اشع[هة]\s+(?:ال)?(?:سيني[هة]|عادي[هة]|اكس)|(?:ال)?اكس\s*را[يى])(?!\p{L})/iu;
 const CATALOG_NAMES = { MRI: MRI_EVIDENCE, CBC: CBC_EVIDENCE, XRAY: XRAY_EVIDENCE };
+const FULL_MRI_NAME = /\b(?:mri|magnetic resonance)\b|رنين\s+(?:ال)?مغنا?طيسي|ام\s+ار\s+ا[يى]|تصوير\s+(?:بال|ال|ب)?مغنا?طيسي/iu;
+const SHORT_CBC_NAME = /(?<!\p{L})ب?(?:ال)?صور[هة]\s+(?:ال)?دم(?!\p{L})/u;
 const COUNTING = /(?<!\p{L})[لب]?(?:عد|بيعد|يعد|بتعد|تعداد|حساب)(?!\p{L})/u;
 const BLOOD_CELLS = /(?:كرات|خلايا)\s+(?:ال)?دم/u;
 const CELL_TYPES = /(?:حمرا(?:ء)?|حمر).*?(?:بيضا(?:ء)?|بيض)|(?:بيضا(?:ء)?|بيض).*?(?:حمرا(?:ء)?|حمر)/u;
@@ -81,9 +83,9 @@ export function hasGroundedServiceQuote(input: string, quote: string, code: Serv
 export function explicitBenefitFocus(input: string): Focus | undefined {
   const question = normalizeArabic(input);
   const signals = {
-    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع)|تحم[ّ]?ل|كوبا[ىي]|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي)|كام\s+نسب[هة]|\bcopay\b/iu.test(question),
-    LIMIT: /متبقي|(?:حد|رصيد|سقف|متاح).{0,22}(?:كام|لسه|قد ايه)|(?:فاضل|باقي|هيفضل).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance)\b/iu.test(question),
-    PREAPPROVAL: /موافق[هة]|اعتماد|(?:ال)?اذن|استاذن|تصريح|\bpre[ -]?approval\b/iu.test(question)
+    COPAY: /فاتور|من جيبي|(?:هدفع|ادفع|بدفع|دفعت)|تحم[ّ]?ل|كوبا[ىي]|في المي[هة]|نسب[هة].{0,20}(?:الوثيق[هة]|كام|علي|من تمن)|كام\s+نسب[هة]|\b(?:co[ -]?pay|out of pocket|(?:i|my) (?:pay|share))\b/iu.test(question),
+    LIMIT: /متبقي|(?:حد|رصيد|سقف|متاح).{0,22}(?:كام|لسه|قد ايه)|(?:فاضل|باقي|هيفضل|لسه).*?(?:حد|رصيد|سقف)|\bremaining (?:limit|balance|allowance)\b/iu.test(question),
+    PREAPPROVAL: /موافق[هة]|موافقات|اعتماد|(?:ال)?اذن|استاذن|تصريح|\b(?:pre[ -]?approval|permission)\b/iu.test(question)
   } satisfies Record<Exclude<Focus, "OVERVIEW">, boolean>;
   const matched = (Object.keys(signals) as (keyof typeof signals)[]).filter((focus) => signals[focus]);
   return matched.length === 1 ? matched[0] : undefined;
@@ -131,10 +133,39 @@ export function explicitlyRefersToSameProcedure(input: string): boolean {
   return /(?<!\p{L})(?:نفس\s+(?:ال)?(?:فحص|تحليل|اشع[هة]|خدم[هة])|(?:ال)?(?:فحص|تحليل|اشع[هة]|خدم[هة])\s+(?:نفسه|نفسها))(?!\p{L})|\b(?:the same (?:test|scan|procedure|service))\b/iu.test(normalizeArabic(input));
 }
 
-export function isServiceSelection(input: string, code: ServiceCode): boolean {
-  const remainder = coverageSubjectText(input).replace(CATALOG_NAMES[code], " ")
-    .replace(/^\s*(?:المغناطيسي|السيني[هة])(?=\s|[؟?!.،,]|$)/u, "").replace(/[؟?!.،,]/gu, " ").trim();
-  return /^(?:(?:طب|طيب|ابد[اأ]|ابد[اأ]ي|قصدي|اقصد|بتكلم|بسال|اسال|على|عن|ب|في|نفسه)\s*)*$/u.test(remainder);
+function onlySelectsService(text: string, name: RegExp): boolean {
+  if (!name.test(text)) return false;
+  const remainder = text.replace(name, " ").replace(/[؟?!.،,]/gu, " ").trim();
+  // A selection can contain a short conversational preface, but no other procedure or qualifier.
+  return /^(?:(?:طب|طيب|ابد[اأ]|ابد[اأ]ي|نبدا|قصدي|اقصد|بتكلم|بسال|اسال|على|عن|ب|في|نفسه)(?:\s+|$))*$/u.test(remainder);
+}
+
+export function serviceSelection(input: string, code: ServiceCode): "full" | "short" | undefined {
+  const text = coverageSubjectText(input);
+  if (!onlySelectsService(text, CATALOG_NAMES[code])) return undefined;
+  return code === "MRI" && !FULL_MRI_NAME.test(text) ? "short" : "full";
+}
+
+export function isShortCbcSelection(input: string): boolean {
+  const text = normalizeArabic(input).trim().replace(/^(?:(?:منا|ما\s+انا|انا)\s+)?(?:بقول\s*لك|بقولك|قصدي|اقصد)\s+/u, "");
+  return onlySelectsService(text, SHORT_CBC_NAME);
+}
+
+export function accountQuestionPurpose(input: string): AccountQuestionPurpose | undefined {
+  const text = normalizeArabic(input).trim();
+  if (/اقرب\s+(?:فرع|مكتب)|(?:عنوان|موقع|فين|وين)\s+(?:اقرب\s+)?(?:ال)?(?:فرع|فروع)|\b(?:nearest|closest) (?:branch|office)\b/iu.test(text)) {
+    return "nearest-branch";
+  }
+  if (/(?:اسمي\s+(?:ايه|ايش)|(?:ال)?اسم\s+(?:ال)?مسجل\s+(?:علي|على|في)\s+(?:حسابي|عضويتي)|\bmy (?:registered |full )?name\b)/iu.test(text)) {
+    return "member-name";
+  }
+  if (/(?:نوع|فئ[هة]|درج[هة]|مستو[ىي]|باق[هة])\s+(?:ال)?(?:وثيقتي|وثيق[هة]|تامين[ي]?|تغطيتي)|فئ[هة]\s+تاميني[هة]|\b(?:my (?:policy|plan|insurance) (?:type|tier|level)|what (?:plan|tier) (?:do i have|am i on))\b/iu.test(text)) {
+    return "policy-tier";
+  }
+  if (/^(?:(?:طب|طيب|هو|وانا|انا)\s+)*(?:نوعي\s+(?:ايه|ايش)|(?:ايه|ايش)\s+نوعي)\s*[؟?!.]*$/u.test(text)) {
+    return "clarify-policy-tier";
+  }
+  return undefined;
 }
 
 /** Accept a replacement only when the abandoned referent is the current general topic. */
@@ -143,7 +174,7 @@ export function correctedServiceSelection(input: string): ServiceCode | undefine
   if (!correction) return undefined;
   const [, replacement] = correction;
   const { named, unsupported, comparison } = inspectServiceSubject(replacement);
-  return named.length === 1 && !unsupported && !comparison && isServiceSelection(replacement, named[0]) ? named[0] : undefined;
+  return named.length === 1 && !unsupported && !comparison && serviceSelection(replacement, named[0]) ? named[0] : undefined;
 }
 
 /** Verify a model proposal against positive, unambiguous evidence in user text. */
