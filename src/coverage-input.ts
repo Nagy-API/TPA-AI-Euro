@@ -134,6 +134,12 @@ export function asksReferralFollowUp(input: string): boolean {
   return /خدم[هة]\s+العملاء|اتواصل\s+مع\s+مين|(?:اتاكد|اسال|اراجع|استفسر)\s+(?:من\s+)?مين|(?:على\s+حسابي|من\s+جيبي)|\b(?:customer service|who (?:do|should) i (?:ask|contact)|pay out of pocket)\b/iu.test(text);
 }
 
+export function asksCustomerServiceContact(input: string, hasReferral: boolean): boolean {
+  const text = normalizeArabic(input).trim();
+  return /(?:رقم|تليفون|هاتف|واتساب|لينك)\s+(?:خدم[هة]\s+العملاء|الدعم)|(?:(?:اكلم|اتواصل\s+مع|عايز|عاوز|حولني|وصلني)\s+(?:(?:مع|على|لـ?)\s+)?(?:خدم[هة]\s+العملاء|موظف))|(?:اكلم|اتواصل\s+مع|اسال)\s+مين|\b(?:customer service (?:number|contact)|(?:speak to|talk to|connect me (?:with|to)) (?:a human|an agent|customer service)|who (?:do|should) i (?:call|contact))\b/iu.test(text) ||
+    hasReferral && /^(?:(?:طب|طيب|و)\s*)?(?:رقمهم\s+(?:كام|ايه)|ازاي\s+(?:اكلمهم|اتواصل\s+معاهم)|(?:what is|what's) their (?:phone )?number)[؟?!.\s]*$/iu.test(text);
+}
+
 export function asksAboutExclusion(input: string): boolean {
   return /مستبعد|استبعاد|(?:مش|غير)\s+مغط[ىي]|\b(?:excluded|exclusion|not covered)\b/iu.test(normalizeArabic(input));
 }

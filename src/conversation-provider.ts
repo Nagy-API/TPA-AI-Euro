@@ -6,6 +6,7 @@ export type ObjectSchema = Readonly<{
   additionalProperties: false;
 }>;
 export type InferenceRequest = Readonly<{
+  stage?: "interpret" | "ground" | "compose";
   messages: readonly InferenceMessage[];
   schema: ObjectSchema;
   timeoutMs: number;
@@ -26,9 +27,12 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 export async function readInferenceJson(response: Response, signal?: AbortSignal | null): Promise<unknown> {
   if (!response.body) throw new Error("INVALID_INFERENCE_RESPONSE");
   const reader = response.body.getReader();
+  const cancel = () => { void reader.cancel().catch(() => {}); };
+  signal?.addEventListener("abort", cancel, { once: true });
   const chunks: Uint8Array[] = [];
   let size = 0;
   try {
+    signal?.throwIfAborted();
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -37,7 +41,8 @@ export async function readInferenceJson(response: Response, signal?: AbortSignal
       chunks.push(value);
     }
   } finally {
-    void reader.cancel().catch(() => {});
+    signal?.removeEventListener("abort", cancel);
+    cancel();
     reader.releaseLock();
   }
   signal?.throwIfAborted();

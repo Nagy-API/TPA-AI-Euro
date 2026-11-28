@@ -12,6 +12,7 @@ export const CONVERSATION_INTENTS = [
 export const SUBJECTS = ["MRI", "CBC", "XRAY", "SERVICES", "ROLE", "COPAY", "LIMIT", "PREAPPROVAL", "MULTIPLE", "THIRD_PARTY", "NONE"] as const;
 export const FOCUSES = ["OVERVIEW", "COPAY", "LIMIT", "PREAPPROVAL"] as const;
 export type Focus = (typeof FOCUSES)[number];
+export type ReferralReason = "unavailable" | "unsupported" | "contact";
 export type BenefitTerm = Exclude<Focus, "OVERVIEW">;
 export type ConversationNote =
   | Readonly<{ kind: "coverage"; service: ServiceCode; focus: Focus }>
@@ -26,7 +27,7 @@ export type ConversationIntent = Readonly<{
 export type DialogueContext =
   | Readonly<{ kind: "idle" }>
   | Readonly<{ kind: "active"; service: ServiceCode }>
-  | Readonly<{ kind: "referral"; reason: "unavailable" | "unsupported" }>
+  | Readonly<{ kind: "referral"; reason: ReferralReason }>
   | Readonly<{ kind: "pending"; focus: Focus }>;
 
 export type AccountQuestionPurpose = "clarify-policy-tier" | "policy-tier" | "member-name" | "nearest-branch";

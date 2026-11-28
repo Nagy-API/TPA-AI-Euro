@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { ServiceCode, VerifiedSession } from "../contracts.ts";
 import { CoverageConversation } from "../coverage-conversation.ts";
-import type { ConversationNote, DialogueContext, Focus } from "../conversation-intent.ts";
+import type { ConversationNote, DialogueContext, Focus, ReferralReason } from "../conversation-intent.ts";
 import { DEMO_MEMBERS } from "./fixtures.ts";
 
 const CHALLENGE_TTL_MS = 2 * 60_000;
@@ -167,7 +167,7 @@ export class DemoMemberAuth {
     this.findActiveRecord(session, now)?.conversation.awaitService(focus, now, session.expiresAt);
   }
 
-  offerConversationReferral(session: VerifiedSession, reason: "unavailable" | "unsupported"): void {
+  offerConversationReferral(session: VerifiedSession, reason: ReferralReason): void {
     const now = this.now();
     this.findActiveRecord(session, now)?.conversation.offerReferral(reason, now, session.expiresAt);
   }

@@ -2,10 +2,10 @@ import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend, VerifiedSession } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isShortCbcSelection, isThirdPartyCoverage, nonCoveragePurpose, normalizeArabic } from "./coverage-input.ts";
+import { asksCustomerServiceContact, asksReferralFollowUp, explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isShortCbcSelection, isThirdPartyCoverage, nonCoveragePurpose } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
 import { SERVICE_CATALOG, type ConversationInterpreter, type ConversationNote } from "./conversation-intent.ts";
-import { CLARIFY_SERVICE, conversationReply, explainConversation, formatFocusedCoverage, formatRemainingLimit, OTHER_ACCOUNT } from "./conversation-replies.ts";
+import { CLARIFY_SERVICE, conversationReply, CUSTOMER_SERVICE_CONTACT, explainConversation, formatFocusedCoverage, formatRemainingLimit, OTHER_ACCOUNT } from "./conversation-replies.ts";
 import { resolveTurn } from "./turn-resolution.ts";
 import { continuedFaq, FAQ_EXAMPLES, isFaqSubject, type ConversationExperiment } from "./conversation-experiment.ts";
 import { InferenceDeadlineError } from "./conversation-provider.ts";
@@ -142,15 +142,21 @@ export class CoverageAssistant {
     ): Promise<AssistantReply> => {
       let answer = reply.answer;
       if (turn) {
+        let composition: Awaited<ReturnType<typeof turn.compose>> | undefined;
         if (compose) {
           try {
-            answer = await turn.compose(blocks, note, explainBenefit);
+            composition = await turn.compose(blocks, note, explainBenefit);
           } catch (error) {
-            if (error instanceof InferenceDeadlineError) return interrupted() ?? CHAT_TIMEOUT;
-            throw error;
+            if (!(error instanceof InferenceDeadlineError)) throw error;
+            this.experiment?.onComposition?.("interrupted");
+            return interrupted() ?? CHAT_TIMEOUT;
           }
         }
         const stopped = interrupted();
+        if (composition) {
+          this.experiment?.onComposition?.(stopped ? "interrupted" : composition.outcome);
+          answer = composition.answer;
+        }
         if (stopped) return stopped;
         auth.rememberConversationTurn(session, note);
       }
@@ -162,6 +168,13 @@ export class CoverageAssistant {
       return decline("CLARIFICATION_NEEDED", "اكتب اسم الفحص أو سؤالك عن التأمين من غير أرقام العضوية أو بيانات التحقق.");
     }
     const purpose = nonCoveragePurpose(message);
+    const context = auth.conversationContext(session);
+    if (purpose !== "approval-action" && asksCustomerServiceContact(message, context.kind === "referral")) {
+      return deliver({ code: "OUT_OF_SCOPE", answer: CUSTOMER_SERVICE_CONTACT }, {
+        compose: false,
+        update: context.kind === "referral" ? undefined : () => auth.offerConversationReferral(session, "contact")
+      });
+    }
     if (purpose) {
       const reply = explainConversation(purpose);
       return decline(reply.code, reply.answer);
@@ -172,8 +185,8 @@ export class CoverageAssistant {
       return deliver(explainConversation("unsupported"), { update: () => auth.offerConversationReferral(session, "unsupported"), compose: false });
     }
     if (isThirdPartyCoverage(message)) return decline("OUT_OF_SCOPE", OTHER_ACCOUNT);
-    if (turn && /^(?:(?:ممكن|عايز|عاوز)\s+)?(?:اكلم|اتواصل مع)\s+(?:خدم[هة] العملاء|موظف)|\b(?:speak to|talk to|connect me (?:with|to)) (?:a human|an agent|customer service)\b/iu.test(normalizeArabic(message))) {
-      return decline("OUT_OF_SCOPE", "تقدر تكلم خدمة العملاء من الرقم أو وسيلة التواصل المكتوبة في وثيقتك. الشات ده ما يقدرش يحوّلك لموظف مباشرة.");
+    if (context.kind === "referral" && clues.named.length === 0 && asksReferralFollowUp(message)) {
+      return deliver(explainConversation("referral"), { compose: false });
     }
     if (clues.named.length > 1) {
       const reply = conversationReply({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
@@ -189,7 +202,6 @@ export class CoverageAssistant {
 
     let resolution: ReturnType<typeof resolveTurn>;
     try {
-      const context = auth.conversationContext(session);
       const experimentalProposal = turn && await turn.interpret(context, recent);
       const proposal = experimentalProposal ?? await this.interpreter!.interpret(message, context, signal);
       const current = auth.conversationContext(session);
@@ -218,7 +230,8 @@ export class CoverageAssistant {
       const stopped = interrupted();
       if (turn && error instanceof InferenceDeadlineError) return stopped ?? CHAT_TIMEOUT;
       if (!turn || !stopped) clear();
-      return stopped ?? { status: 503, code: "AI_UNAVAILABLE", answer: "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
+      return stopped ?? { status: 503, code: "AI_UNAVAILABLE", answer: this.experiment?.unavailableAnswer ??
+        "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
     }
     const stopped = interrupted();
     if (stopped) {
@@ -234,7 +247,8 @@ export class CoverageAssistant {
     if (resolution.action === "explain") {
       const update = resolution.purpose === "unsupported" ? () => auth.offerConversationReferral(session, "unsupported") :
         resolution.topic === "clear" ? clear : undefined;
-      return deliver(explainConversation(resolution.purpose), { update });
+      const compose = resolution.purpose !== "unsupported" && resolution.purpose !== "referral";
+      return deliver(explainConversation(resolution.purpose), { update, compose });
     }
     if (resolution.action === "clarify-benefit") {
       const name = SERVICE_CATALOG[resolution.service].name;
@@ -268,7 +282,7 @@ export class CoverageAssistant {
     }
     if (coverage.coverageStatus === "UNKNOWN") {
       return deliver({ code: "COVERAGE_NOT_AVAILABLE", answer: formatFocusedCoverage(coverage, focus) ?? SAFE_RETRY },
-        { update: () => auth.offerConversationReferral(session, "unavailable") });
+        { update: () => auth.offerConversationReferral(session, "unavailable"), compose: false });
     }
     const focusedAnswer = formatFocusedCoverage(coverage, focus);
     const blocks = focusedAnswer ? { answer: focusedAnswer } : coverageBlocks(coverage);

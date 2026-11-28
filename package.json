@@ -14,6 +14,7 @@
     "eval:cases": "node --experimental-strip-types scripts/evaluate-intents.ts --cases",
     "eval:ollama": "node --experimental-strip-types scripts/evaluate-intents.ts --ollama",
     "eval:ollama:http": "node --experimental-strip-types scripts/evaluate-ollama-http.ts",
+    "eval:v06": "node --experimental-strip-types scripts/evaluate-v06-conversation.ts",
     "eval:live": "node --experimental-strip-types scripts/evaluate-intents.ts --live"
   }
 }
