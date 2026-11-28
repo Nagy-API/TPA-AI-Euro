@@ -143,3 +143,9 @@
 - Added `hub` and `ollama-v05` for the verified localhost demo. Both transports use structured interpretation and approved reply composition through the same inference port.
 - Bound conversation summaries to the verified session and corroborate the proposed read against the current turn. Preserve fresh synthetic policy values, conditions and currency by rendering approved clauses in TPA.
 - Added contextual public FAQ examples, human contact guidance, provider timeout handling and regression tests for unsafe proposals, fabricated benefits, session isolation and cancellation. See the [V0.5 verification record](../PROJECT_STATUS.md#v05-bounded-conversational-experiment).
+
+## 2026-11-28 — Synthetic WhatsApp Cloud API candidate
+
+- Added a dedicated opt-in loopback callback with Meta challenge verification and raw-body signatures. It limits incoming events to the configured test WABA, phone number ID and senders, then deduplicates and queues them per sender.
+- Reused the synthetic member verification, authorized coverage and V0.5 conversation services. The channel keeps challenges and sessions on the server and sends replies through the official Meta Graph endpoint.
+- Added 14 WhatsApp tests using signed fixtures and stubbed model and Graph transports within the 152-test local suite. Documented Meta test number setup, restricted HTTPS tunneling and mobile acceptance. Live Meta delivery remains pending approval. See the [verification record](../PROJECT_STATUS.md#synthetic-whatsapp-test-adapter).

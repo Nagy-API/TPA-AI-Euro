@@ -98,6 +98,10 @@ The verified chat keeps the existing HTTP request and response envelope. TPA der
 
 An interpretation or grounding failure returns HTTP 503 `AI_UNAVAILABLE`. An inference deadline returns HTTP 503 `CHAT_TIMEOUT`. A revoked or expired session returns HTTP 401 `VERIFICATION_REQUIRED`. TPA uses deterministic approved text for an invalid composition or an ordinary drafting failure. Explicit human-contact requests use `OUT_OF_SCOPE` and direct the member to the contact details in their policy.
 
+## Synthetic WhatsApp webhook
+
+The separate loopback listener exposes `GET /webhooks/whatsapp` for Meta's verification challenge and `POST /webhooks/whatsapp` for raw-body HMAC-SHA256 authenticated events. It accepts only recent text messages for the configured test WABA and business phone number ID from allowlisted senders. The POST returns `200` after admission or a safe skip, and `503` on queue or deduplication saturation. Replies are sent separately as text via the Graph API. The callback exposes no member-auth or chat APIs. See the [WhatsApp test runbook](whatsapp-test-runbook.md) for the channel commands and setup.
+
 ## Backend contract review checklist
 
 - [ ] Tenant and member scoping must be server-side and enforced on every query.

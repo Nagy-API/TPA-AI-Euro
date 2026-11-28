@@ -12,6 +12,8 @@ Nagy proposed asking for insurance/card number at the beginning so the system co
 
 ## Session state machine
 
+The [synthetic WhatsApp adapter](whatsapp-test-runbook.md) provides an allowlisted test conversation with `login`, `verify` and `logout`. The published fixture code is supplied separately from the chat prompts. The sender key stores only the local challenge or opaque verified-session token. The test listener uses its own instance of the shared demo authentication service.
+
 `NEW -> AWAITING_IDENTIFIER -> CHALLENGE_PENDING -> VERIFIED -> EXPIRED/REVOKED`. Failed identification/OTP should return generic messages, with attempt limits. Re-authentication occurs on expiry or sensitive action; session switching must revoke old scopes.
 
 ## Security requirements

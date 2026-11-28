@@ -6,6 +6,14 @@
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama intent-selection **MERGED into `main`** (synthetic local PoC); backend contract and real service integration remain deferred.
 
+## Synthetic WhatsApp test adapter
+
+The opt-in branch `codex/whatsapp-cloud-test` uses [V0.5 Draft PR #20](https://github.com/Nagy-API/TPA-AI-Euro/pull/20) at `834bf56b1e020b74ee10952f5c0be5cb063e6703`. A dedicated loopback listener handles the signed Meta callback, synthetic login and Graph text replies. The [runbook](docs/whatsapp-test-runbook.md) covers Meta test assets, restricted HTTPS routing and mobile acceptance. The [channel decision](docs/decisions/0005-isolated-whatsapp-test-listener.md) records the local state and delivery semantics.
+
+Local verification includes `npm test` (152/152, including 14 WhatsApp tests), strict TypeScript 5.9.3, `npm run docs:check` and `npm run eval:cases` (21 preview cases). The WhatsApp suite uses signed synthetic webhooks and stubbed Graph and inference transports. It covers route isolation, invalid signatures, scoped verification and expiry, duplicate delivery, queue limits, provider failure and Graph failure.
+
+Live Meta webhook registration, public HTTPS routing and mobile acceptance require Nagy's explicit approval.
+
 ## V0.5 bounded conversational experiment
 
 Experimental branch `codex/v05-conversational-slice` starts from reviewed V0.4 commit `3507ed632bb775d30d890f5c93249a341bbe9623`. The stacked review depends on [V0.4 Draft PR #19](https://github.com/Nagy-API/TPA-AI-Euro/pull/19). Choose `hub` or `ollama-v05` in the verified synthetic demo. [Architecture decision](docs/decisions/0004-bounded-conversational-composition.md) · [Browser walkthrough](README.md#run-the-v05-conversational-experiment)
