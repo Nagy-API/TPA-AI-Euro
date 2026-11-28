@@ -56,3 +56,5 @@ See [`security-and-privacy.md`](security-and-privacy.md) and [`member-identity.m
 Read [`decisions/0001-ai-boundary-and-identity.md`](decisions/0001-ai-boundary-and-identity.md) for the proposed identity and AI boundary, and [`decisions/0002-simple-typescript-service.md`](decisions/0002-simple-typescript-service.md) for stack direction. Both are provisional until core team confirmation.
 
 The [V0.5 conversation experiment](decisions/0004-bounded-conversational-composition.md) adds a provider-neutral inference port to the verified synthetic demo. TPA owns session state, proposal validation, the read-only policy lookup and approved response rendering.
+
+The [synthetic WhatsApp channel](decisions/0005-isolated-whatsapp-test-listener.md) runs as a separate loopback listener with a dedicated callback. It shares the V0.5 orchestration and synthetic policy fixtures through in-process service calls.

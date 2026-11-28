@@ -188,6 +188,10 @@ Open [the local Web Demo](http://127.0.0.1:3000/demo). Select Gold and verify wi
 
 The experiment retains up to three sanitized turn summaries per verified session for up to two minutes. Older summaries carry no permission to read coverage. The provider proposes a single read and chooses which approved clauses to include or foreground. TPA checks the proposal against the current question and verified topic, fetches current synthetic coverage, validates the result and renders the exact approved text. See [the V0.5 decision](docs/decisions/0004-bounded-conversational-composition.md) and [verification status](PROJECT_STATUS.md#v05-bounded-conversational-experiment).
 
+### Run the synthetic WhatsApp test adapter
+
+The opt-in adapter runs on a dedicated loopback port and uses the same V0.5 orchestrator and fictional policy fixtures. It verifies Meta webhook deliveries and requires synthetic member verification before a coverage question. See the [Meta test-number setup, restricted HTTPS tunnel and mobile walkthrough](docs/whatsapp-test-runbook.md).
+
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
 ```bash

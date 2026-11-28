@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "node --experimental-strip-types src/index.ts",
+    "dev:whatsapp": "node --env-file-if-exists=.env.whatsapp --experimental-strip-types src/whatsapp/index.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "docs:check": "python scripts/validate_repository.py",
     "eval:cases": "node --experimental-strip-types scripts/evaluate-intents.ts --cases",
