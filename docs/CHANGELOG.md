@@ -131,3 +131,9 @@
 - Accept a complete, unambiguous service selection in the verified chat. Resolve CBC shorthand while clarification is pending or while CBC is active. Return distinct replies for policy tier, name and nearest branch questions.
 - Require corroborating benefit evidence for contextual coverage and retain the conditional status returned by the policy fixture.
 - Added deterministic resolver cases, verified HTTP replay and transport cancellation and session revocation regressions. Recorded the baseline trace and local browser evidence in the [diagnostic report](v04-qa2-diagnostics.md#nagy-manual-web-chat).
+
+## 2026-11-28 — V0.4 acceptance follow-up
+
+- Route explicit provider logistics and approval execution requests to replies before inference or policy lookup. A service mention in a broader message also needs coverage evidence or a pending service clarification.
+- Keep an active service and its original expiry when grounded benefit categories conflict. Ask which benefit the member meant with no additional lookup. Preserve the service when explaining the difference between a displayed limit and an amount due.
+- Accept corroborated preapproval and CBC descriptions, and preserve the referral when the member asks whom to contact. Added resolver and verified HTTP coverage for these cases.

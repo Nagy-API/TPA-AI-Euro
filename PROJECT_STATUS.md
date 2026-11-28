@@ -1,6 +1,6 @@
 # TPA AI Euro — Project Status (source of truth)
 
-**Updated:** 2026-11-25
+**Updated:** 2026-11-28
 
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
@@ -9,6 +9,10 @@
 ## V0.4 grounded conversation — Issue #17
 
 V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A verified session holds one service topic, pending clarification, or non-lookup referral for up to two minutes. Every accepted coverage follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server. See the [response and state diagnosis](docs/v04-qa2-diagnostics.md#response-and-state-defects-at-reviewed-head-4b2b732).
+
+### Independent acceptance follow-up
+
+The independent 20-scenario evaluation on `a5b249d` measured 24/29 required lookups, 10/20 useful complete conversations and two unintended reads in the correct member sessions. The updated candidate blocks those provider-location and approval-execution reads. It accepts the corroborated preapproval question and implicit CBC description, and keeps the original topic expiry on a benefit clarification. See the [replay and remaining misses](docs/v04-qa2-diagnostics.md#independent-acceptance-follow-up).
 
 ### Manual Web Chat acceptance blocker
 

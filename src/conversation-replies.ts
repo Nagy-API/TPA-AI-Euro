@@ -21,7 +21,7 @@ export function explainConversation(purpose: Extract<TurnResolution, { action: "
     code: "OUT_OF_SCOPE", answer: "اسمك المسجّل مش متاح في بيانات الشات ده."
   };
   if (purpose === "nearest-branch") return {
-    code: "OUT_OF_SCOPE", answer: "مواقع الفروع مش متاحة في الشات ده. تقدر تسأل خدمة العملاء عن أقرب فرع ليك."
+    code: "OUT_OF_SCOPE", answer: "مواقع الفروع ومواعيد مقدمي الخدمة مش متاحة في الشات ده. تقدر تسأل خدمة العملاء عن أقرب فرع ليك أو عن المواعيد."
   };
   return {
     code: "OUT_OF_SCOPE",

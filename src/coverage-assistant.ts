@@ -2,7 +2,7 @@ import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend, VerifiedSession } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { blocksConversationLookup, explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage } from "./coverage-input.ts";
+import { explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage, nonCoveragePurpose } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
 import { SERVICE_CATALOG, type ConversationInterpreter } from "./conversation-intent.ts";
 import { CLARIFY_SERVICE, conversationReply, explainConversation, formatFocusedCoverage, OTHER_ACCOUNT } from "./conversation-replies.ts";
@@ -115,11 +115,12 @@ export class CoverageAssistant {
     if (hasPrivateCoverageInput(message)) {
       return decline("CLARIFICATION_NEEDED", "اكتب اسم الفحص أو سؤالك عن التأمين من غير أرقام العضوية أو بيانات التحقق.");
     }
-    const clues = inspectServiceSubject(message);
-    if (blocksConversationLookup(message)) {
-      const reply = explainConversation("approval-action");
+    const purpose = nonCoveragePurpose(message);
+    if (purpose) {
+      const reply = explainConversation(purpose);
       return decline(reply.code, reply.answer);
     }
+    const clues = inspectServiceSubject(message);
     if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
       // This is a public catalog answer, even when a service possessive resembles an account cue.
       auth.offerConversationReferral(session, "unsupported");
@@ -159,6 +160,11 @@ export class CoverageAssistant {
       if (resolution.purpose === "unsupported") auth.offerConversationReferral(session, "unsupported");
       else if (resolution.topic === "clear") clear();
       return { status: 200, ...explainConversation(resolution.purpose) };
+    }
+    if (resolution.action === "clarify-benefit") {
+      const name = SERVICE_CATALOG[resolution.service].name;
+      return { status: 200, code: "CLARIFICATION_NEEDED",
+        answer: `لو لسه بتسأل عن ${name}، تقصد نسبة التحمل، الحد المتبقي، ولا شرط الموافقة المسبقة؟` };
     }
     if (resolution.action === "ground" || resolution.action === "clarify" && resolution.reason === "conflict") {
       return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);

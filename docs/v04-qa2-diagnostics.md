@@ -1,5 +1,28 @@
 # V0.4 second acceptance diagnosis
 
+## Independent acceptance follow-up
+
+The independent baseline on Draft PR #19 at `a5b249d3c1a6c681d81af82ec395669a3f0eb5d7` used 20 scenarios and 47 turns. A verified HTTP replay used the same prompts, lookup, topic and response expectations. The SHA-256 of the frozen manifest was `850eb25e3e4a57c91852db915cc06e992535d8341f9b7748defb5ce2136cf1ea`.
+
+| Measure | Baseline | Replay |
+| --- | ---: | ---: |
+| Required lookups | 24/29 | 27/29 |
+| Useful complete conversations, reviewed | 10/20 | 16/20 |
+| Unrequested coverage reads | 2 | 0 |
+| Wrong-service or wrong-scope reads | 0 | 0 |
+| Fabricated coverage facts | 0 | 0 |
+
+The audit's string matcher falsely flagged both Silver MRI exclusion replies by matching the covered phrase inside the negation. Both exclusions matched the policy fixture. The FAQ matcher also accepted a reply that defined copay without comparing it to the remaining limit. The complete-conversation count accounts for this.
+
+- A11.1 and A13.1 made zero lookups. A procedure mentioned in a location request or an approval execution request does not establish authorization to read its coverage. The replacement replies appeared in the verified Gold browser. A subsequent MRI question displayed the fixture conditions and benefits.
+- A01.2 and A20.2 still returned clarification after the model grounded a copay question as a limit. A01.3 now retrieved the correct limit because the resolver kept the verified MRI topic and its expiry. The Gold browser showed both the clarification and the recovered limit.
+- A05.2 and A19.2 now made their required respective MRI and CBC lookups. Both model proposals already carried appropriate evidence. The application now recognizes a possessive preapproval reference and the diagnostic sample, count and cell components for CBC.
+- A08.1 still clarified after the model proposed CBC for a liver-test question and grounding abstained. It made zero coverage calls. A19.1 still explained one concept in a two-concept FAQ.
+
+The replay used local Ollama `qwen3:4b-instruct` with the existing provider settings. The original Web Chat regression passed 16/16 over verified HTTP. The disclosed replay meets the 90% recall threshold and falls short of the 90% complete-conversation threshold. Fresh independent evidence is still pending.
+
+A prior QA2 case supplied the procedure directly as written on a referral. The resolver accepts that bounded selection, including a normal body-site qualifier. A location question about the same referral still makes no lookup. Local `npm test` passed 122/122. Strict TypeScript 5.9.3, `npm run docs:check`, and `git diff --check` passed.
+
 ## Nagy manual Web Chat
 
 The working tree was clean and matched the open Draft head `0c687038c630bda9fe32cb47c118fd24634af354`. The [reported nine chat turns](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7158911501) were replayed before editing, using verified HTTP, the Gold fixture, Node 24.14.1 and local `qwen3:4b-instruct` (digest prefix `0edcdef34593`). The trace captures model JSON, catalog evidence, session state and scoped backend calls. Resolver actions were reproduced from the captured proposals and previously read state. The unsupported dental turn was handled before inference.

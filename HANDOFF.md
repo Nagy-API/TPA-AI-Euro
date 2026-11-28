@@ -1,4 +1,6 @@
-# Current handoff — TPA AI Euro (2026-11-25)
+# Current handoff — TPA AI Euro (2026-11-28)
+
+**Independent acceptance follow-up:** The two unrequested coverage reads from the 47-turn review were eliminated on replay. The case set is now disclosed. See the [replay, application fixes and remaining model misses](docs/v04-qa2-diagnostics.md#independent-acceptance-follow-up). Complete-conversation usefulness is below the acceptance threshold. Keep PR #19 Draft and the existing provider configuration.
 
 **Manual Web Chat checkpoint:** The reported conversation passed in the verified browser using the installed local Ollama model. Read the [baseline trace, regression results and Astra findings](docs/v04-qa2-diagnostics.md#nagy-manual-web-chat). The branch remains the sole change target for [Draft PR #19](https://github.com/Nagy-API/TPA-AI-Euro/pull/19). The manual replay is a disclosed regression. Fresh independent acceptance and Nagy's merge approval remain pending.
 

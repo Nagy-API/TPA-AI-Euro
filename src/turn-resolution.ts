@@ -1,10 +1,10 @@
 import type { ConversationIntent, DialogueContext, Focus, GroundingKind, TurnEvidence, TurnResolution } from "./conversation-intent.ts";
 import { isServiceCode } from "./contracts.ts";
 import {
-  accountQuestionPurpose, asksAboutExclusion, asksDefinition, asksPolicyBenefit, asksReferralFollowUp,
+  asksAboutExclusion, asksDefinition, asksPolicyBenefit, asksReferralFollowUp,
   asksWhetherReferencedAmountIsDue, correctedServiceSelection, coverageSubjectText, explicitBenefitFocus,
   explicitlyRefersToSameProcedure, hasGroundedServiceQuote, inspectServiceSubject, isShortCbcSelection,
-  normalizeArabic, serviceSelection, standaloneBenefitFocus
+  nonCoveragePurpose, normalizeArabic, serviceSelection, standaloneBenefitFocus
 } from "./coverage-input.ts";
 
 type Resolution = TurnResolution | Readonly<{ action: "ground"; kind: GroundingKind }>;
@@ -26,6 +26,9 @@ function copiedQuote(question: string, quote: string): boolean {
 export function resolveTurn(
   question: string, context: DialogueContext, proposal: ConversationIntent, grounded?: Grounded
 ): Resolution {
+  const purpose = nonCoveragePurpose(question);
+  if (purpose) return { action: "explain", purpose, topic: "clear" };
+
   const { intent, subject, focus } = proposal;
   const clues = inspectServiceSubject(question);
   const text = coverageSubjectText(question);
@@ -40,10 +43,6 @@ export function resolveTurn(
   if (context.kind === "referral" && context.reason === "unsupported" &&
       clues.named.length === 0 && asksAboutExclusion(question)) {
     return { action: "reply", reply: { intent: "UNSUPPORTED_SERVICE", subject: "NONE", focus: "OVERVIEW" }, topic: "keep" };
-  }
-  const accountPurpose = accountQuestionPurpose(text);
-  if (accountPurpose && subject !== "THIRD_PARTY") {
-    return { action: "explain", purpose: accountPurpose, topic: "clear" };
   }
   if (intent === "UNSUPPORTED_SERVICE") return { action: "explain", purpose: "unsupported", topic: "clear" };
   if (intent === "OUT_OF_SCOPE") {
@@ -80,7 +79,10 @@ export function resolveTurn(
       if (proposed && proposed !== named) return clarify(pending ?? "OVERVIEW", "conflict");
       return { action: "lookup", service: named, focus: pending ?? "OVERVIEW", topic: "replace" };
     }
-    if (intent === "COVERAGE_LOOKUP" && !selection || policyCue || personalPrice || correction) {
+    // A procedure mentioned in a broader request does not establish a coverage request by itself.
+    const namesPolicy = /تامين|وثيق[هةتي]|بوليص[هةتي]|\b(?:policy|insurance|coverage)\b/iu.test(text);
+    if (policyCue || personalPrice || correction ||
+        intent === "COVERAGE_LOOKUP" && !selection && (namesPolicy || pending !== undefined)) {
       const requestedFocus = benefit ?? (!policyCue && !personalPrice ? pending : undefined) ??
         (intent === "FAQ" && (subject === "COPAY" || subject === "LIMIT" || subject === "PREAPPROVAL") ? subject : focus);
       return { action: "lookup", service: named, focus: requestedFocus, topic: "replace" };
@@ -94,7 +96,8 @@ export function resolveTurn(
     : clarify(label);
 
   const contextualCandidate = context.kind === "active" && (explicitlyRefersToSameProcedure(text) ||
-    policyCue && /(?<!\p{L})(?:الفحص|التحليل|الخدمة)(?!\p{L})|\bthe (?:test|procedure|service)\b/iu.test(text));
+    policyCue && /(?<!\p{L})(?:الفحص|التحليل|الخدمة)(?!\p{L})|\bthe (?:test|procedure|service)\b/iu.test(text) &&
+    !(proposed && hasGroundedServiceQuote(text, text, proposed)));
   if (proposed && !definition && (intent === "COVERAGE_LOOKUP" || intent === "FAQ" && policyCue) && !contextualCandidate) {
     if (!grounded) return { action: "ground", kind: "service" };
     const { match, quote } = grounded.evidence;
@@ -119,6 +122,11 @@ export function resolveTurn(
     if (grounded.kind === "follow-up" && confirmedFocus &&
         (copiedQuote(text, quote) || benefit === match && policyCue)) {
       return { action: "lookup", service: context.service, focus: confirmedFocus, topic: "keep" };
+    }
+    if (grounded.kind === "follow-up" && intent === "FOLLOW_UP" && benefit && policyCue &&
+        (match === "COPAY" || match === "LIMIT" || match === "PREAPPROVAL") && match !== benefit &&
+        copiedQuote(text, quote)) {
+      return { action: "clarify-benefit", service: context.service };
     }
     if (intent === "FOLLOW_UP" || benefit && policyCue) return clarify(benefit ?? focus);
   }

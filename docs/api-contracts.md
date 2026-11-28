@@ -90,6 +90,8 @@ The Ollama Web Demo uses the existing verified `POST /v1/chat` request and answe
 
 The Ollama chat uses `OUT_OF_SCOPE` for requests for the member's name, policy tier, or branch locations because those data aren't available through the verified chat. An ambiguous account question such as `نوعي إيه؟` uses `CLARIFICATION_NEEDED` with a specific question about policy tier. These replies make zero coverage calls and clear the current coverage topic. `COVERAGE_RESULT` can include conditions supported by the verified policy result.
 
+Explicit provider logistics and requests to execute an approval use `OUT_OF_SCOPE` even if the message names a supported procedure. A conflict about which benefit the user is asking for can return `CLARIFICATION_NEEDED` while leaving the current service and expiry in place. Neither response reads coverage.
+
 ## Backend contract review checklist
 
 - [ ] Tenant and member scoping must be server-side and enforced on every query.

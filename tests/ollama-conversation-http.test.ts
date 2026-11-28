@@ -111,9 +111,9 @@ test("verified V0.4 HTTP replays Nagy's nine turns against the captured proposal
     ["طيب تبييض الاسنان", "UNSUPPORTED_SERVICE", /مش ضمن الخدمات/, referral, null],
     ["وتلقيح المجهر", "UNSUPPORTED_SERVICE", /مش ضمن الخدمات/, referral, null, { ...services, intent: "UNSUPPORTED_SERVICE", subject: "NONE" }],
     ["ايه الخدمات المتاحه", "CAPABILITIES", /الرنين.*صورة الدم الكاملة.*الأشعة السينية/, idle, null, services],
-    ["طيب انا نوعي ايه", "CLARIFICATION_NEEDED", /تقصد فئة وثيقة التأمين/, idle, null, services],
-    ["طيب انا اسمي ايه", "OUT_OF_SCOPE", /اسمك المسجّل.*مش متاح/, idle, null, services],
-    ["اقرب فرع ليا", "OUT_OF_SCOPE", /مواقع الفروع.*أقرب فرع/, idle, null, services],
+    ["طيب انا نوعي ايه", "CLARIFICATION_NEEDED", /تقصد فئة وثيقة التأمين/, idle, null],
+    ["طيب انا اسمي ايه", "OUT_OF_SCOPE", /اسمك المسجّل.*مش متاح/, idle, null],
+    ["اقرب فرع ليا", "OUT_OF_SCOPE", /مواقع الفروع.*أقرب فرع/, idle, null],
     ["صورة الدم الكاملة", "COVERAGE_RESULT", /صورة الدم الكاملة مغطّى.*0%.*1,000/, activeCbc, "CBC", cbc],
     ["منا بقولك صوره دم", "COVERAGE_RESULT", /صورة الدم الكاملة مغطّى.*0%.*1,000/, activeCbc, "CBC", cbc]
   ]);
@@ -127,9 +127,9 @@ test("verified HTTP uses the pending focus for a short CBC selection and keeps r
   await replay(demo, 1, [
     ["أقدر أختار من أنهي فحوصات؟", "CAPABILITIES", /صورة الدم الكاملة/, idle, null, services],
     ["طب نبدأ بتعداد الدم الكامل؟", "COVERAGE_RESULT", /صورة الدم الكاملة مغطّى بشروط.*30%.*400/, activeCbc, "CBC", services],
-    ["هو أنا تبع أنهي فئة تأمينية؟", "OUT_OF_SCOPE", /فئة وثيقتك.*مش متاحة/, idle, null, services],
-    ["تعرف الاسم المسجل على حسابي؟", "OUT_OF_SCOPE", /اسمك المسجّل.*مش متاح/, idle, null, services],
-    ["فين أقرب فرع أعمل فيه CBC؟", "OUT_OF_SCOPE", /مواقع الفروع/, idle, null, services],
+    ["هو أنا تبع أنهي فئة تأمينية؟", "OUT_OF_SCOPE", /فئة وثيقتك.*مش متاحة/, idle, null],
+    ["تعرف الاسم المسجل على حسابي؟", "OUT_OF_SCOPE", /اسمك المسجّل.*مش متاح/, idle, null],
+    ["فين أقرب فرع أعمل فيه CBC؟", "OUT_OF_SCOPE", /مواقع الفروع/, idle, null],
     ["هدفع قد إيه من جيبي؟", "CLARIFICATION_NEEDED", /أنهي فحص/, pendingCopay, null, copay],
     ["أنا قصدي صورة الدم", "COVERAGE_RESULT", /^(?!.*موافقة مسبقة).*صورة الدم.*30%.*التغطية مشروطة/, activeCbc, "CBC", services],
     ["طب قد إيه عليّا من جيبي؟", "COVERAGE_RESULT", /صورة الدم.*30%.*التغطية مشروطة/, activeCbc, "CBC",
@@ -246,7 +246,49 @@ test("verified HTTP rejects unrelated or contradictory copied benefit evidence a
     ["طب والميعاد إمتى؟", "CLARIFICATION_NEEDED", /أنهي فحص/, pendingCopay, null,
       copay, { match: "COPAY", quote: "والميعاد إمتى" }],
     ["هل MRI مغطى؟", "COVERAGE_RESULT", /مغطّى بشروط/, activeMri, "MRI", mri],
-    ["فاضل كام من الحد المتبقي؟", "CLARIFICATION_NEEDED", /أنهي فحص/, { kind: "pending", focus: "LIMIT" },
+    ["فاضل كام من الحد المتبقي؟", "CLARIFICATION_NEEDED", /الرنين.*نسبة التحمل.*الحد المتبقي/, activeMri,
       null, copay, { match: "COPAY", quote: "الحد المتبقي" }]
+  ]);
+});
+
+test("verified HTTP refuses provider logistics and executing approval before inference or lookup", async (t) => {
+  const demo = await start(t);
+  await replay(demo, 0, [
+    ["هل MRI مغطى؟", "COVERAGE_RESULT", /مغطّى بشروط/, activeMri, "MRI", mri],
+    ["هو مكتبكم الأقرب لبيتي عشان أعمل فيه صورة الدم الكاملة؟", "OUT_OF_SCOPE", /مواقع الفروع/, idle, null],
+    ["عايز موافقة تصدرلي على MRI", "OUT_OF_SCOPE", /اختصاص الجهة المختصة/, idle, null],
+    ["هل وثيقتي تستلزم موافقة مسبقة للرنين؟", "COVERAGE_RESULT", /محتاج موافقة مسبقة/, activeMri, "MRI", mri],
+    ["اسمي المسجّل عندكم إيه؟", "OUT_OF_SCOPE", /اسمك المسجّل.*مش متاح/, idle, null],
+    ["أنا فئة إيه في التأمين؟", "OUT_OF_SCOPE", /فئة وثيقتك.*مش متاحة/, idle, null]
+  ]);
+});
+
+test("verified HTTP keeps the active service during benefit clarification and displayed-limit explanations", async (t) => {
+  const demo = await start(t);
+  const followUp = { ...copay, focus: "OVERVIEW" } as const;
+  await replay(demo, 0, [
+    ["هل MRI مغطى؟", "COVERAGE_RESULT", /مغطّى بشروط/, activeMri, "MRI", mri],
+    ["طيب هيتحملوني جزء من الفاتورة قد إيه؟", "CLARIFICATION_NEEDED", /الرنين.*نسبة التحمل.*الحد المتبقي/,
+      activeMri, null, followUp, { match: "LIMIT", quote: "قد إيه" }],
+    ["والحد لسه فيه كام لنفس الفحص؟", "COVERAGE_RESULT", /5,000.*مشروطة/, activeMri, "MRI",
+      followUp, { match: "LIMIT", quote: "الحد لسه فيه كام" }],
+    ["ده اللي هيتخصم مني ولا ده حد الوثيقة؟", "FAQ", /الحد المتبقي.*المبلغ اللي عليك/, activeMri, null, followUp]
+  ]);
+});
+
+test("verified HTTP handles grounded preapproval, implicit CBC, and service-desk follow-up", async (t) => {
+  const demo = await start(t);
+  const approval = "موافقته لازم تيجي قبل ما أعمله؟";
+  const description = "الفحص اللي بيتعمل بعينة عشان يعد الحمراء والبيضاء والصفائح";
+  await replay(demo, 0, [
+    ["هل MRI مغطى؟", "COVERAGE_RESULT", /مغطّى بشروط/, activeMri, "MRI", mri],
+    [approval, "COVERAGE_RESULT", /محتاج موافقة مسبقة/, activeMri, "MRI",
+      { ...copay, subject: "PREAPPROVAL", focus: "OVERVIEW" }, { match: "PREAPPROVAL", quote: approval }],
+    [description + "، هتحمل فيه كام؟", "COVERAGE_RESULT", /صورة الدم.*0%/, activeCbc, "CBC",
+      cbc, { match: "CBC", quote: description }],
+    ["هل الأشعة العادية متغطية؟", "COVERAGE_NOT_AVAILABLE", /مش متاحة/,
+      { kind: "referral", reason: "unavailable" }, "XRAY", { ...mri, subject: "XRAY" }],
+    ["أسأل مين عشان أتأكد قبل المعاد؟", "OUT_OF_SCOPE", /خدمة العملاء/,
+      { kind: "referral", reason: "unavailable" }, null, { ...services, intent: "CLARIFY", subject: "NONE" }]
   ]);
 });

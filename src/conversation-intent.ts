@@ -29,6 +29,7 @@ export type AccountQuestionPurpose = "clarify-policy-tier" | "policy-tier" | "me
 export type TurnResolution =
   | Readonly<{ action: "lookup"; service: ServiceCode; focus: Focus; topic: "keep" | "replace" }>
   | Readonly<{ action: "clarify"; focus: Focus; reason: "service" | "multiple" | "conflict" }>
+  | Readonly<{ action: "clarify-benefit"; service: ServiceCode }>
   | Readonly<{ action: "reply"; reply: ConversationIntent; topic: "clear" | "keep" }>
   | Readonly<{ action: "explain"; purpose: "referral" | "unsupported" | "approval-action" |
     AccountQuestionPurpose; topic: "clear" | "keep" }>;

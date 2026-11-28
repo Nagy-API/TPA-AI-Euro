@@ -32,6 +32,8 @@ The executor re-reads session dialogue after inference. A lookup that replaces t
 
 An explicit selection of one complete catalog name can start an overview lookup with no prior topic. A recognized answer to a pending service clarification uses the pending benefit. The short Egyptian Arabic CBC label `صورة دم` is accepted as a whole selection only when a service clarification is pending or CBC is already active. A repeat against active CBC keeps its expiry. A conflicting service or scope verdict prevents these shortcuts. Positive evidence of a requested benefit is required to use an active topic. A verbatim quote accompanies semantic grounding when the current text does not otherwise confirm the same benefit and policy purpose. Distinct non-lookup replies cover name, policy tier and branch questions. The only protected read remains the session-scoped coverage call.
 
+Explicit provider logistics and approval execution requests return approved replies before model inference. These requests clear the active topic. A supported procedure name inside a broader turn needs coverage evidence or a pending service clarification. When a follow-up has text evidence of a benefit but copied grounding points to a different benefit, the resolver asks which benefit was intended and names the active service. That turn makes zero lookups and preserves the existing service expiry.
+
 ## Alternatives and trade-offs
 
 - Free-form LLM response after tool result: more natural but adds hallucination risk for co-pay, limits and approval; postpone until output-grounding evals exist.
