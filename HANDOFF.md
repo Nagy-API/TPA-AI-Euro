@@ -1,4 +1,14 @@
-# Current handoff — TPA AI Euro (2026-11-24)
+# Current handoff — TPA AI Euro (2026-11-28)
+
+**Independent acceptance follow-up:** The two unrequested coverage reads from the 47-turn review were eliminated on replay. The case set is now disclosed. See the [replay, application fixes and remaining model misses](docs/v04-qa2-diagnostics.md#independent-acceptance-follow-up). Complete-conversation usefulness is below the acceptance threshold. Keep PR #19 Draft and the existing provider configuration.
+
+**Manual Web Chat checkpoint:** The reported conversation passed in the verified browser using the installed local Ollama model. Read the [baseline trace, regression results and Astra findings](docs/v04-qa2-diagnostics.md#nagy-manual-web-chat). The branch remains the sole change target for [Draft PR #19](https://github.com/Nagy-API/TPA-AI-Euro/pull/19). The manual replay is a disclosed regression. Fresh independent acceptance and Nagy's merge approval remain pending.
+
+**V0.4 review checkpoint:** [Issue #17](https://github.com/Nagy-API/TPA-AI-Euro/issues/17) is implemented for the local synthetic demo on `codex/v04-grounded-conversation`, based on live `main` at `c5c5f4eedb5a8c9fc8ad5a9c6c089b47ca89786c`. Read the [observed conversations and evidence](PROJECT_STATUS.md#v04-grounded-conversation--issue-17). Review the Draft PR and remaining semantic risk before any merge. The approved workflow is fixture-default and free-first.
+
+**Next QA — GPT-6.2 Sol, High reasoning.** Use the frozen head of [Draft PR #19](https://github.com/Nagy-API/TPA-AI-Euro/pull/19). Verify its SHA, local model digest and exclusive GPU window. Independently author an unseen synthetic multi-turn suite with fixed expectations and keep the prompts private until the first run ends. The 30 Issue #18 cases are disclosed regressions. Exercise the verified HTTP flow and record useful replies, required/actual lookup and scope, topic, refusal, failure handling, and p50/p95. Apply the existing ≥90% recall/usefulness and zero wrong or unauthorized lookup gates. Report first-run results without editing or tuning the frozen implementation. Keep the PR Draft pending Nagy's review.
+
+**Response usefulness revision:** Both 30-scenario QA suites are disclosed. Read the [turn-level diagnosis](docs/v04-qa2-diagnostics.md) for the reviewed head's ten incomplete QA2 scenarios and the current replay. A short-lived referral has no lookup authority. If comparing another already-installed model, keep implementation, settings and cases fixed, and measure first-pass interpretation and grounding separately from scoped backend lookup recall. Independent acceptance is outstanding.
 
 **Current checkpoint:** Nagy approved [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16), and the V0.3 local Ollama PoC is now **merged into `main`** at `b44596071798aeee1fac6e1162022754e8185c81`. Start future work from verified live `main`, not the historical feature branch. The canonical checkout is the root `TPA-AI` folder. Preserve the historical agent folders and archive pending separate cleanup approval.
 

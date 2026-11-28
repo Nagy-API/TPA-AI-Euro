@@ -84,6 +84,14 @@ Example safe minimal response:
 
 Proposed errors: `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `UNKNOWN_SERVICE` (422), `CONTEXT_UNAVAILABLE` (503), `RATE_LIMITED` (429), `SESSION_EXPIRED` (401), `HUMAN_REVIEW_REQUIRED` (409 or domain state, to agree). Never expose account existence during identification. Use opaque correlation IDs for troubleshooting.
 
+## Local V0.4 chat codes
+
+The Ollama Web Demo uses the existing verified `POST /v1/chat` request and answer envelope. It adds HTTP 200 codes `CAPABILITIES`, `FAQ`, `OUT_OF_SCOPE`, `UNSUPPORTED_SERVICE`, and `COVERAGE_NOT_AVAILABLE`. The last code means the mock policy engine returned `UNKNOWN` for an allowlisted service. A confirmed `NOT_COVERED` policy result uses `COVERAGE_RESULT`. Concurrent Ollama chat turns in a single verified session can receive HTTP 409 `CHAT_BUSY`. Fixture and legacy chat retain their previous response codes.
+
+The Ollama chat uses `OUT_OF_SCOPE` for requests for the member's name, policy tier, or branch locations because those data aren't available through the verified chat. An ambiguous account question such as `نوعي إيه؟` uses `CLARIFICATION_NEEDED` with a specific question about policy tier. These replies make zero coverage calls and clear the current coverage topic. `COVERAGE_RESULT` can include conditions supported by the verified policy result.
+
+Explicit provider logistics and requests to execute an approval use `OUT_OF_SCOPE` even if the message names a supported procedure. A conflict about which benefit the user is asking for can return `CLARIFICATION_NEEDED` while leaving the current service and expiry in place. Neither response reads coverage.
+
 ## Backend contract review checklist
 
 - [ ] Tenant and member scoping must be server-side and enforced on every query.

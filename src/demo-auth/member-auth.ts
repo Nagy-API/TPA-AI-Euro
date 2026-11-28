@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { ServiceCode, VerifiedSession } from "../contracts.ts";
 import { CoverageConversation } from "../coverage-conversation.ts";
+import type { DialogueContext, Focus } from "../conversation-intent.ts";
 import { DEMO_MEMBERS } from "./fixtures.ts";
 
 const CHALLENGE_TTL_MS = 2 * 60_000;
@@ -134,6 +135,26 @@ export class DemoMemberAuth {
 
   remainingSessionMs(session: VerifiedSession): number {
     return session.expiresAt - this.now();
+  }
+
+  currentConversationService(session: VerifiedSession): ServiceCode | undefined {
+    const now = this.now();
+    return this.findActiveRecord(session, now)?.conversation.current(now);
+  }
+
+  conversationContext(session: VerifiedSession): DialogueContext {
+    const now = this.now();
+    return this.findActiveRecord(session, now)?.conversation.context(now) ?? { kind: "idle" };
+  }
+
+  awaitConversationService(session: VerifiedSession, focus: Focus): void {
+    const now = this.now();
+    this.findActiveRecord(session, now)?.conversation.awaitService(focus, now, session.expiresAt);
+  }
+
+  offerConversationReferral(session: VerifiedSession, reason: "unavailable" | "unsupported"): void {
+    const now = this.now();
+    this.findActiveRecord(session, now)?.conversation.offerReferral(reason, now, session.expiresAt);
   }
 
   /** null denotes an inactive session. undefined means the service needs clarification. */

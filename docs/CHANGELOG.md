@@ -101,3 +101,39 @@
 - Nagy approved the bounded, synthetic, local-only model integration after architecture review. [PR #16](https://github.com/Nagy-API/TPA-AI-Euro/pull/16) squash-merged into `main`, SHA `b44596071798aeee1fac6e1162022754e8185c81`. No deployment, branch deletion or paid API calls.
 - GitHub-hosted Node tests and docs validator passed on the resulting merge commit. Known limitation: first fresh 24-case grounding holdout yielded 11/12 required coverage lookups and 0 wrong/unauthorized lookups in those cases; the system clarified a valid CBC paraphrase.
 - Updated root status/hand-off docs for merged local Ollama experiment and local-only browser trial. Real identity, policy APIs, WhatsApp, production hardening and broader model accuracy remain out of scope.
+
+## 2026-11-24 — V0.4 grounded conversation draft
+
+- Added explicit conversational intents and approved Egyptian Arabic replies for verified local Ollama chat. A scoped topic supports fresh copay, limit and preapproval lookups. The fixture selector stays the default.
+- Distinguished unsupported procedures, missing fixture data and confirmed policy exclusions. Protected lookups require corroborated service evidence, and the server renders benefits from the validated policy result.
+- Reproduced the reported Gold conversation in the existing Web Demo. Recorded test, model, tool and latency evidence, including the safe rehabilitation miss, in [Project Status](../PROJECT_STATUS.md#v04-grounded-conversation--issue-17).
+
+## 2026-11-24 — V0.4 recall revision after independent QA
+
+- Resolve positively identified catalog requests without requiring a second model vote. Retain corroboration for descriptive services and non-explicit follow-ups, and keep competing, unsupported and out-of-scope requests away from policy lookups.
+- Keep a scoped, time-bounded pending benefit when asking which procedure the user meant. A later choice can complete that request. An active topic and pending clarification cannot coexist.
+- Added exposed multi-turn HTTP regressions and tests for personalized versus general benefits, clarification, and non-lookup replies. The replay recovered 35/38 required lookups with zero wrong, unexpected or unauthorized lookups. Fresh independent QA remains pending.
+
+## 2026-11-24 — Typed resolution after the second V0.4 acceptance review
+
+- Split semantic proposals and conditional grounding from deterministic turn resolution. Store one expiring active service or pending clarification per verified session.
+- Added tests for service correction, pending expiry, general price questions and recovery from a mistaken first-pass route.
+- Preserved the second independent suite as an exposed HTTP replay. See the [baseline diagnosis](v04-qa2-diagnostics.md) and [candidate evidence](../PROJECT_STATUS.md#typed-turn-resolution-after-qa2).
+
+## 2026-11-25 — Grounded response usefulness
+
+- Retained a non-lookup referral after missing fixture data or an unsupported procedure. Added bounded replies for coverage escalation, exclusion questions and unauthorized approval or policy actions.
+- Distinguished definitions from personal questions that need a service, kept the active topic when explaining a displayed balance, and corroborated contextual coverage questions before looking up the verified topic.
+- Documented the ten incomplete reviewed QA2 scenarios and the disclosed replays in the [diagnostic report](v04-qa2-diagnostics.md).
+
+## 2026-11-25 — Verified Web Chat manual acceptance fixes
+
+- Accept a complete, unambiguous service selection in the verified chat. Resolve CBC shorthand while clarification is pending or while CBC is active. Return distinct replies for policy tier, name and nearest branch questions.
+- Require corroborating benefit evidence for contextual coverage and retain the conditional status returned by the policy fixture.
+- Added deterministic resolver cases, verified HTTP replay and transport cancellation and session revocation regressions. Recorded the baseline trace and local browser evidence in the [diagnostic report](v04-qa2-diagnostics.md#nagy-manual-web-chat).
+
+## 2026-11-28 — V0.4 acceptance follow-up
+
+- Route explicit provider logistics and approval execution requests to replies before inference or policy lookup. A service mention in a broader message also needs coverage evidence or a pending service clarification.
+- Keep an active service and its original expiry when grounded benefit categories conflict. Ask which benefit the member meant with no additional lookup. Preserve the service when explaining the difference between a displayed limit and an amount due.
+- Accept corroborated preapproval and CBC descriptions, and preserve the referral when the member asks whom to contact. Added resolver and verified HTTP coverage for these cases.

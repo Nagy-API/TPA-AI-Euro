@@ -1,4 +1,5 @@
 import type { ServiceCode } from "./contracts.ts";
+import type { DialogueContext, Focus } from "./conversation-intent.ts";
 
 const TOPIC_TTL_MS = 2 * 60_000;
 
@@ -15,19 +16,37 @@ export function isCoverageFollowUp(message: string): boolean {
 
 /** Offline deterministic topic resolution, NOT a real LLM. One slot per verified session. */
 export class CoverageConversation {
-  private topic?: Readonly<{ serviceCode: ServiceCode; expiresAt: number }>;
+  private state?: Readonly<{ value: Exclude<DialogueContext, { kind: "idle" }>; expiresAt: number }>;
+
+  context(now: number): DialogueContext {
+    return this.state && this.state.expiresAt > now ? this.state.value : { kind: "idle" };
+  }
+
+  current(now: number): ServiceCode | undefined {
+    const context = this.context(now);
+    return context.kind === "active" ? context.service : undefined;
+  }
+
+  awaitService(focus: Focus, now: number, sessionExpiresAt: number): void {
+    const prior = this.context(now);
+    if (prior.kind === "pending" && (prior.focus === focus || focus === "OVERVIEW")) return;
+    this.state = { value: { kind: "pending", focus }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
+  }
+
+  offerReferral(reason: "unavailable" | "unsupported", now: number, sessionExpiresAt: number): void {
+    this.state = { value: { kind: "referral", reason }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
+  }
 
   resolve(followUp: string, explicitService: ServiceCode | undefined, now: number, sessionExpiresAt: number): ServiceCode | undefined {
     if (explicitService) {
-      this.topic = { serviceCode: explicitService, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
+      this.state = { value: { kind: "active", service: explicitService }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
       return explicitService;
     }
 
-    if (this.topic && this.topic.expiresAt > now && isCoverageFollowUp(followUp)) {
-      return this.topic.serviceCode;
-    }
+    const current = this.current(now);
+    if (current && isCoverageFollowUp(followUp)) return current;
 
-    this.topic = undefined;
+    this.state = undefined;
     return undefined;
   }
 }

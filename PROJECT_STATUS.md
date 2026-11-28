@@ -1,10 +1,91 @@
 # TPA AI Euro — Project Status (source of truth)
 
-**Updated:** 2026-11-24
+**Updated:** 2026-11-28
 
 **Repository:** [Nagy-API/TPA-AI-Euro](https://github.com/Nagy-API/TPA-AI-Euro) — **PUBLIC**  
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama intent-selection **MERGED into `main`** (synthetic local PoC); backend contract and real service integration remain deferred.
+
+## V0.4 grounded conversation — Issue #17
+
+V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A verified session holds one service topic, pending clarification, or non-lookup referral for up to two minutes. Every accepted coverage follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server. See the [response and state diagnosis](docs/v04-qa2-diagnostics.md#response-and-state-defects-at-reviewed-head-4b2b732).
+
+### Independent acceptance follow-up
+
+The independent 20-scenario evaluation on `a5b249d` measured 24/29 required lookups, 10/20 useful complete conversations and two unintended reads in the correct member sessions. The updated candidate blocks those provider-location and approval-execution reads. It accepts the corroborated preapproval question and implicit CBC description, and keeps the original topic expiry on a benefit clarification. See the [replay and remaining misses](docs/v04-qa2-diagnostics.md#independent-acceptance-follow-up).
+
+### Manual Web Chat acceptance blocker
+
+Reproduced [Nagy's transcript](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7158911501) on the clean Draft head `0c687038c630bda9fe32cb47c118fd24634af354`. The model correctly proposed CBC on both failed turns. The resolver treated the full name as a reply with no pending service and rejected the short name's grounding excerpt. The tier, name and branch questions all became the same capabilities reply. See the [verified HTTP trace and Astra review](docs/v04-qa2-diagnostics.md#nagy-manual-web-chat).
+
+The fix accepts complete catalog selections and uses CBC shorthand only in a pending service clarification or an active CBC topic. The browser replayed all nine turns in the verified Gold fixture with local Ollama, including both CBC results at 0% copay and 1,000 EGP remaining. The three non-coverage questions produced distinct replies. The browser console showed no warnings or errors during replay. F1 now requires positive benefit evidence for contextual lookups, F2 preserves conditional coverage in overview and focused replies, and F3 is covered by verified V0.4 HTTP tests.
+
+`npm test` passed 116/116. Strict TypeScript 5.9.3 over `src`, `scripts`, and `tests`, `npm run docs:check`, and `git diff --check` passed. The [live replay results](docs/v04-qa2-diagnostics.md#live-verified-http-replay) include 16/16 manual regression turns and zero wrong, unexpected or unauthorized lookups across the measured suites. QA1 remains below the independent acceptance threshold.
+
+### Recall revision after independent QA
+
+[Independent QA](https://github.com/Nagy-API/TPA-AI-Euro/pull/19#issuecomment-7132224667) on `10f81ad` found 14/38 required lookups, 12 false-negative clarifications and 5/30 complete scenarios. Initial intent routing suppressed personalized requests, a second model vote could veto a positively identified catalog service, and asking the member to pick a service discarded the pending benefit.
+
+On the recall revision, replaying the 30 disclosed conversations through verified localhost HTTP on Node 24.14.1 and Ollama 0.40.17 (`qwen3:4b-instruct`, digest prefix `0edcdef34593`) measured **35/38 required lookups**, **2 false-negative clarifications**, **0 wrong, unexpected or unauthorized lookups**, and **62/74 exact coded checks, 20/30 complete scenarios**. There were 67 model availability checks, 79 inference requests and 35 backend calls. HTTP p50/p95 were 537/1,258 ms. Exact coded checks combine response codes, expected backend calls, stored topic and selected answer content. They do not replace the independent usefulness rubric. The original integrated suite passed 26/26 coded checks with 11/11 required lookups and zero wrong, unexpected or unauthorized lookups.
+
+Remaining lookup misses were the implicit policy percentage (QA-07), a magnetic description with a negated alternative (QA-14), and a future conditional MRI inquiry (QA-16). The model also misrouted some service-desk, dental exclusion, unrelated FX and escalation follow-ups. The shared model can still make correlated errors on paraphrases. These measured gains apply to exposed regression cases. The Draft requires a new unseen acceptance run before merge review.
+
+Reproduce with `OLLAMA_MODEL=qwen3:4b-instruct` and `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --disclosed`. The runner exits 1 when any coded check misses. See the [disclosed inputs and expectations](evals/v04-disclosed-conversations.json).
+
+### Typed turn resolution after QA2
+
+The second independent run measured 30/40 required lookups and 15/30 complete conversations. See the [per-failure trace and diagnosis](docs/v04-qa2-diagnostics.md). The resolver now makes explicit coverage, contextual coverage, clarification and static replies distinct actions. It rechecks session dialogue after semantic inference and before any lookup. Pending focus and active service use the same time-bounded session slot.
+
+Verified HTTP replay on Ollama 0.40.17 with `qwen3:4b-instruct` (digest prefix `0edcdef34593`):
+
+| Suite | Required lookups | Complete conversations | Matched turns | Wrong / unexpected / unauthorized lookups | p50 / p95 |
+|---|---:|---:|---:|---:|---:|
+| QA2, now disclosed | 38/40 | 20/30 | 57/69 | 0 / 0 / 0 | 561 / 1,142 ms |
+| Original independent suite, disclosed | 35/38 | 20/30 | 62/74 | 0 / 0 / 0 | 566 / 1,297 ms |
+
+On QA2 the first-pass model agreed with the expected route and service on 24/40 required turns, both before and after the revision. For contextual turns, the metric checks the raw FOLLOW_UP intent. For service-bearing turns it checks raw COVERAGE_LOOKUP and the target code. The metric measures route/service agreement without application state or benefit focus. The final application matched 38/40 lookups with 60 availability probes, 69 inference requests and two false-negative clarifications. Remaining cases include a misidentified reference to MRI and a personal copay follow-up classified as FAQ with no corroboration. The runner deliberately exits 1 on the disclosed suites because reply and state expectations still fail.
+
+Run `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --qa2` with the same local model setting to reproduce. The installed model's proposal errors and the reply gaps warrant comparing a larger local model if approved. Fresh independent QA is required for acceptance. Neither replay establishes generalization or complete-scenario usefulness at the 90% threshold.
+
+### V0.3 reproduction
+
+The indirect knee-imaging question passed model eligibility and Ollama proposed MRI. The application rejected the proposal because the existing lexical guard expected the magnet cue next to the imaging phrase. The indirect copay question missed the fixture-style follow-up matcher, had no saved MRI topic and failed the model's single-turn eligibility screen. Dental and capability questions also failed eligibility by design. The orchestrator routed all those paths to the same generic clarification.
+
+### Observed end-to-end replies
+
+The existing RTL Web Demo was exercised in a verified fictional Gold session with real loopback Ollama. The five reported messages passed in one browser conversation. Two more turns verified distinct role and FAQ replies. The browser returned no console errors or warnings during that flow. At 768 px and 390 px the document was RTL and stayed within the viewport. Logout returned to identification.
+
+| Gold member message | Actual reply content | Verified HTTP lookup |
+| --- | --- | --- |
+| الدكتور طالب مني أدخل جهاز بيصور ركبتي بالمغناطيس، التأمين هيساعدني في تكلفته؟ | الرنين المغناطيسي مغطّى حسب بيانات الوثيقة التجريبية. نسبة التحمل: 20%. الحد المتبقي: 5,000 جنيه. لازم موافقة مسبقة من المختص قبل تقديم الخدمة، وده مش قرار موافقة. | MRI |
+| طب أنا هدفع كام من جيبي؟ | بالنسبة لـالرنين المغناطيسي، نسبة التحمل 20% من التكلفة المؤهلة. المبلغ بالجنيه محتاج سعر الخدمة. | MRI re-fetch |
+| طب تبييض الأسنان متغطي عندي ولا لأ؟ | الخدمة دي مش ضمن الخدمات اللي أقدر أراجعها في الديمو. ده ما يحددش إذا كانت وثيقتك بتغطيها. اسأل خدمة العملاء عن الخدمة دي. | 0 |
+| تبييض أسنان | The same service-availability reply. | 0 |
+| إيه الخدمات المتاحة | في الديمو أقدر أراجع الرنين المغناطيسي، صورة الدم الكاملة، الأشعة السينية. نتيجة كل فحص بتعتمد على بيانات الوثيقة التجريبية. | 0 |
+| إنت بتساعدني في إيه؟ | أقدر أراجع تغطية فحص في وثيقتك التجريبية، وأقولك نسبة التحمل والحد المتبقي ولو محتاج موافقة مسبقة، حسب البيانات المتاحة. | 0 |
+| يعني إيه نسبة تحمل؟ | نسبة التحمل هي الجزء اللي عليك من تكلفة الخدمة المؤهلة للتغطية. النسبة بتختلف حسب الخدمة والوثيقة. | 0 |
+
+Verified HTTP separately observed Gold plain X-ray returning `COVERAGE_NOT_AVAILABLE` based on the missing mock policy entry and Silver MRI returning `COVERAGE_RESULT` with an explicit exclusion. An expired session returned 401 before contacting Ollama. Selecting a nonexistent local model returned 503 `AI_UNAVAILABLE` without a lookup, with the provider still listening on loopback.
+
+### Verification
+
+| Integrated Ollama HTTP run | Exact status, reply and lookup | Correct / required lookups | Unexpected / wrong-service lookups | p50 / p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Issue #17 and development replay | 26/26 | 11/11 | 0 / 0 | 589 / 1,363 ms |
+| Reviewer sequence replay after fixes | 5/5 | 4/4 | 0 / 0 | 1,134 / 1,459 ms |
+| Fresh verifier sequence, first run | 2/3 | 1/1 | 0 / 0 | 619 / 1,380 ms |
+
+Across the final three runs, the server made **16 correct required lookups**, with **zero lookups on the 18 non-lookup turns**. The first reviewer run matched 2/5, including one of four required lookups. The replay uses the same questions after improving service and follow-up corroboration. In the untouched verifier sequence, the model correctly identified an indirect wrist MRI and the app refused a grandchild's question before inference. Ollama clarified a rehabilitation question instead of identifying it as unsupported. It made zero coverage calls for that turn, and the fresh evaluator exits 1 to report that mismatch.
+
+Local `npm test` passed 92/92. Strict TypeScript 5.8.3 passed for `src`, `scripts`, and `tests` with `--noEmit --strict --allowImportingTsExtensions --module NodeNext --moduleResolution NodeNext --target ES2022 --types node` and the locally installed Node declaration path. `npm run docs:check` and `git diff --check` passed.
+
+### Model behavior and remaining risks
+
+- On the copay follow-up, the first model pass emitted `FOLLOW_UP` with an overly broad `OVERVIEW`. The contextual pass identified copay and the application rendered the freshly fetched MRI copay. On a CBC billing follow-up, both model calls initially leaned toward the limit. The explicit bill cue selected copay from the verified CBC object. The service and capability replies use maintained approved phrasing.
+- On a generic chest test, a model proposed XRAY and the independent check refused to identify a service. The backend saw zero calls. The test suite also checks that a copied service from a superseded clause and an irrelevant copied excerpt cannot authorize a lookup.
+- Scope recognition and semantic evidence are bounded. Both passes share a local model, which can produce correlated errors and vary across runs. The finite evaluation does not establish production coverage, safety or privacy. A real policy integration, approved identity, and privacy controls remain pending.
+
+Reproduce with `OLLAMA_MODEL=qwen3:4b-instruct` and `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts`. Add `--independent` for the reviewer sequence and `--fresh` for the verifier sequence. The runner prints synthetic transcripts, model decisions, actual lookup codes and per-turn latency. See the [local setup](README.md#run-with-local-ollama-synthetic-demo).
 
 ## PR 16 service-grounding review
 

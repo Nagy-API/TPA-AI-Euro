@@ -40,6 +40,16 @@ The app gives chat 30 seconds and returns HTTP 503 `CHAT_TIMEOUT` on deadline. T
 
 See [measured results](../PROJECT_STATUS.md#pr-16-service-grounding-review) for the integrated runs and remaining misclassifications.
 
+### V0.4 manual transcript regression
+
+Set `DEMO_INTENT_MODE=ollama` and `OLLAMA_MODEL=qwen3:4b-instruct`, then run:
+
+```powershell
+node --experimental-strip-types scripts/evaluate-ollama-conversation.ts --manual
+```
+
+The suite replays Nagy's fictional Gold Web Chat and a Silver follow-up sequence through verified HTTP. It checks the reply, exact allowlisted lookup count, member and tenant scope, and service topic. It emits the synthetic answers and first model proposals. Use only the included fictional cases. See the [baseline trace and browser evidence](v04-qa2-diagnostics.md#nagy-manual-web-chat).
+
 ## Deferred paid live run
 
 Get a model identifier from the Anthropic model listing in your account. Set `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` **locally** (never Git, PR text, chat, screenshots, terminal logs or an internet-accessible demo). Do not use real patient/customer questions. Then run:
