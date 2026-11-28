@@ -16,6 +16,30 @@ const followUp = { intent: "FOLLOW_UP", subject: "NONE", focus: "COPAY", tool: "
 const faq = { intent: "FAQ", subject: "COPAY", focus: "OVERVIEW", tool: "NONE" };
 const core = { parts: ["answer"] };
 
+test("V0.6 focused replies preserve required prior approval even on a COVERED policy result", async () => {
+  const d = demo(undefined, (coverage) => ({ ...coverage, coverageStatus: "COVERED" }));
+  const token = d.login();
+  d.replies.push(mri, core, followUp, core);
+  await d.ask(token, question);
+  const reply = await d.ask(token, "وطب نسبة التحمل كام؟");
+  assert.match(reply.answer, /20%.*موافقة مسبقة/u);
+  assert.doesNotMatch(JSON.stringify(d.requests[3]), /وطب نسبة التحمل كام/u);
+});
+
+test("V0.6 referral follow-ups and direct number requests require neither inference nor coverage", async () => {
+  const d = demo();
+  const token = d.login();
+  assert.equal((await d.ask(token, "هل تبييض الأسنان مغطى؟")).code, "UNSUPPORTED_SERVICE");
+  for (const question of ["طب رقمهم كام؟", "ممكن رقم خدمة العملاء؟", "أكلم مين؟"]) {
+    const reply = await d.ask(token, question);
+    assert.equal(reply.code, "OUT_OF_SCOPE");
+    assert.match(reply.answer, /رقم خدمة العملاء مش متاح.*وثيقة التأمين/u);
+    assert.doesNotMatch(reply.answer, /\p{Nd}|https?:/u);
+  }
+  assert.deepEqual(d.requests, []);
+  assert.deepEqual(d.lookups, []);
+});
+
 function demo(provider?: ConversationProvider, coverageResult: (coverage: Coverage) => Coverage = (coverage) => coverage) {
   let offset = 0;
   const auth = new DemoMemberAuth(() => Date.now() + offset);

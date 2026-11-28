@@ -1,5 +1,5 @@
 import type { ServiceCode } from "./contracts.ts";
-import type { ConversationNote, DialogueContext, Focus } from "./conversation-intent.ts";
+import type { ConversationNote, DialogueContext, Focus, ReferralReason } from "./conversation-intent.ts";
 
 const TOPIC_TTL_MS = 2 * 60_000;
 const MAX_RECENT_TURNS = 3;
@@ -44,7 +44,7 @@ export class CoverageConversation {
     this.state = { value: { kind: "pending", focus }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
   }
 
-  offerReferral(reason: "unavailable" | "unsupported", now: number, sessionExpiresAt: number): void {
+  offerReferral(reason: ReferralReason, now: number, sessionExpiresAt: number): void {
     this.state = { value: { kind: "referral", reason }, expiresAt: Math.min(now + TOPIC_TTL_MS, sessionExpiresAt) };
   }
 

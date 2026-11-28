@@ -149,3 +149,9 @@
 - Added a dedicated opt-in loopback callback with Meta challenge verification and raw-body signatures. It limits incoming events to the configured test WABA, phone number ID and senders, then deduplicates and queues them per sender.
 - Reused the synthetic member verification, authorized coverage and V0.5 conversation services. The channel keeps challenges and sessions on the server and sends replies through the official Meta Graph endpoint.
 - Added 14 WhatsApp tests using signed fixtures and stubbed model and Graph transports within the 152-test local suite. Documented Meta test number setup, restricted HTTPS tunneling and mobile acceptance. Live Meta delivery remains pending approval. See the [verification record](../PROJECT_STATUS.md#synthetic-whatsapp-test-adapter).
+
+## 2026-11-28 — V0.6 synthetic OpenAI Responses evaluation candidate
+
+- Added strict Responses parsing, local schema and reply-plan validation, request deadlines, token and estimated spend reservations, and a synthetic-only activation gate. Commercial mode is disabled by default.
+- Preserved mandatory prior approval in focused replies. Customer-service guidance directs members to contact details in their policy or insurance card when those details are available.
+- Added an offline transport replay for 22 fictional turns, scoped lookup checks and per-turn composition outcomes. See the [verification record](../PROJECT_STATUS.md#v06-synthetic-conversation-evaluation).

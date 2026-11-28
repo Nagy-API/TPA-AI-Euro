@@ -289,6 +289,6 @@ test("verified HTTP handles grounded preapproval, implicit CBC, and service-desk
     ["هل الأشعة العادية متغطية؟", "COVERAGE_NOT_AVAILABLE", /مش متاحة/,
       { kind: "referral", reason: "unavailable" }, "XRAY", { ...mri, subject: "XRAY" }],
     ["أسأل مين عشان أتأكد قبل المعاد؟", "OUT_OF_SCOPE", /خدمة العملاء/,
-      { kind: "referral", reason: "unavailable" }, null, { ...services, intent: "CLARIFY", subject: "NONE" }]
+      { kind: "referral", reason: "unavailable" }, null]
   ]);
 });

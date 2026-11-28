@@ -13,7 +13,7 @@ test("a referral survives a missing fixture but cannot supply a coverage topic o
   const { assistant, verify, answers, lookups, advance } = setup();
   const token = verify();
   const unrelated = { intent: "OUT_OF_SCOPE", subject: "NONE", focus: "OVERVIEW" };
-  answers.push({ ...mri, subject: "XRAY" }, unrelated, unrelated, copay);
+  answers.push({ ...mri, subject: "XRAY" }, unrelated, copay);
   assert.equal((await assistant.answer(token, "هل XRAY متغطية عندي؟")).code, "COVERAGE_NOT_AVAILABLE");
   const referral = await assistant.answer(token, "أراجع من مين؟");
   assert.equal(referral.code, "OUT_OF_SCOPE");

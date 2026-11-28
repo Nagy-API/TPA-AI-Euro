@@ -6,6 +6,12 @@
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama intent-selection **MERGED into `main`** (synthetic local PoC); backend contract and real service integration remain deferred.
 
+## V0.6 synthetic conversation evaluation
+
+`codex/v06-openai-responses` is based on [WhatsApp Draft PR #21](https://github.com/Nagy-API/TPA-AI-Euro/pull/21) at `d455ff865bc16eb575547f9e5e10efc75f7c833e`. The OpenAI transport is available only in the bundled evaluator. Web Demo and WhatsApp still use their existing provider configuration. TPA validates model proposals, enforces session scope, preserves required prior approval, and renders approved facts and referral wording locally. See [ADR 0006](docs/decisions/0006-commercial-responses-adapter.md) and the [evaluation runbook](docs/evaluation-runbook.md#v06-synthetic-conversation-evaluation).
+
+The offline Responses stub matched 22/22 turns, 9/9 scenarios and 8/8 required reads, with zero wrong, unexpected or wrong-scope reads. Of 12 composition attempts, 11 accepted the plan and one delivered the approved fallback after rejecting the plan. `npm test` passed 163/163 on Node.js 24.14.1, including Web Demo and signed synthetic WhatsApp HTTP tests. Strict TypeScript 5.9.3, `npm run docs:check` and `git diff --check` passed. Live commercial access, cost, latency and model quality on unseen Arabic conversations remain unverified.
+
 ## Synthetic WhatsApp test adapter
 
 The opt-in branch `codex/whatsapp-cloud-test` uses [V0.5 Draft PR #20](https://github.com/Nagy-API/TPA-AI-Euro/pull/20) at `834bf56b1e020b74ee10952f5c0be5cb063e6703`. A dedicated loopback listener handles the signed Meta callback, synthetic login and Graph text replies. The [runbook](docs/whatsapp-test-runbook.md) covers Meta test assets, restricted HTTPS routing and mobile acceptance. The [channel decision](docs/decisions/0005-isolated-whatsapp-test-listener.md) records the local state and delivery semantics.

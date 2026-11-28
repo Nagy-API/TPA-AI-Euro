@@ -4,6 +4,7 @@ import type { Coverage } from "./contracts.ts";
 export const OTHER_ACCOUNT = "أقدر أراجع تغطية حسابك التجريبي الحالي بس. صاحب الحساب التاني يقدر يسأل من جلسته بعد التحقق.";
 export const UNSUPPORTED_SERVICE = "الخدمة دي مش ضمن الخدمات اللي أقدر أراجعها في الديمو. ده ما يحددش إذا كانت وثيقتك بتغطيها. اسأل خدمة العملاء عن الخدمة دي.";
 export const CLARIFY_SERVICE = "ممكن تقول اسم الفحص اللي الدكتور طلبه أو توصف بيتعمل إزاي؟";
+export const CUSTOMER_SERVICE_CONTACT = "رقم خدمة العملاء مش متاح عندي في الشات، والتحويل لموظف مش متاح هنا. راجع بيانات التواصل في وثيقة التأمين أو على كارت التأمين لو مكتوبة عليه. لو بتسأل عن فحص، اسألهم عن تغطيته وهل محتاج موافقة مسبقة.";
 const limitFormatter = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 21 });
 
 export function formatRemainingLimit(amount: number): string {
@@ -30,7 +31,7 @@ export function explainConversation(purpose: Extract<TurnResolution, { action: "
   };
   return {
     code: "OUT_OF_SCOPE",
-    answer: "اتأكد من خدمة العملاء أو الجهة المسؤولة عن وثيقتك قبل المعاد. اسألهم عن تغطية الخدمة وأي شرط للموافقة. غياب النتيجة هنا ما يحددش اللي هتدفعه."
+    answer: `${CUSTOMER_SERVICE_CONTACT} غياب النتيجة هنا ما يحددش اللي هتدفعه.`
   };
 }
 
@@ -73,10 +74,9 @@ export function formatFocusedCoverage(coverage: Coverage, focus: Focus): string 
     return `بيانات تغطية ${name} مش متاحة في الديمو للوثيقة دي. اسأل خدمة العملاء عن التغطية.${demo}`;
   }
   if (coverage.coverageStatus === "NOT_COVERED" || focus === "OVERVIEW") return undefined;
-  const conditions = coverage.coverageStatus !== "COVERED_WITH_CONDITIONS" ? "" :
-    focus !== "PREAPPROVAL" && coverage.requiresPreApproval === true
-      ? " التغطية مشروطة بموافقة مسبقة من الجهة المختصة."
-      : " التغطية مشروطة.";
+  const conditions = focus !== "PREAPPROVAL" && coverage.requiresPreApproval === true
+    ? " التغطية مشروطة بموافقة مسبقة من الجهة المختصة قبل تقديم الخدمة."
+    : coverage.coverageStatus === "COVERED_WITH_CONDITIONS" ? " التغطية مشروطة." : "";
   if (focus === "COPAY") {
     return coverage.copayPercent === null
       ? `نسبة التحمل لـ${name} مش متاحة في بيانات الوثيقة.${conditions}${demo}`

@@ -192,6 +192,15 @@ The experiment retains up to three sanitized turn summaries per verified session
 
 The opt-in adapter runs on a dedicated loopback port and uses the same V0.5 orchestrator and fictional policy fixtures. It verifies Meta webhook deliveries and requires synthetic member verification before a coverage question. See the [Meta test-number setup, restricted HTTPS tunnel and mobile walkthrough](docs/whatsapp-test-runbook.md).
 
+### Run the V0.6 synthetic conversation contract offline
+
+```powershell
+npm run eval:v06 -- --list
+npm run eval:v06 -- --stub
+```
+
+The stub checks the OpenAI Responses adapter and conversation pipeline with fictional data and a scripted transport. A paid run is separately gated and requires explicit approval. See the [V0.6 evaluation runbook](docs/evaluation-runbook.md#v06-synthetic-conversation-evaluation).
+
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
 ```bash
