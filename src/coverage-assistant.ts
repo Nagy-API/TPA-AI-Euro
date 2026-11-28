@@ -2,13 +2,22 @@ import { CHAT_REQUEST_TIMEOUT_MS, isServiceCode } from "./contracts.ts";
 import { validateCoverageResponse } from "./coverage-validation.ts";
 import type { Coverage, CoverageIntentSelector, ToolSelection, TpaBackend, VerifiedSession } from "./contracts.ts";
 import type { DemoMemberAuth } from "./demo-auth/member-auth.ts";
-import { explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isThirdPartyCoverage, nonCoveragePurpose } from "./coverage-input.ts";
+import { explicitBenefitFocus, hasPrivateCoverageInput, inspectServiceSubject, isGroundedCoverageService, isShortCbcSelection, isThirdPartyCoverage, nonCoveragePurpose, normalizeArabic } from "./coverage-input.ts";
 import { isCoverageFollowUp } from "./coverage-conversation.ts";
-import { SERVICE_CATALOG, type ConversationInterpreter } from "./conversation-intent.ts";
-import { CLARIFY_SERVICE, conversationReply, explainConversation, formatFocusedCoverage, OTHER_ACCOUNT } from "./conversation-replies.ts";
+import { SERVICE_CATALOG, type ConversationInterpreter, type ConversationNote } from "./conversation-intent.ts";
+import { CLARIFY_SERVICE, conversationReply, explainConversation, formatFocusedCoverage, formatRemainingLimit, OTHER_ACCOUNT } from "./conversation-replies.ts";
 import { resolveTurn } from "./turn-resolution.ts";
+import { continuedFaq, FAQ_EXAMPLES, isFaqSubject, type ConversationExperiment } from "./conversation-experiment.ts";
+import { InferenceDeadlineError } from "./conversation-provider.ts";
 
 export type AssistantReply = Readonly<{ status: number; code: string; answer: string }>;
+type ConversationDelivery = {
+  update?: () => void;
+  compose?: boolean;
+  note?: ConversationNote;
+  explainBenefit?: boolean;
+  blocks?: Readonly<Record<string, string>>;
+};
 const SAFE_RETRY = "البيانات مش متاحة دلوقتي، من فضلك حاول مرة تانية أو تواصل مع خدمة العملاء. (بيانات تجريبية)";
 const COVERAGE_UNAVAILABLE: AssistantReply = Object.freeze({ status: 503, code: "COVERAGE_UNAVAILABLE", answer: SAFE_RETRY });
 const VERIFICATION_REQUIRED: AssistantReply = Object.freeze({
@@ -21,18 +30,22 @@ export class CoverageAssistant {
   private readonly selector: CoverageIntentSelector;
   private readonly memberAuth?: DemoMemberAuth;
   private readonly interpreter?: ConversationInterpreter;
+  private readonly experiment?: ConversationExperiment;
   private readonly inFlight = new WeakSet<VerifiedSession>();
   constructor(
     backend: TpaBackend, selector: CoverageIntentSelector, memberAuth?: DemoMemberAuth,
-    interpreter?: ConversationInterpreter
+    interpreter?: ConversationInterpreter, experiment?: ConversationExperiment
   ) {
     this.backend = backend;
     this.selector = selector;
     this.memberAuth = memberAuth;
     this.interpreter = interpreter;
+    this.experiment = experiment;
   }
 
-  async answer(sessionToken: string | undefined, question: unknown, requestSignal?: AbortSignal): Promise<AssistantReply> {
+  async answer(
+    sessionToken: string | undefined, question: unknown, requestSignal?: AbortSignal, requestDeadline?: number
+  ): Promise<AssistantReply> {
     if (!sessionToken) return { status: 401, code: "VERIFICATION_REQUIRED", answer: "لازم تتحقق من هويتك الأول قبل الاستفسار عن تغطيتك." };
     let session;
     try {
@@ -52,13 +65,15 @@ export class CoverageAssistant {
     if (remainingMs <= 0) return VERIFICATION_REQUIRED;
     const expiry = remainingMs <= CHAT_REQUEST_TIMEOUT_MS ? AbortSignal.timeout(remainingMs) : undefined;
     const signal = requestSignal && expiry ? AbortSignal.any([requestSignal, expiry]) : requestSignal ?? expiry;
-    if (this.interpreter && this.memberAuth) {
+    if ((this.interpreter || this.experiment) && this.memberAuth) {
       if (this.inFlight.has(session)) {
         return { status: 409, code: "CHAT_BUSY", answer: "استنى رد السؤال الحالي وبعدين ابعت سؤالك." };
       }
       this.inFlight.add(session);
       try {
-        return await this.answerConversation(session, message, this.interpreter, this.memberAuth, signal);
+        const lifetime = this.experiment ? this.memberAuth.conversationSignal(session) : undefined;
+        const conversationSignal = signal && lifetime ? AbortSignal.any([signal, lifetime]) : signal ?? lifetime;
+        return await this.answerConversation(session, message, this.memberAuth, conversationSignal, requestDeadline);
       } finally {
         this.inFlight.delete(session);
       }
@@ -103,15 +118,46 @@ export class CoverageAssistant {
   }
 
   private async answerConversation(
-    session: VerifiedSession, message: string, interpreter: ConversationInterpreter,
-    auth: DemoMemberAuth, signal?: AbortSignal
+    session: VerifiedSession, message: string, auth: DemoMemberAuth, signal?: AbortSignal, requestDeadline?: number
   ): Promise<AssistantReply> {
     const clear = () => auth.resolveConversationService(session, "", undefined);
-    const interrupted = () => !auth.isActive(session) ? VERIFICATION_REQUIRED : signal?.aborted ? CHAT_TIMEOUT : undefined;
-    const decline = (code: string, answer: string): AssistantReply => {
-      clear();
-      return { status: 200, code, answer };
+    const interrupted = () => !auth.isActive(session) ? VERIFICATION_REQUIRED :
+      signal?.aborted || this.experiment && requestDeadline !== undefined && Date.now() >= requestDeadline
+        ? CHAT_TIMEOUT : undefined;
+    const remainingSessionMs = auth.remainingSessionMs(session);
+    const remainingRequestMs = requestDeadline === undefined ? Infinity : requestDeadline - Date.now();
+    if (this.experiment) {
+      const stoppedBeforeTurn = interrupted();
+      if (stoppedBeforeTurn) return stoppedBeforeTurn;
+      if (remainingSessionMs <= 0) return VERIFICATION_REQUIRED;
+      if (remainingRequestMs < 100) return CHAT_TIMEOUT;
+    }
+    const turn = this.experiment && signal
+      ? this.experiment.begin(message, Math.min(remainingSessionMs, remainingRequestMs), signal) : undefined;
+    const recent = turn ? auth.recentConversationTurns(session) : [];
+    const deliver = async (
+      reply: { code: string; answer: string },
+      { update, compose = true, note = { kind: "reply", code: reply.code }, explainBenefit = false,
+        blocks = { answer: reply.answer } }: ConversationDelivery = {}
+    ): Promise<AssistantReply> => {
+      let answer = reply.answer;
+      if (turn) {
+        if (compose) {
+          try {
+            answer = await turn.compose(blocks, note, explainBenefit);
+          } catch (error) {
+            if (error instanceof InferenceDeadlineError) return interrupted() ?? CHAT_TIMEOUT;
+            throw error;
+          }
+        }
+        const stopped = interrupted();
+        if (stopped) return stopped;
+        auth.rememberConversationTurn(session, note);
+      }
+      update?.();
+      return { status: 200, code: reply.code, answer };
     };
+    const decline = (code: string, answer: string, compose = false) => deliver({ code, answer }, { update: clear, compose });
     if (hasPrivateCoverageInput(message)) {
       return decline("CLARIFICATION_NEEDED", "اكتب اسم الفحص أو سؤالك عن التأمين من غير أرقام العضوية أو بيانات التحقق.");
     }
@@ -123,93 +169,129 @@ export class CoverageAssistant {
     const clues = inspectServiceSubject(message);
     if (clues.unsupported && clues.named.length === 0 && !clues.comparison) {
       // This is a public catalog answer, even when a service possessive resembles an account cue.
-      auth.offerConversationReferral(session, "unsupported");
-      return { status: 200, ...explainConversation("unsupported") };
+      return deliver(explainConversation("unsupported"), { update: () => auth.offerConversationReferral(session, "unsupported"), compose: false });
     }
     if (isThirdPartyCoverage(message)) return decline("OUT_OF_SCOPE", OTHER_ACCOUNT);
+    if (turn && /^(?:(?:ممكن|عايز|عاوز)\s+)?(?:اكلم|اتواصل مع)\s+(?:خدم[هة] العملاء|موظف)|\b(?:speak to|talk to|connect me (?:with|to)) (?:a human|an agent|customer service)\b/iu.test(normalizeArabic(message))) {
+      return decline("OUT_OF_SCOPE", "تقدر تكلم خدمة العملاء من الرقم أو وسيلة التواصل المكتوبة في وثيقتك. الشات ده ما يقدرش يحوّلك لموظف مباشرة.");
+    }
     if (clues.named.length > 1) {
       const reply = conversationReply({ intent: "CLARIFY", subject: "MULTIPLE", focus: "OVERVIEW" });
-      auth.awaitConversationService(session, explicitBenefitFocus(message) ?? "OVERVIEW");
-      return { status: 200, ...reply };
+      return deliver(reply, { update: () => auth.awaitConversationService(session, explicitBenefitFocus(message) ?? "OVERVIEW") });
     }
 
-    let resolution;
+    const faqSubject = turn ? continuedFaq(message, recent.at(-1)) : undefined;
+    if (faqSubject) {
+      const reply = conversationReply({ intent: "FAQ", subject: faqSubject, focus: "OVERVIEW" });
+      return deliver(reply, { note: { kind: "faq", subject: faqSubject },
+        blocks: { answer: reply.answer, example: FAQ_EXAMPLES[faqSubject] } });
+    }
+
+    let resolution: ReturnType<typeof resolveTurn>;
     try {
       const context = auth.conversationContext(session);
-      const proposal = await interpreter.interpret(message, context, signal);
-      resolution = resolveTurn(message, auth.conversationContext(session), proposal);
-      if (resolution.action === "ground" && !interrupted()) {
+      const experimentalProposal = turn && await turn.interpret(context, recent);
+      const proposal = experimentalProposal ?? await this.interpreter!.interpret(message, context, signal);
+      const current = auth.conversationContext(session);
+      resolution = resolveTurn(message, current, proposal);
+      if (resolution.action === "ground" && !interrupted() && (!experimentalProposal || experimentalProposal.tool !== "NONE")) {
         const kind = resolution.kind;
-        const evidence = await interpreter.ground(message, kind, signal);
+        const evidence = turn && kind === "follow-up" && isCoverageFollowUp(message)
+          ? { match: "COPAY", quote: message }
+          : turn ? await turn.ground(kind) : await this.interpreter!.ground(message, kind, signal);
         resolution = resolveTurn(message, auth.conversationContext(session), proposal, { kind, evidence });
       }
-    } catch {
-      clear();
-      return interrupted() ?? { status: 503, code: "AI_UNAVAILABLE", answer: "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
+      if (experimentalProposal && resolution.action === "lookup") {
+        const { tool, intent, subject } = experimentalProposal;
+        const active = auth.conversationContext(session);
+        const explicitSelection = resolution.topic === "replace" ||
+          resolution.service === "CBC" && isShortCbcSelection(message);
+        const matchesRequest = explicitSelection
+          ? intent === "COVERAGE_LOOKUP" && subject === resolution.service
+          : intent === "FOLLOW_UP" && subject === "NONE" &&
+            active.kind === "active" && active.service === resolution.service;
+        if (tool !== "get_member_coverage" || !matchesRequest) {
+          resolution = { action: "clarify", focus: resolution.focus, reason: "conflict" };
+        }
+      }
+    } catch (error) {
+      const stopped = interrupted();
+      if (turn && error instanceof InferenceDeadlineError) return stopped ?? CHAT_TIMEOUT;
+      if (!turn || !stopped) clear();
+      return stopped ?? { status: 503, code: "AI_UNAVAILABLE", answer: "المساعد المحلي مش متاح دلوقتي. جرّب تبعت سؤالك بعد شوية." };
     }
     const stopped = interrupted();
     if (stopped) {
-      clear();
+      if (!turn) clear();
       return stopped;
     }
     if (resolution.action === "reply") {
-      if (resolution.topic === "clear") clear();
-      return { status: 200, ...conversationReply(resolution.reply) };
+      const reply = conversationReply(resolution.reply);
+      const subject = resolution.reply.subject;
+      const note = reply.code === "FAQ" && isFaqSubject(subject) ? { kind: "faq", subject } as const : undefined;
+      return deliver(reply, { update: resolution.topic === "clear" ? clear : undefined, note });
     }
     if (resolution.action === "explain") {
-      if (resolution.purpose === "unsupported") auth.offerConversationReferral(session, "unsupported");
-      else if (resolution.topic === "clear") clear();
-      return { status: 200, ...explainConversation(resolution.purpose) };
+      const update = resolution.purpose === "unsupported" ? () => auth.offerConversationReferral(session, "unsupported") :
+        resolution.topic === "clear" ? clear : undefined;
+      return deliver(explainConversation(resolution.purpose), { update });
     }
     if (resolution.action === "clarify-benefit") {
       const name = SERVICE_CATALOG[resolution.service].name;
-      return { status: 200, code: "CLARIFICATION_NEEDED",
-        answer: `لو لسه بتسأل عن ${name}، تقصد نسبة التحمل، الحد المتبقي، ولا شرط الموافقة المسبقة؟` };
+      return deliver({ code: "CLARIFICATION_NEEDED",
+        answer: `لو لسه بتسأل عن ${name}، تقصد نسبة التحمل، الحد المتبقي، ولا شرط الموافقة المسبقة؟` });
     }
     if (resolution.action === "ground" || resolution.action === "clarify" && resolution.reason === "conflict") {
-      return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE);
+      return decline("CLARIFICATION_NEEDED", CLARIFY_SERVICE, true);
     }
     if (resolution.action === "clarify") {
-      auth.awaitConversationService(session, resolution.focus);
-      const reply = conversationReply({ intent: resolution.reason === "multiple" ? "CLARIFY" : "FOLLOW_UP",
-        subject: resolution.reason === "multiple" ? "MULTIPLE" : "NONE", focus: resolution.focus });
-      return { status: 200, ...reply };
+      const { reason, focus } = resolution;
+      const reply = conversationReply({ intent: reason === "multiple" ? "CLARIFY" : "FOLLOW_UP",
+        subject: reason === "multiple" ? "MULTIPLE" : "NONE", focus });
+      return deliver(reply, { update: () => auth.awaitConversationService(session, focus) });
     }
     const { service: serviceCode, focus, topic } = resolution;
-    if (topic === "replace") clear();
+    if (topic === "replace" && !turn) clear();
 
     let coverage: Coverage;
     try {
       coverage = validateCoverageResponse(await this.backend.getCoverage(session, serviceCode), serviceCode);
     } catch {
-      clear();
-      return interrupted() ?? COVERAGE_UNAVAILABLE;
+      const stopped = interrupted();
+      if (!turn || !stopped) clear();
+      return stopped ?? COVERAGE_UNAVAILABLE;
     }
     const finished = interrupted();
     if (finished) {
-      clear();
+      if (!turn) clear();
       return finished;
     }
     if (coverage.coverageStatus === "UNKNOWN") {
-      auth.offerConversationReferral(session, "unavailable");
-      return { status: 200, code: "COVERAGE_NOT_AVAILABLE", answer: formatFocusedCoverage(coverage, focus) ?? SAFE_RETRY };
+      return deliver({ code: "COVERAGE_NOT_AVAILABLE", answer: formatFocusedCoverage(coverage, focus) ?? SAFE_RETRY },
+        { update: () => auth.offerConversationReferral(session, "unavailable") });
     }
-    if (topic === "replace") auth.resolveConversationService(session, "", serviceCode);
-    return { status: 200, code: "COVERAGE_RESULT", answer: formatFocusedCoverage(coverage, focus) ?? formatCoverage(coverage) };
+    const focusedAnswer = formatFocusedCoverage(coverage, focus);
+    const blocks = focusedAnswer ? { answer: focusedAnswer } : coverageBlocks(coverage);
+    return deliver({ code: "COVERAGE_RESULT", answer: Object.values(blocks).join(" ") },
+      { update: topic === "replace" ? () => auth.resolveConversationService(session, "", serviceCode) : undefined,
+        note: { kind: "coverage", service: serviceCode, focus }, explainBenefit: coverage.coverageStatus !== "NOT_COVERED", blocks });
   }
 }
 
 function formatCoverage(coverage: Coverage): string {
+  return Object.values(coverageBlocks(coverage)).join(" ");
+}
+
+function coverageBlocks(coverage: Coverage): Readonly<Record<string, string>> {
   const name = SERVICE_CATALOG[coverage.serviceCode].name;
-  if (coverage.coverageStatus === "UNKNOWN") return `مش قادرين نحدد تغطية ${name} من البيانات الحالية. راجع خدمة العملاء. (بيانات تجريبية)`;
-  if (coverage.coverageStatus === "NOT_COVERED") return `${name} غير مغطّى حسب الوثيقة التجريبية الحالية. لو عندك استفسار راجع خدمة العملاء. (بيانات تجريبية)`;
-  if (coverage.coverageStatus !== "COVERED" && coverage.coverageStatus !== "COVERED_WITH_CONDITIONS") return SAFE_RETRY;
+  if (coverage.coverageStatus === "UNKNOWN") return { answer: `مش قادرين نحدد تغطية ${name} من البيانات الحالية. راجع خدمة العملاء. (بيانات تجريبية)` };
+  if (coverage.coverageStatus === "NOT_COVERED") return { answer: `${name} غير مغطّى حسب الوثيقة التجريبية الحالية. لو عندك استفسار راجع خدمة العملاء. (بيانات تجريبية)` };
   const conditions = coverage.coverageStatus === "COVERED_WITH_CONDITIONS" ? " بشروط" : "";
-  const parts = [`${name} مغطّى${conditions} حسب بيانات الوثيقة التجريبية.`];
-  if (coverage.copayPercent !== null && Number.isFinite(coverage.copayPercent)) parts.push(`نسبة التحمل: ${coverage.copayPercent}%.`);
-  if (coverage.remainingLimit !== null && Number.isFinite(coverage.remainingLimit)) parts.push(`الحد المتبقي: ${coverage.remainingLimit.toLocaleString("en-US")} جنيه.`);
-  if (coverage.requiresPreApproval === true) parts.push("لازم موافقة مسبقة من المختص قبل تقديم الخدمة، وده مش قرار موافقة.");
-  else if (coverage.requiresPreApproval === null) parts.push("حالة الموافقة المسبقة غير معروفة؛ راجع خدمة العملاء.");
-  parts.push("(بيانات تجريبية وليست تأكيد تغطية حقيقي)");
-  return parts.join(" ");
+  const blocks: Record<string, string> = { answer: `${name} مغطّى${conditions} حسب بيانات الوثيقة التجريبية.` };
+  if (coverage.copayPercent !== null) blocks.copay = `نسبة التحمل: ${coverage.copayPercent}%.`;
+  if (coverage.remainingLimit !== null) blocks.limit = `الحد المتبقي: ${formatRemainingLimit(coverage.remainingLimit)} جنيه.`;
+  if (coverage.requiresPreApproval === true) blocks.preapproval = "لازم موافقة مسبقة من المختص قبل تقديم الخدمة، وده مش قرار موافقة.";
+  else if (coverage.requiresPreApproval === null) blocks.preapproval = "حالة الموافقة المسبقة غير معروفة؛ راجع خدمة العملاء.";
+  blocks.disclaimer = "(بيانات تجريبية وليست تأكيد تغطية حقيقي)";
+  return blocks;
 }

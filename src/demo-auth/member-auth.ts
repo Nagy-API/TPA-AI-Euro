@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { ServiceCode, VerifiedSession } from "../contracts.ts";
 import { CoverageConversation } from "../coverage-conversation.ts";
-import type { DialogueContext, Focus } from "../conversation-intent.ts";
+import type { ConversationNote, DialogueContext, Focus } from "../conversation-intent.ts";
 import { DEMO_MEMBERS } from "./fixtures.ts";
 
 const CHALLENGE_TTL_MS = 2 * 60_000;
@@ -26,7 +26,7 @@ type Challenge = {
   window: VerificationWindow;
 };
 
-type SessionRecord = Readonly<{ scope: VerifiedSession; conversation: CoverageConversation }>;
+type SessionRecord = Readonly<{ scope: VerifiedSession; conversation: CoverageConversation; lifetime: AbortController }>;
 
 function randomToken(): string {
   return randomBytes(32).toString("base64url");
@@ -103,14 +103,15 @@ export class DemoMemberAuth {
     this.challenges.delete(challengeId);
     for (const [digest, { scope }] of this.sessions) {
       if (scope.expiresAt <= now || (scope.memberKey === member.memberKey && scope.tenantKey === member.tenantKey)) {
-        this.sessions.delete(digest);
+        this.endSession(digest);
       }
     }
     const expiresAt = now + SESSION_TTL_MS;
     const sessionToken = randomToken();
     this.sessions.set(tokenDigest(sessionToken), {
       scope: Object.freeze({ memberKey: member.memberKey, tenantKey: member.tenantKey, expiresAt }),
-      conversation: new CoverageConversation()
+      conversation: new CoverageConversation(),
+      lifetime: new AbortController()
     });
     return { sessionToken, sessionExpiresAt: new Date(expiresAt).toISOString() };
   }
@@ -121,12 +122,12 @@ export class DemoMemberAuth {
     const session = this.sessions.get(digest);
     if (!session) return null;
     if (session.scope.expiresAt > this.now()) return session.scope;
-    this.sessions.delete(digest);
+    this.endSession(digest);
     return null;
   }
 
   revokeSession(token: string): void {
-    if (OPAQUE_TOKEN.test(token)) this.sessions.delete(tokenDigest(token));
+    if (OPAQUE_TOKEN.test(token)) this.endSession(tokenDigest(token));
   }
 
   isActive(session: VerifiedSession): boolean {
@@ -145,6 +146,20 @@ export class DemoMemberAuth {
   conversationContext(session: VerifiedSession): DialogueContext {
     const now = this.now();
     return this.findActiveRecord(session, now)?.conversation.context(now) ?? { kind: "idle" };
+  }
+
+  conversationSignal(session: VerifiedSession): AbortSignal {
+    return this.findActiveRecord(session, this.now())?.lifetime.signal ?? AbortSignal.abort();
+  }
+
+  recentConversationTurns(session: VerifiedSession): readonly ConversationNote[] {
+    const now = this.now();
+    return this.findActiveRecord(session, now)?.conversation.recentTurns(now) ?? [];
+  }
+
+  rememberConversationTurn(session: VerifiedSession, note: ConversationNote): void {
+    const now = this.now();
+    this.findActiveRecord(session, now)?.conversation.remember(note, now, session.expiresAt);
   }
 
   awaitConversationService(session: VerifiedSession, focus: Focus): void {
@@ -169,9 +184,15 @@ export class DemoMemberAuth {
     for (const [digest, record] of this.sessions) {
       if (record.scope !== session) continue;
       if (session.expiresAt > now) return record;
-      this.sessions.delete(digest);
+      this.endSession(digest);
       break;
     }
     return undefined;
+  }
+
+  private endSession(digest: string): void {
+    const record = this.sessions.get(digest);
+    this.sessions.delete(digest);
+    record?.lifetime.abort();
   }
 }

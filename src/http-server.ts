@@ -20,9 +20,13 @@ const DEMO_ASSETS = new Map<string, { type: string; body: Buffer }>(([
   path, { type, body: readFileSync(new URL(`./web-demo/${file}`, import.meta.url)) }
 ] as const));
 
-function demoPage(useOllama: boolean, chatTimeoutMs: number) {
-  const label = useOllama ? "Synthetic Data / Local Ollama" : "Synthetic Data / Offline Simulation / Not Real AI";
-  const description = useOllama
+type DemoDisplayMode = boolean | "hub" | "ollama-v05";
+
+function demoPage(mode: DemoDisplayMode, chatTimeoutMs: number) {
+  const experimental = mode === "hub" || mode === "ollama-v05";
+  const label = experimental ? `Synthetic Data / ${mode === "hub" ? "Local AI Hub" : "Local Ollama"} / V0.5` :
+    mode ? "Synthetic Data / Local Ollama" : "Synthetic Data / Offline Simulation / Not Real AI";
+  const description = experimental ? "محادثة بموديل محلي وتغطية من بيانات وثائق تجريبية. استخدم بيانات وهمية فقط." : mode
     ? "اختيار الخدمة بموديل محلي. استخدم بيانات اختبار وهمية فقط."
     : "محاكاة بدون اتصال خارجي. استخدم بيانات اختبار وهمية فقط.";
   return {
@@ -73,9 +77,9 @@ function isLocalRequest(req: IncomingMessage): boolean {
 /** Both the verified and compatibility demos require explicit enablement and loopback HTTP. */
 export function createDemoServer(
   assistant: CoverageAssistant, demoEnabled: boolean, memberAuth?: DemoMemberAuth,
-  useOllama = false, chatTimeoutMs = CHAT_REQUEST_TIMEOUT_MS
+  displayMode: DemoDisplayMode = false, chatTimeoutMs = CHAT_REQUEST_TIMEOUT_MS
 ) {
-  const page = demoPage(useOllama, chatTimeoutMs);
+  const page = demoPage(displayMode, chatTimeoutMs);
   return createServer(async (req, res) => {
     if (req.url === "/health" && req.method === "GET") {
       writeJson(res, 200, { status: "ok", mode: "demo", productionReady: false });
@@ -114,6 +118,7 @@ export function createDemoServer(
       return;
     }
     const controller = chat ? new AbortController() : undefined;
+    const requestDeadline = chat ? Date.now() + chatTimeoutMs : undefined;
     const deadline = controller && setTimeout(() => {
       controller.abort();
       if (!res.destroyed && !res.writableEnded) {
@@ -138,7 +143,7 @@ export function createDemoServer(
         writeJson(res, session ? 200 : 401, session ?? { error: "VERIFICATION_FAILED" });
         return;
       }
-      const reply = await assistant.answer(token, json.message, controller?.signal);
+      const reply = await assistant.answer(token, json.message, controller?.signal, requestDeadline);
       if (controller?.signal.aborted || res.destroyed) return;
       writeJson(res, reply.status, { code: reply.code, answer: reply.answer });
     } catch {

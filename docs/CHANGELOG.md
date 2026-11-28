@@ -137,3 +137,9 @@
 - Route explicit provider logistics and approval execution requests to replies before inference or policy lookup. A service mention in a broader message also needs coverage evidence or a pending service clarification.
 - Keep an active service and its original expiry when grounded benefit categories conflict. Ask which benefit the member meant with no additional lookup. Preserve the service when explaining the difference between a displayed limit and an amount due.
 - Accept corroborated preapproval and CBC descriptions, and preserve the referral when the member asks whom to contact. Added resolver and verified HTTP coverage for these cases.
+
+## 2026-11-28 — V0.5 bounded conversational experiment
+
+- Added `hub` and `ollama-v05` for the verified localhost demo. Both transports use structured interpretation and approved reply composition through the same inference port.
+- Bound conversation summaries to the verified session and corroborate the proposed read against the current turn. Preserve fresh synthetic policy values, conditions and currency by rendering approved clauses in TPA.
+- Added contextual public FAQ examples, human contact guidance, provider timeout handling and regression tests for unsafe proposals, fabricated benefits, session isolation and cancellation. See the [V0.5 verification record](../PROJECT_STATUS.md#v05-bounded-conversational-experiment).
