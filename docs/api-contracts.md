@@ -92,6 +92,12 @@ The Ollama chat uses `OUT_OF_SCOPE` for requests for the member's name, policy t
 
 Explicit provider logistics and requests to execute an approval use `OUT_OF_SCOPE` even if the message names a supported procedure. A conflict about which benefit the user is asking for can return `CLARIFICATION_NEEDED` while leaving the current service and expiry in place. Neither response reads coverage.
 
+## Local V0.5 conversation modes
+
+The verified chat keeps the existing HTTP request and response envelope. TPA derives the conversation from the verified session. A request can supply only its current message for inference. Experimental mode `hub` sends structured inference from TPA to the loopback Hub. Mode `ollama-v05` sends the same structured request directly to local Ollama.
+
+An interpretation or grounding failure returns HTTP 503 `AI_UNAVAILABLE`. An inference deadline returns HTTP 503 `CHAT_TIMEOUT`. A revoked or expired session returns HTTP 401 `VERIFICATION_REQUIRED`. TPA uses deterministic approved text for an invalid composition or an ordinary drafting failure. Explicit human-contact requests use `OUT_OF_SCOPE` and direct the member to the contact details in their policy.
+
 ## Backend contract review checklist
 
 - [ ] Tenant and member scoping must be server-side and enforced on every query.

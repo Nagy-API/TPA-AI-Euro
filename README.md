@@ -157,13 +157,44 @@ The service checks for a local GGUF model and calls only Ollama on `127.0.0.1:11
 
 Chat has a 30-second server deadline and a 35-second browser deadline. A server deadline returns `CHAT_TIMEOUT` with HTTP 503. One verified service topic lasts up to two minutes. An accepted follow-up fetches fresh coverage without extending that window. Concurrent Ollama turns in the same session receive `CHAT_BUSY` while the first turn is running. The model gets the current synthetic question and a flag indicating whether a topic exists. Run `node --experimental-strip-types scripts/evaluate-ollama-conversation.ts` with `OLLAMA_MODEL` set for the integrated V0.4 evaluation. Add `--independent` for the reviewer-authored sequence or `--fresh` for the verifier-authored sequence. The older Ollama evaluators exercise the V0.3 selector for historical comparison.
 
+### Run the V0.5 conversational experiment
+
+V0.5 is an opt-in experiment for the verified, synthetic Web Demo. Choose `hub` for the Local AI Hub or `ollama-v05` to run the same conversation logic directly against Ollama. Both use a locally installed model. The existing `fixture` and `ollama` modes still select the fixture and V0.4 paths.
+
+For Hub mode, start the current Local AI Hub HTTP app in a separate PowerShell terminal using the Hub launcher's configured Python environment. Wait for its local `/health` endpoint to report online. Use the Hub's `local-instruct` profile for the matching direct Ollama comparison.
+
+```powershell
+Set-Location -LiteralPath 'N:\LocalAIHub'
+python -B -m uvicorn hub_dashboard:app --host 127.0.0.1 --port 8000 --workers 1 --no-proxy-headers --no-access-log
+```
+
+From the TPA repository terminal, run:
+
+```powershell
+$env:ENABLE_DEMO_AUTH = 'true'
+$env:DEMO_AUTH_MODE = 'verified'
+$env:DEMO_INTENT_MODE = 'hub'
+$env:LOCAL_AI_HUB_PROFILE = 'local-instruct'
+npm run dev
+```
+
+For the direct comparison, set `DEMO_INTENT_MODE` to `ollama-v05` and `OLLAMA_MODEL` to the already installed `qwen3:4b-instruct` in the TPA terminal. Restart TPA after changing the mode.
+
+Open [the local Web Demo](http://127.0.0.1:3000/demo). Select Gold and verify with the public test code `135790`.
+
+1. Ask «هل الرنين المغناطيسي مغطى؟» followed by «وطب نسبة التحمل كام؟». Check for conditional coverage including the required prior approval. The overview should show a 20% co-pay and a remaining 5,000 EGP. The follow-up should still say 20% and qualify it with the prior-approval condition.
+2. Ask «يعني إيه الحد المتبقي؟» and then «عايز مثال». The second answer should give an example of that same definition. Try «هل تبييض الأسنان مغطى؟» and «عايز أكلم خدمة العملاء» for unsupported-service and referral replies.
+3. Log out and verify as Silver using `246801`. Start with «وطب نسبة التحمل كام؟» and check that the assistant asks which procedure you mean. Ask for MRI explicitly and check that Silver's test policy shows an exclusion.
+
+The experiment retains up to three sanitized turn summaries per verified session for up to two minutes. Older summaries carry no permission to read coverage. The provider proposes a single read and chooses which approved clauses to include or foreground. TPA checks the proposal against the current question and verified topic, fetches current synthetic coverage, validates the result and renders the exact approved text. See [the V0.5 decision](docs/decisions/0004-bounded-conversational-composition.md) and [verification status](PROJECT_STATUS.md#v05-bounded-conversational-experiment).
+
 ### Later: Run with Claude tool-use (DEFERRED until Nagy approves cost)
 
 ```bash
 ENABLE_DEMO_AUTH=true DEMO_AUTH_MODE=legacy DEMO_INTENT_MODE=claude ALLOW_PAID_LLM=true npm run dev
 ```
 
-Verified mode supports fixture and local Ollama. The deferred Claude experiment requires legacy mode, `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Keep credentials out of Git and chat. The adapter receives the question and public fictional service catalog. Use synthetic questions only, pending data-handling approval and a PII minimization design.
+The deferred Claude experiment requires legacy mode, `DEMO_INTENT_MODE=claude`, `ALLOW_PAID_LLM=true`, and locally configured `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`. Keep credentials out of Git and chat. The adapter receives the question and public fictional service catalog. Use synthetic questions only, pending data-handling approval and a PII minimization design.
 
 This integration calls the documented Anthropic Messages HTTPS endpoint directly for now, with a small replaceable adapter; migrating to the official SDK is a planned follow-up. **No real Claude call is claimed as verified** without credentials and measured outputs. Official tool-use docs: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
 

@@ -78,7 +78,10 @@ test("entrypoint refuses production and non-offline verified mode before startup
   for (const [settings, expected] of [
     [{ NODE_ENV: "production" }, /Refusing to start/],
     [{ DEMO_INTENT_MODE: "claude" }, /VERIFIED_DEMO_REQUIRES_OFFLINE_SELECTOR/],
-    [{ DEMO_INTENT_MODE: "ollama", DEMO_AUTH_MODE: "legacy" }, /OLLAMA_REQUIRES_VERIFIED_DEMO/]
+    [{ DEMO_INTENT_MODE: "ollama", DEMO_AUTH_MODE: "legacy" }, /OLLAMA_REQUIRES_VERIFIED_DEMO/],
+    [{ DEMO_INTENT_MODE: "hub", DEMO_AUTH_MODE: "legacy" }, /CONVERSATION_REQUIRES_VERIFIED_DEMO/],
+    [{ DEMO_INTENT_MODE: "ollama-v05", DEMO_AUTH_MODE: "legacy" }, /CONVERSATION_REQUIRES_VERIFIED_DEMO/],
+    [{ DEMO_INTENT_MODE: "hub", LOCAL_AI_HUB_PROFILE: "commercial" }, /HUB_PROFILE_NOT_LOCAL/]
   ] as const) {
     const result = spawnSync(process.execPath, NODE_ARGS, {
       env: { ...demoEnv(), ...settings },
@@ -100,3 +103,15 @@ test("explicit Ollama mode serves the existing verified web demo without calling
   assert.match(await demo.text(), /Synthetic Data \/ Local Ollama/);
   assert.equal((await post(baseUrl, "/v1/chat", { message: "Is MRI covered?" })).status, 401);
 });
+
+for (const [mode, label] of [["hub", "Local AI Hub"], ["ollama-v05", "Local Ollama"]] as const) {
+  test(`explicit ${mode} mode serves the verified V0.5 demo without calling its provider at startup`, { timeout: 10_000 }, async (t) => {
+    const baseUrl = await startEntrypoint(t, {
+      ...demoEnv(), DEMO_INTENT_MODE: mode, OLLAMA_MODEL: "qwen3:4b-instruct", LOCAL_AI_HUB_PROFILE: "local-instruct"
+    });
+    const demo = await fetch(baseUrl + "/demo");
+    assert.equal(demo.status, 200);
+    assert.ok((await demo.text()).includes(`Synthetic Data / ${label} / V0.5`));
+    assert.equal((await post(baseUrl, "/v1/chat", { message: "Is MRI covered?" })).status, 401);
+  });
+}

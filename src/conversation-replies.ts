@@ -4,6 +4,11 @@ import type { Coverage } from "./contracts.ts";
 export const OTHER_ACCOUNT = "أقدر أراجع تغطية حسابك التجريبي الحالي بس. صاحب الحساب التاني يقدر يسأل من جلسته بعد التحقق.";
 export const UNSUPPORTED_SERVICE = "الخدمة دي مش ضمن الخدمات اللي أقدر أراجعها في الديمو. ده ما يحددش إذا كانت وثيقتك بتغطيها. اسأل خدمة العملاء عن الخدمة دي.";
 export const CLARIFY_SERVICE = "ممكن تقول اسم الفحص اللي الدكتور طلبه أو توصف بيتعمل إزاي؟";
+const limitFormatter = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 21 });
+
+export function formatRemainingLimit(amount: number): string {
+  return limitFormatter.format(amount);
+}
 
 export function explainConversation(purpose: Extract<TurnResolution, { action: "explain" }>["purpose"]) {
   if (purpose === "approval-action") return {
@@ -29,7 +34,7 @@ export function explainConversation(purpose: Extract<TurnResolution, { action: "
   };
 }
 
-const FAQ = {
+export const FAQ_DEFINITIONS = {
   COPAY: "نسبة التحمل هي الجزء اللي عليك من تكلفة الخدمة المؤهلة للتغطية. النسبة بتختلف حسب الخدمة والوثيقة.",
   LIMIT: "الحد المتبقي هو الجزء اللي لسه متاح من حد التغطية في الوثيقة. المبلغ اللي عليك بيتحدد من تكلفة الخدمة وشروط التغطية.",
   PREAPPROVAL: "الموافقة المسبقة معناها إن الجهة المختصة لازم تراجع طلب الخدمة قبل تقديمها، حسب شروط الوثيقة."
@@ -45,7 +50,9 @@ export function conversationReply({ intent, subject }: ConversationIntent) {
           : "أقدر أراجع تغطية فحص في وثيقتك التجريبية، وأقولك نسبة التحمل والحد المتبقي ولو محتاج موافقة مسبقة، حسب البيانات المتاحة."
       };
     case "FAQ":
-      if (subject === "COPAY" || subject === "LIMIT" || subject === "PREAPPROVAL") return { code: intent, answer: FAQ[subject] };
+      if (subject === "COPAY" || subject === "LIMIT" || subject === "PREAPPROVAL") {
+        return { code: intent, answer: FAQ_DEFINITIONS[subject] };
+      }
       break;
     case "UNSUPPORTED_SERVICE":
       return { code: intent, answer: UNSUPPORTED_SERVICE };
@@ -78,7 +85,7 @@ export function formatFocusedCoverage(coverage: Coverage, focus: Focus): string 
   if (focus === "LIMIT") {
     return coverage.remainingLimit === null
       ? `الحد المتبقي لـ${name} مش متاح في بيانات الوثيقة.${conditions}${demo}`
-      : `الحد المتبقي لـ${name} هو ${coverage.remainingLimit.toLocaleString("en-US")} جنيه.${conditions}${demo}`;
+      : `الحد المتبقي لـ${name} هو ${formatRemainingLimit(coverage.remainingLimit)} جنيه.${conditions}${demo}`;
   }
   if (coverage.requiresPreApproval === null) return `شرط الموافقة المسبقة لـ${name} مش معروف من بيانات الوثيقة.${conditions}${demo}`;
   return coverage.requiresPreApproval

@@ -6,6 +6,21 @@
 **Default branch:** `main`  
 **Current milestone:** V0.3 local Ollama intent-selection **MERGED into `main`** (synthetic local PoC); backend contract and real service integration remain deferred.
 
+## V0.5 bounded conversational experiment
+
+Experimental branch `codex/v05-conversational-slice` starts from reviewed V0.4 commit `3507ed632bb775d30d890f5c93249a341bbe9623`. The stacked review depends on [V0.4 Draft PR #19](https://github.com/Nagy-API/TPA-AI-Euro/pull/19). Choose `hub` or `ollama-v05` in the verified synthetic demo. [Architecture decision](docs/decisions/0004-bounded-conversational-composition.md) · [Browser walkthrough](README.md#run-the-v05-conversational-experiment)
+
+The V0.5 model interprets current synthetic text with a bounded summary, proposes one coverage read where appropriate, and arranges approved answer clauses. TPA verifies the proposal against present-turn evidence and the authorized session. It owns model cancellation, tool execution, fresh validated coverage, exact values, coverage conditions and final rendering. Public definitions support contextual examples. Unavailable and unsupported requests can direct a member to the contact details in their policy.
+
+### Verification
+
+- `npm test` passed 138/138, including 14 V0.5 orchestration and stubbed-transport tests and two new startup checks. Strict TypeScript 5.9.3 over `src`, `scripts` and `tests`, `npm run docs:check` and `git diff --check` passed. `npm run eval:cases` listed 21 synthetic cases.
+- Sequential verified HTTP smoke passed 9/9 turns with direct Ollama and 9/9 with the Local AI Hub. Both used the installed `qwen3:4b-instruct` on Ollama 0.40.19, digest prefix `0edcdef34593`. Each made the four expected policy reads. None was wrong, unexpected or out of scope in this sample. The smoke covered conditional Gold MRI, its copay follow-up, a definition and requested example, missing X-ray fixture data, an unsupported procedure, human contact guidance, a fresh Silver session without a topic and Silver MRI exclusion.
+- Chrome exercised the Hub-backed Gold verification, conditional MRI overview, 20% copay follow-up with prior-approval condition and definition, and logout. The console showed zero warnings or errors for the checked flow.
+- In this smoke the copay turn took about 1.24 s direct and 10.22 s via Hub. The Hub profile unloads the model after each completion. This is a small disclosed smoke, without a controlled cold/warm benchmark.
+
+Model quality on unseen conversations, real authentication, production isolation and real policy data remain outside the experiment.
+
 ## V0.4 grounded conversation — Issue #17
 
 V0.4 is proposed on `codex/v04-grounded-conversation`. The verified Web Demo uses local `qwen3:4b-instruct` for intent, reply subject and focus. A verified session holds one service topic, pending clarification, or non-lookup referral for up to two minutes. Every accepted coverage follow-up fetches current mock data. The model receives synthetic text and a dialogue-state hint. Approved reply text and validated mock benefits are rendered on the server. See the [response and state diagnosis](docs/v04-qa2-diagnostics.md#response-and-state-defects-at-reviewed-head-4b2b732).
